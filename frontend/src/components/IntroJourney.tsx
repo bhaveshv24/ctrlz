@@ -62,7 +62,6 @@ export default function IntroJourney({
         enter();
         return;
       }
-      el.querySelectorAll(".journey-stops button").forEach((button, index) => button.setAttribute("aria-current", String(index === active)));
       panels.forEach((panel, index) => {
         const { opacity, visible, offset } = chapterTransition(position, index);
         panel.style.opacity = String(opacity);
@@ -211,15 +210,7 @@ export default function IntroJourney({
           </div>
           <footer className="journey-footer">
             <span>Scroll to explore</span>
-            <nav className="journey-stops" aria-label="Introduction chapters">
-              {chapters.map((chapter, index) => <button key={chapter.eyebrow} type="button"
-                aria-label={`Go to ${chapter.eyebrow}`} onClick={() => {
-                  const el = host.current;
-                  if (!el) return;
-                  el.dispatchEvent(new Event("pointerdown"));
-                  el.scrollTo({top: (index / 4.25) * (el.scrollHeight - el.clientHeight), behavior: "instant"});
-                }}>{index + 1}</button>)}
-            </nav>
+
           </footer>
         </div>
       </div>
