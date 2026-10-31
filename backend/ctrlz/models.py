@@ -96,6 +96,13 @@ class FileChange(Strict):
 
 
 class SourceEdit(Strict):
+    @model_validator(mode="before")
+    @classmethod
+    def discard_edit_annotation(cls, value):
+        if isinstance(value, dict):
+            return {key: item for key, item in value.items() if key != "is_edit"}
+        return value
+
     path: str
     before: str = Field(min_length=1, max_length=12000)
     after: str = Field(max_length=18000)
@@ -103,9 +110,20 @@ class SourceEdit(Strict):
 
 class RequirementFinding(Strict):
     requirement: str = Field(min_length=1, max_length=1000)
-    status: Literal["implemented", "incomplete", "unknown"]
+    status: Literal["implemented", "incomplete", "unknown"] = "unknown"
+
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_advisory_status(cls, value):
+        if isinstance(value, dict):
+            value = dict(value)
+            state = value.get("status", "unknown")
+            if not isinstance(state, str):state = "unknown"
+            value["status"] = state if state in {"implemented", "incomplete", "unknown"} else "incomplete" if state in {"failed", "failing", "missing", "partial"} else "unknown"
+        return value
+
     evidence_paths: list[str] = Field(default_factory=list, max_length=20)
-    explanation: str = Field(max_length=2000)
+    explanation: str = Field(default="", max_length=2000)
 
 
 class CodeProposal(Strict):

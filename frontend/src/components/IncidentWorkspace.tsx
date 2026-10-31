@@ -115,7 +115,9 @@ export default function IncidentWorkspace({
     stages = lifecycle(receipt),
     candidates = i.plan?.candidates || [],
     decisions = i.tournament || [],
-    tools = receipt.events.filter((e) => e.stage === "tool_result"),
+    tools = receipt.events.filter((e) => ["tool_result", "repository_context", "baseline_tests", "code_proposal_rejected", "candidate_tests", "guard_candidate_tests"].includes(e.stage)),
+    lastProposal = receipt.events.filter(e => e.stage === "code_proposal").slice(-1)[0]?.payload,
+    terminal = ["resolved", "blocked", "escalated"].includes(i.status),
     tabs = [
       "Story",
       "Strategies",
@@ -249,8 +251,8 @@ export default function IncidentWorkspace({
       )}
       <ol className="lifecycle" aria-label="Recorded recovery stages">
         {stages.map((stage, index) => (
-          <li className={stage.recorded ? "recorded" : ""} key={stage.name}>
-            <span>{stage.recorded ? <Check size={12} /> : index + 1}</span>
+          <li className={stage.failed ? "failed" : stage.recorded ? "recorded" : ""} key={stage.name}>
+            <span>{stage.failed ? <X size={12} /> : stage.recorded ? <Check size={12} /> : index + 1}</span>
             <strong>{stage.name}</strong>
           </li>
         ))}
@@ -351,8 +353,8 @@ export default function IncidentWorkspace({
                 <div className="markdown">
                   <Markdown remarkPlugins={[remarkGfm]} skipHtml>
                     {i.diagnosis ||
-                      i.plan?.diagnosis ||
-                      "The diagnosis has not been recorded yet. Read-only diagnostic tools may still be gathering evidence."}
+                      i.plan?.diagnosis || lastProposal?.diagnosis ||
+                      (terminal ? "No valid diagnosis was returned. Inspect the recorded test results and rejected proposals below." : "Read-only diagnostic tools are gathering evidence.")}
                   </Markdown>
                 </div>
                 {!!i.requirement_assessment?.length && <details>
@@ -372,7 +374,7 @@ export default function IncidentWorkspace({
                     <span className="eyebrow">SOURCE EVIDENCE</span>
                     <h2>Observed, not assumed</h2>
                   </div>
-                  <span className="count">{tools.length} tool results</span>
+                  <span className="count">{tools.length} evidence records</span>
                 </div>
                 {tools.length ? (
                   tools.slice(-6).map((e) => <Evidence key={e.id} event={e} />)
@@ -389,7 +391,7 @@ export default function IncidentWorkspace({
                 <h2>
                   {i.selected
                     ? "Selected recovery"
-                    : "No strategy selected yet"}
+                    : i.kind === "code" ? (i.selected_code_strategy ? "Selected: " + i.selected_code_strategy : terminal ? "No repair passed verification" : "Evaluating repair candidates") : "No strategy selected yet"}
                 </h2>
                 {i.selected ? (
                   <>
@@ -415,8 +417,9 @@ export default function IncidentWorkspace({
                   </>
                 ) : (
                   <p>
-                    The planner must produce an eligible strategy before
-                    execution.
+                    {i.kind === "code"
+                      ? i.selected_code_strategy ? "The selected candidate passed the original acceptance suite." : terminal ? "Candidates were rejected. No verified repair is available for this run." : "CtrlZ is testing candidates against the existing acceptance suite."
+                      : "The planner must produce an eligible strategy before execution."}
                   </p>
                 )}
               </section>
@@ -836,7 +839,7 @@ function ApprovalDetail({ candidate }: { candidate: Candidate }) {
 }
 function Evidence({ event }: { event: FlightEvent }) {
   const p = event.payload,
-    r = p.result;
+    r = event.stage === "tool_result" ? p.result : p;
   return (
     <details className="evidence-item">
       <summary>
@@ -845,7 +848,7 @@ function Evidence({ event }: { event: FlightEvent }) {
         </span>
         <div>
           <strong>
-            {p.tool === "runbook_search"
+            {event.stage !== "tool_result" ? words(event.stage) : p.tool === "runbook_search"
               ? "Runbook retrieval"
               : words(p.tool || "diagnostic tool")}
           </strong>

@@ -9,7 +9,7 @@ import tempfile
 from collections import Counter
 from pathlib import Path
 from pydantic import ValidationError
-from .models import ImportRequest
+from .models import ImportRequest, CodeProposal, SourceEdit
 from .repository import editable, git, inspect_repository, relative_path
 from .sandbox import Sandbox
 from .code_tournament import CodeTournament
@@ -51,6 +51,51 @@ def embedded_doctests(root, paths):
         docs = [ast.get_docstring(node, clean=False) for node in ast.walk(tree) if isinstance(node,(ast.Module,ast.ClassDef,ast.FunctionDef,ast.AsyncFunctionDef))]
         result[name] = [doc for doc in docs if doc and '>>>' in doc]
     return result
+
+
+def preserve_rejection_guards(before, after, filename):
+    if Path(filename).suffix != '.py':
+        return
+    def conditions(source):
+        tree = ast.parse(source, filename=filename)
+        signatures = []
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.If) or not any(isinstance(statement, ast.Raise) for statement in node.body):
+                continue
+            for comparison in ast.walk(node.test):
+                if isinstance(comparison, ast.Compare) and any(isinstance(part, ast.Constant) and isinstance(part.value, str) for part in comparison.comparators):
+                    signatures.append(ast.dump(ast.Tuple(elts=[comparison.left, *comparison.comparators], ctx=ast.Load())))
+        return Counter(signatures)
+    try:
+        original = conditions(before)
+    except SyntaxError:
+        return
+    candidate = conditions(after)
+    if original - candidate:
+        raise ValueError(f'{filename}: repair removes or changes a rejection precondition. Preserve the required state/value and fix the comparison without removing validation or substituting a blacklist.')
+
+
+def guard_comparison_repairs(root, names, limit=4):
+    proposals = []
+    for name in names:
+        if Path(name).suffix != '.py':continue
+        target = validate_path(root, name)
+        if not target.is_file():continue
+        source = target.read_text()
+        try:tree = ast.parse(source)
+        except SyntaxError:continue
+        for branch in ast.walk(tree):
+            if not isinstance(branch, ast.If) or not any(isinstance(statement, ast.Raise) for statement in branch.body):continue
+            for node in ast.walk(branch.test):
+                if not isinstance(node, ast.Compare) or len(node.ops) != 1 or not isinstance(node.left, (ast.Name, ast.Attribute)):continue
+                if not isinstance(node.comparators[0], ast.Constant) or not isinstance(node.comparators[0].value, str):continue
+                if not isinstance(node.ops[0], (ast.Eq, ast.NotEq)):continue
+                before = ast.get_source_segment(source, node)
+                if not before or source.count(before) != 1:continue
+                old, new = ('==', '!=') if isinstance(node.ops[0], ast.Eq) else ('!=', '==')
+                proposals.append(CodeProposal(diagnosis='Evaluate a minimal rejection-guard comparison correction; preserve its required value and all other source.', edits=[SourceEdit(path=name, before=before, after=before.replace(old,new,1))]))
+                if len(proposals) >= limit:return proposals
+    return proposals
 
 
 def acceptance(baseline, candidate, immutable):
@@ -199,11 +244,12 @@ class Continuation:
             relevant_tests = [p for p in inspection['tests'] if Path(p).stem in failed_ids]
             failure_output = baseline.get('output', '')
             implicated_sources = [name for name in inspection['editable_files'] if name in failure_output]
-            selected = implicated_sources+[p for p in paths if p in {'pyproject.toml', 'package.json', 'requirements.txt'}]+inspection['editable_files'][:3]+relevant_tests+inspection['tests'][:2]
-            budget = 20000
+            # Prioritize failing test context over unrelated source excerpts.
+            selected = implicated_sources+relevant_tests+inspection['tests'][:2]+[p for p in paths if p in {'pyproject.toml', 'package.json', 'requirements.txt'}]+inspection['editable_files'][:3]
+            budget = 42000
             for name in dict.fromkeys(selected):
                 text = (worktree/name).read_text(errors='replace')
-                excerpt = text[:min(8000,budget)]
+                excerpt = text[:min(12000,budget)]
                 if excerpt:initial[name] = excerpt
                 budget -= len(excerpt)
                 if budget <= 0:break
@@ -216,6 +262,7 @@ class Continuation:
             diff = ''
             result = {'exit_code':4,'cases':[],'output':'No valid agent proposal'}
             agent_error = None
+            repair_origin = None
             for attempt in range(3):
                 for name, original in originals.items():
                     target = worktree/name
@@ -227,18 +274,23 @@ class Continuation:
                 originals = {}; new_files = set()
                 self.store.update(incident_id, status='planning')
                 context = {**baseline, 'profile': inspection['profile'], 'repository_tree': paths[:1000], 'previous_attempt': feedback, '_workspace': str(worktree), '_allowed_files': paths, '_record': lambda payload:self.store.record(incident_id,'tool_result',payload)}
-                try:
-                    proposal = await reasoner.code(request, initial, context)
-                except ValidationError as exc:
-                    feedback = {'attempt':attempt+1,'schema_error':str(exc)[:2000],'instruction':'Return the required path, before and after for every edit; preserve tests and source boundaries'}
-                    self.store.record(incident_id,'code_proposal_rejected',feedback)
-                    if attempt == 2:break
-                    continue
-                except Exception as exc:
-                    agent_error = type(exc).__name__+': '+str(exc)[:300]
-                    self.store.record(incident_id,'code_proposal_rejected',{'attempt':attempt+1,'error':agent_error})
+                proposal = None
+                for format_attempt in range(3):
+                    context['previous_attempt'] = feedback
+                    try:
+                        proposal = await reasoner.code(request, initial, context)
+                        break
+                    except ValidationError as exc:
+                        feedback = {**(feedback or {}), 'attempt':attempt+1, 'schema_error':str(exc)[:3000], 'instruction':'Return a complete candidate against the original snapshot, retaining the previous test failure feedback. Each exact edit has ONLY path, before, after. Do not add is_edit or other metadata. Include a nonempty changes or edits array.'}
+                        self.store.record(incident_id,'code_proposal_rejected',{'attempt':attempt+1, 'format_attempt':format_attempt+1, **feedback})
+                    except Exception as exc:
+                        agent_error = type(exc).__name__+': '+str(exc)[:300]
+                        self.store.record(incident_id,'code_proposal_rejected',{'attempt':attempt+1,'error':agent_error})
+                        break
+                if proposal is None:
+                    agent_error = agent_error or 'The reasoning provider did not return a valid source proposal after three format retries'
                     break
-                self.store.update(incident_id, requirement_assessment=[item.model_dump() for item in proposal.requirements], continuation_plan=proposal.continuation_plan)
+                self.store.update(incident_id, diagnosis=proposal.diagnosis, requirement_assessment=[item.model_dump() for item in proposal.requirements], continuation_plan=proposal.continuation_plan)
                 self.store.record(incident_id, 'code_proposal', {'attempt': attempt+1, **proposal.model_dump()})
                 result = {'exit_code': 4, 'cases': [], 'output': 'Candidate not validated'}
                 try:
@@ -259,7 +311,9 @@ class Continuation:
                         target = validate_path(worktree, name)
                         if len(content.encode()) > 256000 or '\x00' in content:
                             raise ValueError('Source change exceeds bounded text limits')
-                        if target.suffix == '.py':ast.parse(content, filename=name)
+                        if target.suffix == '.py':
+                            ast.parse(content, filename=name)
+                            preserve_rejection_guards(target.read_text() if target.exists() else '', content, name)
                     for name, content in replacements.items():
                         target = validate_path(worktree, name)
                         originals[name] = target.read_text() if target.exists() else None
@@ -275,6 +329,32 @@ class Continuation:
                     result = await asyncio.to_thread(sandbox.run)
                 except (SyntaxError, ValueError) as exc:
                     result['output'] = f'{type(exc).__name__}: {str(exc)[:600]}'
+                if 'repair removes or changes a rejection precondition' in result['output']:
+                    self.store.record(incident_id, 'code_proposal_rejected', {'attempt':attempt+1, 'error':result['output'], 'phase':'guard_validation'})
+                    for guard_proposal in guard_comparison_repairs(worktree, [name for name in replacements if name+': repair removes or changes a rejection precondition' in result['output']]):
+                        edit = guard_proposal.edits[0]
+                        target = validate_path(worktree, edit.path)
+                        if edit.path in protected:continue
+                        original = target.read_text()
+                        content = original.replace(edit.before, edit.after, 1)
+                        preserve_rejection_guards(original, content, edit.path)
+                        target.write_text(content)
+                        try:
+                            self.store.update(incident_id, status='verifying')
+                            agent_runs += 1
+                            guard_result = await asyncio.to_thread(sandbox.run)
+                            guard_checks, guard_details = qualify(guard_result)
+                            guard_passed = all(guard_checks.values())
+                            self.store.record(incident_id, 'guard_candidate_tests', {'attempt':attempt+1, 'edit':edit.model_dump(), 'passed':guard_passed, **guard_result})
+                            if guard_passed:
+                                originals[edit.path] = original
+                                result = guard_result
+                                repair_origin = 'Bounded rejection-guard comparison search passed original immutable acceptance; no repository-specific patch was supplied'
+                                self.store.record(incident_id, 'code_proposal', {'attempt':attempt+1, 'origin':'guard_comparison_search', **guard_proposal.model_dump()})
+                                self.store.update(incident_id, diagnosis=guard_proposal.diagnosis)
+                                break
+                        finally:
+                            if edit.path not in originals:target.write_text(original)
                 diff = git(['diff', '--no-ext-diff', '--no-textconv'], worktree)
                 unchanged = immutable_digest(worktree, paths, protected) == immutable and embedded_doctests(worktree, paths) == doctests
                 checks, details = acceptance(baseline, result, unchanged)
@@ -283,7 +363,7 @@ class Continuation:
                 self.store.record(incident_id, 'candidate_tests', {'attempt': attempt+1, 'passed': passed, 'acceptance': details, **result})
                 if passed:break
                 feedback = {'attempt': attempt+1, 'candidate': proposal.model_dump(), 'test_result': result, 'acceptance': details}
-            tournament.agent(result,checks,details,diff,agent_runs,agent_error)
+            tournament.agent(result,checks,details,diff,agent_runs,repair_origin or agent_error)
             winner = tournament.record()
             if winner:
                 result, checks, details, diff = winner['result'], winner['checks'], winner['acceptance'], winner['patch']
@@ -293,7 +373,7 @@ class Continuation:
             unchanged = immutable_digest(worktree,paths,protected)==immutable
             self.store.record(incident_id, 'verification', {**result, 'passed': passed, 'checks': checks, 'acceptance': details, 'original_commit': commit, 'tests_immutable': unchanged, 'selected_strategy':winner['id'] if winner else None})
             artifact = self.artifacts/f'{incident_id}.patch'; artifact.write_text(diff)
-            self.store.update(incident_id, status='resolved' if passed else 'escalated', error=None if passed else 'No candidate passed the original acceptance suite within three attempts', verification={'passed':passed,'checks':checks}, patch=diff, commit=commit, remaining_risks=([winner['reason'],'Verified against the imported acceptance suite only; patch review and deployment remain operator actions.'] if winner else []) if passed else ['No verified repair; inspect the test evidence and unsupported requirements.'])
+            self.store.update(incident_id, status='resolved' if passed else 'escalated', error=None if passed else (agent_error or 'No candidate passed the original acceptance suite within three repair attempts. Last failure: '+result.get('output','No test output')[-500:]), verification={'passed':passed,'checks':checks}, patch=diff, commit=commit, remaining_risks=([winner['reason'],'Verified against the imported acceptance suite only; patch review and deployment remain operator actions.'] if winner else []) if passed else ['No verified repair; inspect the test evidence and unsupported requirements.'])
             self.store.record(incident_id, 'record', {'resolved':passed,'artifact':'patch','profile':inspection['profile']})
         except Exception as exc:
             self.store.update(incident_id, status='blocked' if any(word in str(exc).lower() for word in ['docker','dependency','dependencies','unsupported']) else 'escalated', error=f'Repository repair: {type(exc).__name__}: {str(exc)[:600] or "Reasoning exceeded its execution budget; retry when the provider is available"}')

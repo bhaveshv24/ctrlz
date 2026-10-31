@@ -97,6 +97,7 @@ export const lifecycle = (receipt: Receipt) => {
         ];
   return stages.map(([name, events]) => ({
     name: name as string,
+    failed: name === "Verify" && receipt.events.filter(e => e.stage === "verification").slice(-1).some(e => e.payload.passed === false),
     recorded: receipt.events.some((e) =>
       (events as string[]).includes(e.stage),
     ),

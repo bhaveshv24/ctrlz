@@ -1892,6 +1892,14 @@ nav a[aria-current="page"] small {
   padding-right: 8px;
   font-weight: 500;
 }
+.lifecycle li.failed {
+  color: #a54935;
+}
+.lifecycle li.failed > span {
+  color: #a54935;
+  border-color: #b57564;
+  background: #fff0e9;
+}
 .lifecycle li.recorded {
   color: var(--tone-54753f);
 }

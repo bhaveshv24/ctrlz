@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { duration, eventSummary, measuredDuration } from "./presentation";
+import { duration, eventSummary, measuredDuration, lifecycle } from "./presentation";
 import type { FlightEvent, Receipt } from "./api";
 const event = (
   stage: string,
@@ -57,4 +57,10 @@ describe("evidence presentation", () => {
     expect(duration(null)).toBe("—");
     expect(duration(0)).toBe("0s");
   });
+});
+
+
+it("marks failed verification as failed even when its event is recorded", () => {
+  const result = lifecycle(receipt([event("verification", { passed: false })]));
+  expect(result.find(stage => stage.name === "Verify")).toMatchObject({ recorded: true, failed: true });
 });
