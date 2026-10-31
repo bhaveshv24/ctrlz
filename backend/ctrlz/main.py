@@ -10,7 +10,7 @@ from typing import Literal
 import httpx
 from fastapi import Depends, FastAPI, Header, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import PlainTextResponse, StreamingResponse
+from fastapi.responses import PlainTextResponse, StreamingResponse, Response
 from pydantic import BaseModel, ConfigDict, Field
 from .adapter import ADAPTERS
 from .continuation import Continuation
@@ -236,6 +236,15 @@ def create_workspace_app(store=None, client=None, reasoner=None, runbooks=None, 
         get_incident(incident_id)
         return engine.receipt(incident_id)
 
+    @app.get("/incidents/{incident_id}/repaired.zip", dependencies=[Depends(auth)])
+    async def repaired_repository(incident_id: str):
+        incident = get_incident(incident_id)
+        try:
+            contents = await asyncio.to_thread(continuation.repaired_archive, incident)
+            return Response(contents, media_type="application/zip", headers={"Content-Disposition": f'attachment; filename="ctrlz-{incident_id}-repaired.zip"'})
+        except (ValueError, KeyError, OSError) as exc:
+            raise HTTPException(422, "Repaired code unavailable: "+str(exc)) from exc
+
     @app.get("/incidents/{incident_id}/brief", dependencies=[Depends(auth)])
     def brief(incident_id: str):
         get_incident(incident_id)
@@ -322,6 +331,14 @@ def create_workspace_app(store=None, client=None, reasoner=None, runbooks=None, 
             repo = await asyncio.to_thread(continuation.repository, repository)
             return await asyncio.to_thread(inspect_repository, repo, profile)
         except (ValueError, RuntimeError) as exc:
+            raise HTTPException(422, str(exc)) from exc
+
+    @app.post("/repositories/diagnose", dependencies=[Depends(auth)])
+    async def diagnose_repository(body: ImportRequest):
+        require_code_execution()
+        try:
+            return await asyncio.to_thread(continuation.diagnose, body)
+        except (ValueError, RuntimeError, OSError) as exc:
             raise HTTPException(422, str(exc)) from exc
 
     @app.post("/continuations", dependencies=[Depends(auth)], status_code=202)

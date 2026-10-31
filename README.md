@@ -55,10 +55,14 @@ The React/Vite dashboard receives persisted events through authenticated SSE.
 ## Repository repair
 
 Open **Repository repair**. Import a public GitHub URL, upload a ZIP or copy an allowed local
-folder. Inspect its test profile, describe the regression and approve dependency setup if
-needed. Python/pytest, Node test and locked Vitest profiles run in isolated Docker containers.
+folder. **Inspect repository** detects the test profile, prepares declared dependencies
+in isolation and runs the existing tests automatically. Review the failing checks, then
+click **Fix failing code**. Additional instructions are optional. Healthy repositories
+show their passing results without offering an unnecessary repair.
+Python/pytest, Node test and locked Vitest profiles run in isolated Docker containers.
 The baseline must reproduce a failure. Tests, configuration and manifests stay immutable.
-Download the patch and receipt, then review the patch yourself. CtrlZ never pushes, merges,
+After verification, download the repaired repository ZIP from the Patch tab, or download
+the patch and receipt. Review the changes before applying them. CtrlZ never pushes, merges,
 deploys or writes to a remote repository. See [support limits](docs/PORTABILITY.md).
 
 For a disclosed local history fixture, run `uv run --project backend python

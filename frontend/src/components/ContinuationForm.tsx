@@ -28,6 +28,14 @@ type Assessment = {
   provenance?: { kind: string; url?: string; upstream_commit?: string };
   omitted_files?: string[];
 };
+type Diagnosis = {
+  status: "failing" | "healthy" | "blocked";
+  message: string;
+  passed: number;
+  failed: number;
+  skipped: number;
+  baseline: { output: string; cases: { id: string; status: string; detail: string }[] };
+};
 export default function ContinuationForm({
   token,
   act,
@@ -46,14 +54,29 @@ export default function ContinuationForm({
     [snapshot, setSnapshot] = useState<Assessment | null>(null),
     [requirements, setRequirements] = useState(""),
     [context, setContext] = useState(""),
-    [approve, setApprove] = useState(false);
+    [diagnosis, setDiagnosis] = useState<Diagnosis | null>(null);
+  const [scanning, setScanning] = useState(false);
   const [executionEnabled, setExecutionEnabled] = useState(true);
   useEffect(() => {
     api<{code_execution_enabled: boolean}>("/capabilities",token).then(c => setExecutionEnabled(c.code_execution_enabled)).catch(() => {});
   }, [token]);
   const reset = () => {
     setSnapshot(null);
-    setApprove(false);
+    setDiagnosis(null);
+  };
+  const scan = async (assessment: Assessment) => {
+    setDiagnosis(null);
+    setScanning(true);
+    try {
+      const result = await api<Diagnosis>("/repositories/diagnose", token, {
+        repository: assessment.repository,
+        acceptance_profile: assessment.profile,
+        install_dependencies: true,
+      });
+      setDiagnosis(result);
+    } finally {
+      setScanning(false);
+    }
   };
   return (
     <form
@@ -90,14 +113,16 @@ export default function ContinuationForm({
                 subdirectory,
               });
             setSnapshot(imported);
-            setApprove(false);
+            if (imported.supported && executionEnabled) await scan(imported);
+          } else if (!diagnosis || diagnosis.status !== "failing") {
+            await scan(snapshot);
           } else {
             const i = await api<Incident>("/continuations", token, {
               repository: snapshot.repository,
-              requirements,
+              ...(requirements.trim() ? { requirements } : {}),
               context,
               acceptance_profile: snapshot.profile,
-              install_dependencies: approve,
+              install_dependencies: true,
             });
             open(i.id);
           }
@@ -106,16 +131,15 @@ export default function ContinuationForm({
     >
       {!executionEnabled && <p role="status" className="alert">This host supports repository inspection. Running repairs requires the Docker-capable runner deployment.</p>}
       <span className="eyebrow">
-        {snapshot ? "02 / REPRODUCE & REPAIR" : "01 / BRING A REPOSITORY"}
+        {snapshot ? "02 / AUTOMATIC DIAGNOSIS" : "01 / BRING A REPOSITORY"}
       </span>
       <h2>
         {snapshot
-          ? "A clear boundary. A testable fix."
+          ? "Evidence first. Then fix."
           : "Your repo. Your acceptance tests."}
       </h2>
       <p className="muted">
-        Import a snapshot, reproduce the failure, and review a patch backed by
-        the same tests.
+        Connect a repository. CtrlZ runs its existing tests automatically, then offers a fix for reproduced failures.
       </p>
       <RepoIntelligence
         token={token}
@@ -129,6 +153,7 @@ export default function ContinuationForm({
           )
         }
       />
+      {!snapshot && <p className="muted">Inspection runs tests in an isolated container and downloads declared dependencies without install scripts. Your original folder stays unchanged.</p>}
       {!snapshot ? (
         <>
           <label>
@@ -216,6 +241,8 @@ export default function ContinuationForm({
         </>
       ) : (
         <>
+          <details open={!snapshot.supported}>
+            <summary>Repository files & detected test setup (optional)</summary>
           <FilePlate inspection={snapshot} />
           <div className="repository-assessment" role="status">
             <div className="row-between">
@@ -266,6 +293,7 @@ export default function ContinuationForm({
               </p>
             </details>
           </div>
+          </details>
           <button
             className="inline-link"
             type="button"
@@ -274,58 +302,42 @@ export default function ContinuationForm({
           >
             Choose another repository
           </button>
-          <label>
-            What is broken?
-            <textarea
-              rows={4}
-              value={requirements}
-              onChange={(e) => setRequirements(e.target.value)}
-              minLength={10}
-              maxLength={20000}
-              required
-              placeholder="Describe the failure, intended behavior, and the existing tests that should pass."
-            />
-          </label>
-          <label>
-            Context to carry forward <span className="optional">optional</span>
-            <textarea
-              rows={3}
-              value={context}
-              onChange={(e) => setContext(e.target.value)}
-              placeholder="Relevant error logs, requirements, or an explicit conversation handoff."
-            />
-          </label>
-          {snapshot.dependency_install_required && (
-            <label className="checkbox-label">
-              <input
-                type="checkbox"
-                checked={approve}
-                onChange={(e) => setApprove(e.target.checked)}
-              />
-              <span>
-                <strong>Allow isolated dependency setup</strong>
-                <small>
-                  Download declared packages in a credential-free container. npm
-                  install scripts are disabled; Python uses binary wheels.
-                  Baseline and candidate tests then run offline.
-                </small>
-              </span>
+          <section aria-live="polite" className="repository-assessment">
+            <h3>{scanning ? "Running repository tests…" : diagnosis ? diagnosis.message : "Ready to run the existing tests"}</h3>
+            {scanning && <p className="muted">Preparing declared dependencies and collecting real failures. This can take a few minutes.</p>}
+            {diagnosis && <>
+              <p>{diagnosis.passed} passed · {diagnosis.failed} failed · {diagnosis.skipped} skipped</p>
+              {diagnosis.baseline.cases.filter(c => c.status === "failed" || c.status === "error").map(c =>
+                <details key={c.id}><summary>{c.id}</summary><pre className="patch-view">{c.detail}</pre></details>
+              )}
+              <details><summary>Full test output</summary><pre className="patch-view">{diagnosis.baseline.output}</pre></details>
+            </>}
+          </section>
+          <details>
+            <summary>Additional instructions (optional)</summary>
+            <label>
+              Intended behavior
+              <textarea rows={3} value={requirements} onChange={e => setRequirements(e.target.value)} minLength={10} maxLength={20000}
+                placeholder="Only needed for behavior the existing tests do not describe." />
             </label>
-          )}
+            <label>
+              Additional context
+              <textarea rows={3} value={context} onChange={e => setContext(e.target.value)} maxLength={20000}
+                placeholder="Optional logs or constraints." />
+            </label>
+          </details>
           <div className="form-note">
             <ShieldCheck size={18} />
             <span>
               Up to three attempts. Tests, manifests and configuration stay
-              immutable. A verified result is a reviewable patch; applying and
-              deploying it remain separate actions.
+              immutable. A verified result includes a repaired repository ZIP, a patch, and test evidence. Applying and deploying it remain separate actions.
             </span>
           </div>
           <button
             className="button primary"
             disabled={
               busy ||
-              !snapshot.supported ||
-              (snapshot.dependency_install_required && !approve)
+              !snapshot.supported || !executionEnabled
             }
           >
             {busy ? (
@@ -333,7 +345,7 @@ export default function ContinuationForm({
             ) : (
               <Code2 size={16} />
             )}
-            Reproduce & repair
+            {busy ? (scanning ? "Inspecting & running tests…" : "Starting repair…") : diagnosis?.status === "failing" ? "Fix failing code" : "Run tests again"}
             <ArrowRight size={15} />
           </button>
         </>

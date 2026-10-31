@@ -2,6 +2,8 @@ import asyncio
 import ast
 import hashlib
 import json
+import io
+import zipfile
 import shutil
 import tempfile
 from collections import Counter
@@ -84,6 +86,61 @@ class Continuation:
     @staticmethod
     def sandbox(worktree):
         return Sandbox(worktree, 'python-pytest').run()
+
+    def repaired_archive(self, incident):
+        if not incident.get('verification', {}).get('passed') or not incident.get('patch'):
+            raise ValueError('A verified source patch is required before downloading repaired code')
+        repo = self.repository(incident['import_request']['repository'])
+        with tempfile.TemporaryDirectory(prefix='ctrlz-export-') as directory:
+            workspace = Path(directory)/'repository'
+            git(['clone', '--no-hardlinks', '--no-local', str(repo), str(workspace)], repo)
+            patch = Path(directory)/'verified.patch'
+            patch.write_text(incident['patch'])
+            git(['apply', '--check', str(patch)], workspace)
+            git(['apply', '--index', str(patch)], workspace)
+            for name in git(['diff', '--cached', '--name-only'], workspace).splitlines():
+                validate_path(workspace, name)
+            output = io.BytesIO()
+            with zipfile.ZipFile(output, 'w', zipfile.ZIP_DEFLATED) as archive:
+                for name in git(['ls-files'], workspace).splitlines():
+                    path = workspace/name
+                    if path.is_symlink():
+                        raise ValueError('Unsafe export path')
+                    archive.write(path, 'repaired-repository/'+name)
+            return output.getvalue()
+
+    def diagnose(self, request: ImportRequest):
+        repo = self.repository(request.repository)
+        inspection = inspect_repository(repo, request.acceptance_profile)
+        if not inspection['supported']:
+            raise ValueError('Unsupported test environment: '+'; '.join(inspection['warnings']))
+        with tempfile.TemporaryDirectory(prefix='ctrlz-diagnose-') as directory:
+            workspace = Path(directory)/'repository'
+            shutil.copytree(repo, workspace, ignore=shutil.ignore_patterns('.git'), symlinks=True)
+            Path(directory).chmod(0o755)
+            for path in [workspace, *workspace.rglob('*')]:
+                if path.is_symlink():
+                    raise ValueError('Unsafe snapshot path')
+                path.chmod(0o755 if path.is_dir() else 0o644)
+            sandbox = Sandbox(workspace, inspection['profile'], request.install_dependencies)
+            try:
+                sandbox.prepare(inspection)
+                if inspection['profile'] != 'python-pytest':
+                    (workspace/'node_modules').mkdir(exist_ok=True)
+                baseline = sandbox.run()
+            finally:
+                sandbox.close()
+        cases = baseline['cases']
+        repairable = baseline['exit_code'] in {1, 2} and bool(cases)
+        healthy = baseline['exit_code'] == 0 and any(c['passed'] for c in cases)
+        return {'status': 'failing' if repairable else 'healthy' if healthy else 'blocked',
+                'baseline': baseline,
+                'passed': sum(c['passed'] for c in cases),
+                'failed': sum(c.get('status') in {'failed', 'error'} for c in cases),
+                'skipped': sum(c.get('status') == 'skipped' for c in cases),
+                'message': 'Failures reproduced. Ready to repair.' if repairable else
+                           'The existing tests pass. No failing regression was detected.' if healthy else
+                           'Tests could not establish a repairable baseline. Review the runner output.'}
 
     async def run(self, incident_id, request: ImportRequest):
         reasoner = self.reasoner

@@ -719,26 +719,26 @@ export default function App() {
                         <Code2 size={24} />
                       </div>
                       <h2>
-                        Context in.
+                        Repository in.
                         <br />A tested change out.
                       </h2>
                       <ol>
                         {[
                           [
-                            "Reconstruct",
-                            "Use the repository, your original requirements and context you explicitly provide.",
+                            "Inspect",
+                            "Import the repository and automatically run its existing tests. Extra context is optional.",
                           ],
                           [
                             "Isolate",
                             "Reproduce acceptance failures in a detached Git worktree and Docker sandbox.",
                           ],
                           [
-                            "Continue",
-                            "Let the NVIDIA-powered code agent produce bounded source changes.",
+                            "Fix",
+                            "Review the failures and click Fix failing code to start the repair.",
                           ],
                           [
                             "Prove",
-                            "Run the same tests. Keep failed attempts. Return a patch for review.",
+                            "Run the same tests. Keep failed attempts. Download verified repaired code, a patch and test evidence.",
                           ],
                         ].map(([heading, copy], index) => (
                           <li key={heading}>

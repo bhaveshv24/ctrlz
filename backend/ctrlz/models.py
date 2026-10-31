@@ -84,7 +84,7 @@ class ImportRequest(Strict):
         return value
 
     repository: str
-    requirements: str = Field(min_length=10, max_length=20000)
+    requirements: str = Field(default="Diagnose and repair failures in the existing acceptance tests. Preserve intended behavior, payment validation, authorization, and all test files. Return a verified source patch.", min_length=10, max_length=20000)
     context: str = Field(default="", max_length=20000)
     acceptance_profile: Literal["auto", "python-pytest", "node-test", "javascript-vitest"] = "auto"
     install_dependencies: bool = False
