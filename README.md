@@ -5,27 +5,35 @@ reproduces failures in Docker, compares recovery strategies and returns a verifi
 It also monitors independent HTTP services through explicit recovery contracts.
 CampusPass is an optional demonstration, not a prerequisite.
 
-## Five-command quick start
+## Two-command local start
 
-Prerequisites: Python 3.12, [uv](https://docs.astral.sh/uv/), Node 22+, Git and running Docker.
-From this **CtrlZ checkout only**, run:
+Prerequisites: running Docker Desktop/Engine, Python 3.9 or newer, Node.js 22 or newer,
+and Git. Run these from this CtrlZ checkout:
 
 ```sh
-uv sync --project backend --extra test --python 3.12
-npm --prefix frontend ci
-uv run --project backend python scripts/setup_env.py
-uv run --project backend python scripts/build_sandboxes.py
-npm run dev
+docker compose up --build -d
+python dev.py
 ```
 
-Once set up, run `npm run dev` from the project root to start the API and frontend
-together. `npm start` runs the same launcher. Ctrl+C stops both services and their
-child processes. If either service exits, the launcher stops the other.
-For alternate ports, use `npm run dev -- --api-port 8010 --web-port 5175`.
-The frontend proxy follows the selected API port.
+On macOS installations where Python is named `python3`, use `python3 dev.py`.
 
-After command 3, add your NVIDIA_API_KEY and chosen NVIDIA_MODEL to `.env` locally before
-running command 5. Never put secrets in frontend code. Setup preserves any existing `.env`.
+Compose builds the isolated Python and Node sandbox images. Their preparation containers
+exit successfully once ready. The root launcher creates missing local configuration,
+provisions Python 3.12 and locked backend dependencies, installs frontend dependencies,
+then starts both the API and frontend. Subsequent starts reuse installed dependencies.
+If uv is absent, it is installed into the project's ignored `.dev-tools` environment.
+
+Ctrl+C stops the local API and frontend together. If either service exits, its companion
+is stopped. For alternate ports, run `python dev.py --api-port 8010 --web-port 5175`.
+`npm run dev` and `npm start` invoke the same root launcher.
+
+Set NVIDIA_API_KEY and NVIDIA_MODEL in the generated `.env` for live agent reasoning.
+Restart `python dev.py` after editing configuration. Startup never prints secrets.
+
+For the fully containerized API/frontend instead, use
+`docker compose --profile container-app up --build -d`. This mode occupies the app ports.
+The local launcher is the Docker-capable host runner for full repository repair.
+
 The dashboard is [localhost:5173](http://localhost:5173). Sign in with an email account. First API startup creates two administrators and one user;
 read the generated passwords in `backend/data/initial-credentials.txt` (private, ignored by Git).
 Use Workspace settings to change passwords or create users. Each ordinary user has a private

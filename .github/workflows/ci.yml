@@ -47,5 +47,5 @@ jobs:
           python-version: "3.12"
       - uses: astral-sh/setup-uv@v6
       - run: uv sync --project backend --extra test --frozen
-      - run: uv run --project backend python scripts/build_sandboxes.py
+      - run: docker compose up --build -d
       - run: uv run --project backend python -m pytest -q

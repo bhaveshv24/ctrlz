@@ -17,3 +17,5 @@ coverage/
 *.tsbuildinfo
 
 /.hallmark/
+
+.dev-tools/

@@ -1,7 +1,24 @@
 services:
+  sandbox-python:
+    image: ctrlz-sandbox:local
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.sandbox
+    command: ["python", "-c", "print('Python sandbox ready')"]
+    network_mode: none
+  sandbox-node:
+    image: ctrlz-node-sandbox:local
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.node-sandbox
+    command: ["node", "-e", "console.log('Node sandbox ready')"]
+    network_mode: none
   api:
+    profiles: [container-app]
     build: ./backend
-    env_file: .env
+    env_file:
+      - path: .env
+        required: false
     environment:
       DATABASE_URL: sqlite:////data/ctrlz.db
       DATA_DIR: /data
@@ -14,6 +31,7 @@ services:
       agentathon:
         aliases: [ctrlz-api]
   web:
+    profiles: [container-app]
     build: ./frontend
     ports: ["127.0.0.1:5173:80"]
     depends_on: [api]
