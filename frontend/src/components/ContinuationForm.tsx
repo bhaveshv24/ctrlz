@@ -194,7 +194,6 @@ export default function ContinuationForm({
             >
               <option value="github">Public GitHub repository</option>
               <option value="zip">Upload a ZIP snapshot</option>
-              <option value="local">Folder on the CtrlZ server</option>
             </select>
           </label>
           {kind === "zip" ? (
@@ -217,22 +216,16 @@ export default function ContinuationForm({
           ) : (
             <>
               <label>
-                {kind === "github" ? "Public GitHub URL" : "Server folder path"}
+                Public GitHub URL
                 <input
                   type="text"
                   required
                   value={source}
                   onChange={(e) => setSource(e.target.value)}
-                  placeholder={
-                    kind === "github"
-                      ? "https://github.com/owner/repository"
-                      : "/absolute/path/to/project"
-                  }
+                  placeholder="https://github.com/owner/repository"
                 />
                 <small>
-                  {kind === "github"
-                    ? "Public HTTPS repositories only. Private credentials are never requested."
-                    : "The folder must be inside the server’s configured source roots. Your original folder stays untouched."}
+                  Public HTTPS repositories only. Private credentials are never requested.
                 </small>
               </label>
               <label>
