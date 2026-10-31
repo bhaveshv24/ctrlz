@@ -61,11 +61,9 @@ def create_workspace_app(store=None, client=None, reasoner=None, runbooks=None, 
     data_dir = Path(workspace_root) if workspace_root else settings.DATA_DIR
     runbooks = runbooks or Runbooks(settings.RUNBOOK_DIR, data_dir / "chroma")
     engine = Engine(store, client, reasoner or NIMReasoner(), runbooks)
-    continuation = Continuation(store, engine.reasoner, (data_dir / "imports") if workspace_root else settings.IMPORT_ROOT, data_dir / "patches", notifier=engine.notify)
+    continuation = Continuation(store, engine.reasoner, (data_dir / "imports") if workspace_root else settings.IMPORT_ROOT, data_dir / "patches")
     imports = RepositoryImports(continuation.root)
     intelligence = RepoIntelligence(store, client, token="" if workspace_root else None)
-    if workspace_root:
-        engine.notification_webhook = os.getenv("CTRLZ_USER_" + Path(workspace_root).name.upper() + "_NOTIFICATION_WEBHOOK", "")
     replay = Replay(store)
     demo_controls = DemoControls(store, client)
 
@@ -287,8 +285,7 @@ def create_workspace_app(store=None, client=None, reasoner=None, runbooks=None, 
     @app.get("/runtime", dependencies=[Depends(auth)])
     async def runtime():
         from .runtime import inspect_runtime
-        webhook = getattr(engine, "notification_webhook", settings.NOTIFICATION_WEBHOOK_URL.get_secret_value())
-        return await asyncio.to_thread(inspect_runtime, settings, store, runbooks, engine.reasoner, webhook)
+        return await asyncio.to_thread(inspect_runtime, settings, store, runbooks, engine.reasoner)
 
     @app.get("/capabilities", dependencies=[Depends(auth)])
     def capabilities():

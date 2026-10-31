@@ -205,19 +205,6 @@ async def test_replans_once_from_gate_feedback(store, campus):
         assert len([e for e in store.events() if e["stage"] == "plan_revision"]) == 1
 
 
-async def test_notification_delivery_records_real_http_status(store, monkeypatch):
-    seen = []
-    def webhook(request):
-        seen.append(json.loads(request.content))
-        return httpx.Response(204)
-    monkeypatch.setenv("NOTIFICATION_WEBHOOK_URL", "https://hooks.example.test/recovery")
-    incident, _ = store.create("demo", "outage", "service", {})
-    async with httpx.AsyncClient(transport=httpx.MockTransport(webhook)) as client:
-        await Engine(store, client, TestReasoner(), EmptyRunbooks()).notify(incident["id"])
-    assert "text" in seen[0]
-    assert store.events()[0]["payload"] == {"delivered": True, "status": 204}
-
-
 def test_missing_credentials_are_explicit(monkeypatch):
     monkeypatch.delenv("NVIDIA_API_KEY", raising=False)
     with pytest.raises(ReasoningUnavailable):

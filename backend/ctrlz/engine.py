@@ -2,8 +2,6 @@ import asyncio
 import hashlib
 import json
 import uuid
-from urllib.parse import urlsplit
-from .settings import Settings
 from .adapter import ADAPTERS
 from .models import Candidate, Project, RecoveryPlan
 from .reasoning import ReasoningUnavailable
@@ -157,23 +155,6 @@ class Engine:
         resolved = verification["passed"]
         self.store.update(incident_id, status="resolved" if resolved else "escalated", verification=verification, remaining_risks=["Mitigation does not establish a permanent code fix."] if resolved else ["Independent acceptance checks failed."])
         self.store.record(incident_id, "record", {"resolved": resolved})
-        await self.notify(incident_id)
-
-    async def notify(self, incident_id):
-        url = getattr(self, "notification_webhook", None)
-        if url is None:
-            url = Settings().NOTIFICATION_WEBHOOK_URL.get_secret_value()
-        if not url:
-            self.store.record(incident_id, "notification", {"delivered": False, "reason": "Webhook not configured"})
-            return
-        incident = self.store.get(incident_id)
-        text = f"CtrlZ · {incident['kind']} · {incident['id']} · {incident['status']}. Independent verification: {incident.get('verification', {}).get('passed')}. Review the recovery receipt for remaining risks."
-        payload = {"content": text} if urlsplit(url).hostname in {"discord.com", "discordapp.com"} else {"text": text}
-        try:
-            response = await self.client.post(url, json=payload, timeout=10, follow_redirects=False)
-            self.store.record(incident_id, "notification", {"delivered": response.is_success, "status": response.status_code})
-        except Exception as exc:
-            self.store.record(incident_id, "notification", {"delivered": False, "error_type": type(exc).__name__})
 
     def receipt(self, incident_id):
         incident = self.store.get(incident_id)

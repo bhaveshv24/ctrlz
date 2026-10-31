@@ -26,7 +26,7 @@ def command_status(arguments):
         return {"state": "unavailable", "detail": "Command did not complete within its budget"}
 
 
-def inspect_runtime(settings, store, runbooks, reasoner, webhook):
+def inspect_runtime(settings, store, runbooks, reasoner):
     components = [
         {"name": name, **installed(package)}
         for name, package in [
@@ -67,7 +67,5 @@ def inspect_runtime(settings, store, runbooks, reasoner, webhook):
     components.extend([
         {"name": "NVIDIA NIM", "state": "configured" if settings.NVIDIA_API_KEY.get_secret_value() else "unconfigured",
          "detail": getattr(reasoner, "selected_model", None) or "No model selected", "verified": False},
-        {"name": "Outcome notifications", "state": "configured" if webhook else "unconfigured",
-         "detail": "Delivery is recorded per incident", "verified": False},
     ])
     return {"components": components}

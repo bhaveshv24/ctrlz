@@ -59,7 +59,6 @@ The default contract deliberately requires approval for resuming a paused worker
 3. Connect CampusPass at http://localhost:8001 (host mode) or http://campuspass-api:8001
    (Compose mode). The recovery token must match in the two backend environments.
 4. Run a normal checkout first. Show the async ticket transition and ticket verification.
-5. Optional: set NOTIFICATION_WEBHOOK_URL and restart the CtrlZ API to send a real summary.
 
 ## C — Autonomous outage recovery
 

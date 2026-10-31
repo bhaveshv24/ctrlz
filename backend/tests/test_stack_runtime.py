@@ -25,7 +25,6 @@ class Reasoner:
     ("MONITOR_INTERVAL", "0"), ("MONITOR_INTERVAL", "nan"),
     ("NVIDIA_MAX_TOKENS", "12"), ("CTRLZ_CODE_EXECUTION_ENABLED", "perhaps"),
     ("NVIDIA_BASE_URL", "https://user:secret@example.com/v1"),
-    ("NOTIFICATION_WEBHOOK_URL", "file:///secret"),
     ("CTRLZ_CORS_ORIGINS", "*"),
 ])
 def test_invalid_settings_fail_before_startup(monkeypatch, name, value):
@@ -66,31 +65,10 @@ async def test_runtime_is_authenticated_and_reports_real_component_states(tmp_pa
         assert rows["Workspace database"]["state"] == "available"
         assert rows["Docker daemon"]["state"] == "unavailable"
         assert rows["NVIDIA NIM"]["verified"] is False
+        assert "Outcome notifications" not in rows
         assert not any("image" in command for command in seen)
         assert "runtime-token" not in response.text
     await app.state.engine.client.aclose()
-    store.engine.dispose()
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize("url,key", [
-    ("https://discord.com/api/webhooks/fixture", "content"),
-    ("https://hooks.slack.com/services/fixture", "text"),
-    ("https://example.test/discord.com/fixture", "text"),
-])
-async def test_webhook_format_uses_hostname_not_path(tmp_path, monkeypatch, url, key):
-    monkeypatch.setenv("NOTIFICATION_WEBHOOK_URL", url)
-    payloads = []
-    def handler(request):
-        import json
-        payloads.append(json.loads(request.content))
-        return httpx.Response(204)
-    store = Store(f"sqlite:///{tmp_path / 'events.db'}")
-    incident, _ = store.create("fixture", "outage", "service", {})
-    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
-        await Engine(store, client, Reasoner(), Books()).notify(incident["id"])
-    assert key in payloads[0]
-    assert store.events()[-1]["payload"]["delivered"] is True
     store.engine.dispose()
 
 

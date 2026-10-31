@@ -19,9 +19,14 @@ class Runbooks:
         import chromadb
         self.client = chromadb.PersistentClient(path=str(persistence))
         self.collection = self.client.get_or_create_collection("recovery-runbooks", embedding_function=None, metadata={"hnsw:space": "cosine"})
-        paths = sorted(source.glob("*.md"))
+        # Resolve packaged guides independently of the process working directory.
+        candidates = [Path(source), Path(__file__).resolve().parents[1]/'runbooks', Path(__file__).resolve().parents[2]/'runbooks']
+        self.source = next((directory for directory in candidates if any(directory.glob('*.md'))), None)
+        if self.source is None:
+            raise ValueError('No recovery runbooks found in configured or packaged directories')
+        paths = sorted(self.source.glob("*.md"))
         if paths:
-            docs = [p.read_text() for p in paths]
+            docs = [p.read_text(encoding="utf-8") for p in paths]
             self.collection.upsert(ids=[p.name for p in paths], documents=docs, embeddings=[embedding(d) for d in docs])
 
     def search(self, query: str):

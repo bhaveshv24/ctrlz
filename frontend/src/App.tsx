@@ -6,7 +6,6 @@ import {
   Activity,
   ArrowRight,
   ArrowUpRight,
-  Bell,
   BookOpen,
   Check,
   ChevronDown,
@@ -342,17 +341,6 @@ export default function App() {
                     ? "Offline"
                     : "Connecting"}
             </span>
-            <button
-              className="notification-button"
-              aria-label={`${summary?.approvals_waiting || 0} approvals waiting`}
-              onClick={() => {
-                setFilter("approval");
-                navigate("incidents");
-              }}
-            >
-              <Bell size={17} />
-              {!!summary?.approvals_waiting && <i />}
-            </button>
             <span className="top-avatar">CI</span>
           </div>
         </header>

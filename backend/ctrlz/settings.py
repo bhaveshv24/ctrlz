@@ -27,7 +27,6 @@ class Settings(BaseSettings):
     NVIDIA_BASE_URL: str = "https://integrate.api.nvidia.com/v1"
     NVIDIA_MAX_TOKENS: int = Field(default=8192, ge=512, le=32768)
     NVIDIA_ENABLE_THINKING: bool = False
-    NOTIFICATION_WEBHOOK_URL: SecretStr = SecretStr("")
 
     @field_validator("NVIDIA_BASE_URL")
     @classmethod
@@ -36,15 +35,6 @@ class Settings(BaseSettings):
         if url.scheme not in {"http", "https"} or not url.hostname or url.username or url.password or url.query or url.fragment:
             raise ValueError("Use an HTTP(S) API origin and path without embedded credentials")
         return value.rstrip("/")
-
-    @field_validator("NOTIFICATION_WEBHOOK_URL")
-    @classmethod
-    def webhook_url(cls, value):
-        if value.get_secret_value():
-            url = urlsplit(value.get_secret_value())
-            if url.scheme != "https" or not url.hostname or url.username or url.password or url.fragment:
-                raise ValueError("Use an HTTPS webhook without embedded user credentials")
-        return value
 
     @field_validator("CTRLZ_CORS_ORIGINS")
     @classmethod

@@ -36,8 +36,7 @@ Admins share the existing operator workspace; each ordinary user gets their own 
 repository imports, patch artifacts, incident history and SSE stream. Roles are server-assigned.
 Ordinary users cannot import arbitrary host folders, use the demo adapter, choose a shared
 backend secret or reuse the server GitHub token. Their recovery-token environment variable is
-CTRLZ_USER_<UPPERCASE_ACCOUNT_ID>_RECOVERY_TOKEN. A matching optional
-CTRLZ_USER_<UPPERCASE_ACCOUNT_ID>_NOTIFICATION_WEBHOOK enables their own notifications.
+CTRLZ_USER_<UPPERCASE_ACCOUNT_ID>_RECOVERY_TOKEN.
 Set these server-side; the browser never receives their values. Separate application
 projects may share this account's token only if deliberately configured to do so.
 
