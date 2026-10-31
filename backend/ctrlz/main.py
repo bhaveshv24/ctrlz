@@ -27,6 +27,10 @@ from .replay import Replay
 from .reasoning import NIMReasoner
 from .runbooks import Runbooks
 from .store import Store
+from .runtime_monitoring import RuntimeMonitoring
+from .runtime_routes import install_runtime_routes
+from .workflow_service import WorkflowObservability
+from .workflow_routes import install_workflow_routes
 
 
 class Approval(BaseModel):
@@ -68,6 +72,13 @@ def create_workspace_app(store=None, client=None, reasoner=None, runbooks=None, 
         engine.notification_webhook = os.getenv("CTRLZ_USER_" + Path(workspace_root).name.upper() + "_NOTIFICATION_WEBHOOK", "")
     replay = Replay(store)
     demo_controls = DemoControls(store, client)
+    runtime_monitor = RuntimeMonitoring(store, client, engine.reasoner, runbooks, data_dir,
+        github_token=os.getenv("CTRLZ_USER_"+Path(workspace_root).name.upper()+"_GITHUB_TOKEN", "") if workspace_root else None,
+        vercel_token=os.getenv("CTRLZ_USER_"+Path(workspace_root).name.upper()+"_VERCEL_TOKEN", "") if workspace_root else None,
+        local_repositories={} if workspace_root else None)
+    engine.runtime_monitor = runtime_monitor
+    workflow_observability = WorkflowObservability(runtime_monitor, data_dir)
+    runtime_monitor.workflows = workflow_observability
 
     def require_code_execution():
         if not settings.CTRLZ_CODE_EXECUTION_ENABLED:
@@ -81,7 +92,12 @@ def create_workspace_app(store=None, client=None, reasoner=None, runbooks=None, 
     async def scan():
         for config in store.projects():
             project = Project.model_validate(config)
-            if not project.enabled:
+            if not project.enabled or not project.automatic_detection:
+                continue
+            if project.project_type == "repository-deployment":
+                for incident_id in list(dict.fromkeys(await runtime_monitor.detect(project.id) + await workflow_observability.reconcile(project.id))):
+                    if store.get(incident_id)["status"] == "detected":
+                        spawn(engine.run(incident_id))
                 continue
             adapter = ADAPTERS[project.adapter](project, client)
             health, workflows = await asyncio.gather(adapter.read("health"), adapter.read("workflows"))
@@ -137,13 +153,17 @@ def create_workspace_app(store=None, client=None, reasoner=None, runbooks=None, 
         except KeyError:
             raise HTTPException(404, "Incident not found")
 
+    install_runtime_routes(app, auth, runtime_monitor, spawn, Path(workspace_root).name if workspace_root else "operator")
+    install_workflow_routes(app, auth, workflow_observability, spawn, require_code_execution)
+    app.state.workflows = workflow_observability
+
     @app.get("/health")
     def health():
         return {"status": "healthy", "nim_configured": bool(settings.NVIDIA_API_KEY.get_secret_value()), "provider": engine.reasoner.provider, "model": getattr(engine.reasoner, "selected_model", None), "demo_controls_enabled": settings.CTRLZ_DEMO_CONTROLS_ENABLED}
 
     @app.get("/overview", dependencies=[Depends(auth)])
     def insights():
-        return overview(store)
+        return overview(store, runtime_monitor)
 
     @app.get("/demo/runs", dependencies=[Depends(auth)])
     def demo_runs(target: str | None = None):
@@ -151,7 +171,7 @@ def create_workspace_app(store=None, client=None, reasoner=None, runbooks=None, 
 
     @app.get("/demo/targets", dependencies=[Depends(auth)])
     async def demo_targets():
-        targets = [service_target(p) for p in store.projects()]
+        targets = [service_target(p) for p in store.projects() if p.get("project_type", "http") == "http"]
         for path in sorted(continuation.root.glob('repo-*')):
             try:
                 repo = await asyncio.to_thread(continuation.repository, str(path))
@@ -215,9 +235,15 @@ def create_workspace_app(store=None, client=None, reasoner=None, runbooks=None, 
 
     @app.post("/projects", dependencies=[Depends(auth)])
     def project(body: Project, request: Request):
+        try:
+            previous = store.project(body.id)
+        except KeyError:
+            previous = None
+        if previous and previous.get("project_type", "http") != body.project_type:
+            raise HTTPException(409, "Create a new project ID for a different integration type; existing project history is preserved")
         principal = getattr(request.state, "principal", None)
         if principal and principal['role'] != 'admin':
-            if body.adapter != 'generic-http-v1':
+            if body.adapter not in {'generic-http-v1', 'runtime-v1'}:
                 raise HTTPException(403, 'Demonstration presets require an administrator')
             body.token_env = 'CTRLZ_USER_' + principal['id'].upper() + '_RECOVERY_TOKEN'
         store.save_project(body.model_dump())
@@ -271,7 +297,8 @@ def create_workspace_app(store=None, client=None, reasoner=None, runbooks=None, 
     @app.post("/incidents/{incident_id}/retry", dependencies=[Depends(auth)])
     async def retry(incident_id: str):
         incident = get_incident(incident_id)
-        if incident["status"] not in {"blocked", "escalated"}:
+        allowed = {"blocked", "escalated"} | ({"awaiting_review", "recommendation_reviewed"} if incident["kind"] == "runtime" else set())
+        if incident["status"] not in allowed:
             raise HTTPException(409, "Only blocked or escalated incidents can retry")
         if incident["kind"] == "code":
             require_code_execution()

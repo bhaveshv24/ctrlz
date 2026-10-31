@@ -54,6 +54,13 @@ export type Incident = {
   patch?: string;
   import_request?: {mode?: "repair" | "complete"; requirements?: string};
   commit?: string;
+  runtime_summary?: { events: number; affected_users: number | null; last_received: number; identity_coverage: string };
+  runtime_samples?: Record<string, any>[];
+  workflow_evidence?: {proposal_id:string;approved_rule:Record<string,any>;instance_id:string;resource_id:string|null;user_id:string|null;identity:string;observation:string;revision:string;source_revision:string;source_provenance:string;last_evidence:unknown};
+  source_evidence?: { state: string; commit_sha?: string; files?: {path: string; line: number | null; context: string; source: string; provenance: string; location_evidence?: string}[]; uncertainties?: string[] };
+  runtime_assessment?: { diagnosis: string; uncertainties: string[] };
+  runtime_recommendations?: RuntimeRecommendation[];
+  recommendation_review?: {id: string; decision: string; executed: boolean};
   selected_code_strategy?: string;
   suspect_commit?: {
     snapshot_commit: string;
@@ -70,7 +77,9 @@ export type Incident = {
 export type Project = {
   id: string;
   name: string;
-  base_url: string;
+  base_url: string | null;
+  project_type?: "http" | "repository-deployment";
+  repository_monitoring?: { github_url: string; preferred_ref?: string | null; deployments: RuntimeDeployment[] } | null;
   enabled: boolean;
   demo_enabled: boolean;
   adapter?: string;
@@ -114,6 +123,7 @@ export type ProbeResult = {
 export type ProjectSignal = {
   project: Project;
   state: string;
+  runtime_coverage?: RuntimeCoverage[];
   latest: null | {
     timestamp: number;
     health: ProbeResult;
@@ -273,3 +283,34 @@ export async function stream(
     reader.releaseLock();
   }
 }
+
+export type RuntimeDeployment = {
+  id: string;
+  platform: "local" | "vps" | "docker" | "vercel" | "aws";
+  service_id: string;
+  environment: string;
+  application_url?: string | null;
+  deployment_ref?: string | null;
+  commit_sha?: string | null;
+  vercel_team_id?: string | null;
+  source_paths?: string[];
+  sources: { id: string; connector: "generic-events" | "vercel-drain" }[];
+};
+export type RuntimeCoverage = {
+  deployment: RuntimeDeployment;
+  state: string;
+  credentials_configured: boolean;
+  last_received: number | null;
+  last_event_at: number | null;
+  event_count: number;
+  error_count: number;
+  open_incidents?: number;
+  measured_affected_users: number | null;
+  execution_permitted: false;
+};
+export type RuntimeRecommendation = {
+  id: string; category: string; summary: string; rationale: string;
+  evidence_ids: string[]; risks: string[]; proposed_change?: string | null;
+  verification_plan: string[]; review_hash: string; execution_permitted: false;
+  review_policy?: { reviewable: boolean; reason: string };
+};
