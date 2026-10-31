@@ -16,6 +16,7 @@ export function useControlCenter(token: string) {
     [runs, setRuns] = useState<DemoRun[]>([]),
     [events, setEvents] = useState<FlightEvent[]>([]),
     [ready, setReady] = useState(false),
+    [loading, setLoading] = useState(false),
     [loadedToken, setLoadedToken] = useState(""),
     [error, setError] = useState(""),
     [connection, setConnection] = useState("connecting");
@@ -26,6 +27,8 @@ export function useControlCenter(token: string) {
   const refresh = useCallback(async () => {
     if (inflight.current?.token === token) return inflight.current.promise;
     const current = token;
+    setLoading(true);
+    setError("");
     const operation = async () => {
       try {
         // Health can fail in the browser even when authenticated API reads succeed.
@@ -50,6 +53,7 @@ export function useControlCenter(token: string) {
         }
         throw e;
       } finally {
+        if (activeToken.current === current) setLoading(false);
         if (inflight.current === pending) inflight.current = null;
       }
     };
@@ -68,7 +72,7 @@ export function useControlCenter(token: string) {
     setRuntime(null);
     setRuns([]);
     setConnection("connecting");
-    if (!token) return;
+    if (!token) { setLoading(false); return; }
     let disposed = false;
     let retry: ReturnType<typeof setTimeout>;
     const load = () => {
@@ -123,6 +127,7 @@ export function useControlCenter(token: string) {
     events,
     ready: ready && loadedToken === token,
     error,
+    loading,
     connection,
     refresh,
   };

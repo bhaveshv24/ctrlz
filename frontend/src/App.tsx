@@ -187,11 +187,16 @@ export default function App() {
               Connect to your recovery workspace. Your systems, decisions and
               evidence are waiting.
             </p>
-            {token ? <div role="status" aria-live="polite">
-              <p>Signed in. Connecting to your workspace…</p>
-              <p>Your session is saved. If the connection drops, we’ll retry automatically.</p>
-              <button className="button secondary full" onClick={() => data.refresh().catch(() => {})}>Retry workspace connection</button>
-              <button className="button secondary full" onClick={disconnect}>Sign out</button>
+            {token ? <div className="workspace-connection" aria-busy={data.loading}>
+              <div className="workspace-connection-status" role="status" aria-live="polite">
+                {data.loading && <LoaderCircle size={28} className="spin" aria-hidden="true" />}
+                <p>{data.loading ? "Connecting to your workspace…" : data.error ? "Couldn’t connect to your workspace." : "Preparing your workspace…"}</p>
+              </div>
+              <p className="workspace-connection-hint">Your session is saved. The first connection may take a moment.</p>
+              <div className="workspace-connection-actions">
+                {!data.loading && data.error && <button className="button primary full" onClick={() => data.refresh().catch(() => {})}>Retry connection</button>}
+                <button className="button secondary full" onClick={disconnect}>Sign out</button>
+              </div>
             </div> : <form onSubmit={connect}>
               <label htmlFor="email">Email address</label>
               <input id="email" type="email" autoComplete="email" value={email}
