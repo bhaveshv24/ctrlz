@@ -4,7 +4,9 @@ export const title = (i: Incident) =>
   i.kind === "outage"
     ? "Service interrupted"
     : i.kind === "workflow"
-      ? "Workflow needs recovery"
+      ? i.status === "resolved" && i.verification?.passed === true
+        ? "Ticket issuance recovered"
+        : "Workflow needs recovery"
       : "Repository repair";
 export const tone = (s: string) =>
   ["resolved", "healthy", "passed", "verified"].includes(s)

@@ -73,7 +73,17 @@ class NIMReasoner:
             event_id = store.record(incident_id, "tool_result", {"tool": "runbook_search", "query": query, "result": result})
             return json.dumps({"evidence_id": str(event_id), "runbooks": result})
 
-        return [inspect_health, inspect_diagnostics, inspect_workflows, search_runbooks]
+        tools = [inspect_health, inspect_diagnostics, inspect_workflows, search_runbooks]
+        incident = store.get(incident_id)
+        if adapter.project.adapter == "campuspass-v1" and incident["kind"] == "workflow":
+            @tool("inspect_incident_order")
+            def inspect_incident_order() -> str:
+                """Read the incident's actual order, simulated payment, job and ticket records."""
+                result = asyncio.run_coroutine_threadsafe(adapter.read("order", incident["resource"]), loop).result(timeout=35)
+                event_id = store.record(incident_id, "tool_result", {"tool": "incident_order", "result": result})
+                return json.dumps({"evidence_id": str(event_id), **result})
+            tools.append(inspect_incident_order)
+        return tools
 
     async def diagnose(self, incident, adapter, store, runbooks):
         llm = self.llm(self.selected_model)
@@ -89,6 +99,8 @@ class NIMReasoner:
         ops = Agent(role="Operations Recovery Agent", goal="Inspect feasibility and produce typed recovery candidates", backstory="Operations are proposals. An independent gate authorizes and executes them. Do not claim that any operation has executed.", llm=llm, tools=self.tools(adapter, store, incident["id"], runbooks), max_iter=5, allow_delegation=False)
         context = {"incident": incident, "diagnosis": diagnosis, "contract": adapter.project.contract.model_dump(), "rejection_feedback": feedback, "operation_semantics": adapter.operation_semantics}
         constraints = " Action arrays contain MUTATIONS ONLY from the registered operation names. Read probes, monitoring, approval, escalation and verification are handled by the engine and MUST NOT appear as actions. Do not invent operation names. Every candidate must respect max_actions and incident-resource scope. Use parameters for generic integrations; order_id is only for an adapter that explicitly defines it. Include a clearly labeled prohibited counterexample AS ONE CANDIDATE INSIDE candidates using an unregistered operation, so the gate can demonstrate rejection. Never add a prohibited_counterexample top-level field. If no permitted action matches the evidence, propose escalation with empty actions. Acceptance checks run AFTER execution; do not claim that a recovery or its verification has already succeeded."
+        if adapter.project.adapter == "campuspass-v1" and incident["kind"] == "workflow":
+            constraints += " Compare exactly four candidates: resume_worker (approval required, paused worker only); retry_order (incident order_id, ready worker only, never repeats payment); force_issue_ticket (explicitly prohibited counterexample); and escalation to code repair (empty actions, needed for worker_defect; no operational mutation repairs legacy_reference). Explain each against the observed fault. A website restart or a second payment does not complete the missing entitlement. Read inspect_incident_order and worker diagnostics as evidence."
 
         task1 = Task(description="Propose 2-4 alternative strategies with honest risks using this evidence: " + json.dumps(context) + constraints, expected_output="Concise alternatives with exact named mutation actions and preconditions", agent=planner)
         task2 = Task(description="Validate the proposed operations against fresh read tools when needed. Return structured RecoveryPlan; IDs must be unique; each action has operation, typed parameters, and optional order_id only when its adapter defines it. An empty action list means escalation, not success. Do not invent verification evidence. " + json.dumps(context) + constraints + " Exact JSON schema: " + json.dumps(RecoveryPlan.model_json_schema()), expected_output="Structured recovery plan using only the exact operation semantics given", agent=ops, context=[task1], output_pydantic=RecoveryPlan)

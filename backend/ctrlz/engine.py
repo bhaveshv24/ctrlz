@@ -90,8 +90,9 @@ class Engine:
         decision = next(r for r in results if r["candidate_id"] == selected.id)
         self.store.update(incident_id, selected=selected.model_dump())
         if decision["approval_required"]:
-            approval_hash = fingerprint({"candidate": selected.model_dump(), "project": adapter.project.model_dump()})
-            self.store.update(incident_id, status="awaiting_approval", approval_hash=approval_hash)
+            approval_revision = adapter.revision(diagnostics)
+            approval_hash = fingerprint({"incident_id": incident_id, "candidate": selected.model_dump(), "project": adapter.project.model_dump(), "revision": approval_revision})
+            self.store.update(incident_id, status="awaiting_approval", approval_hash=approval_hash, approval_revision=approval_revision)
             self.store.record(incident_id, "approval_required", {"candidate": selected.id, "approval_hash": approval_hash})
             return
         await self.execute(incident_id, selected, approved=False)
@@ -103,7 +104,7 @@ class Engine:
                 raise ValueError("Approval does not match pending plan")
             candidate = Candidate.model_validate(incident["selected"])
             project = self.adapter(incident).project
-            if fingerprint({"candidate": candidate.model_dump(), "project": project.model_dump()}) != approval_hash:
+            if fingerprint({"incident_id": incident_id, "candidate": candidate.model_dump(), "project": project.model_dump(), "revision": incident.get("approval_revision")}) != approval_hash:
                 raise ValueError("Plan or contract changed; replan before approval")
             self.store.record(incident_id, "authorized", {"candidate": candidate.id, "approval_hash": approval_hash})
             try:
@@ -124,6 +125,10 @@ class Engine:
         incident = self.store.get(incident_id)
         adapter = self.adapter(incident)
         diagnostics = await adapter.read("diagnostics")
+        if approved and incident.get("approval_revision") != adapter.revision(diagnostics):
+            self.store.update(incident_id, status="escalated", error="Approval is stale; service revision changed. Reinvestigate before authorizing again.")
+            self.store.record(incident_id, "approval_stale", {"expected_revision": incident.get("approval_revision"), "observed_revision": adapter.revision(diagnostics)})
+            return
         decision = evaluate(candidate, adapter.project, diagnostics, adapter, incident["resource"], approved)
         self.store.record(incident_id, "safety_gate", decision)
         if not decision["eligible"] or decision["approval_required"]:
@@ -134,6 +139,10 @@ class Engine:
         for index, action in enumerate(candidate.actions):
             # Re-check each action with current remote state, including after a prior action.
             diagnostics = await adapter.read("diagnostics")
+            if approved and index == 0 and incident.get("approval_revision") != adapter.revision(diagnostics):
+                self.store.update(incident_id, status="escalated", error="Approval is stale; service revision changed before operation intent")
+                self.store.record(incident_id, "approval_stale", {"expected_revision": incident.get("approval_revision"), "observed_revision": adapter.revision(diagnostics)})
+                return
             single = Candidate(id=candidate.id, rationale=candidate.rationale, actions=[action])
             gate = evaluate(single, adapter.project, diagnostics, adapter, incident["resource"], approved)
             self.store.record(incident_id, "safety_gate", gate)

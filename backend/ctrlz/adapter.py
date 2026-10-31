@@ -33,10 +33,10 @@ class CampusPassAdapter:
 
     async def read(self, name, order_id=None):
         paths = {"health": "/health", "diagnostics": "/diagnostics", "workflows": "/workflows"}
-        if name == "order":
+        if name in {"order", "ticket"}:
             from uuid import UUID
             UUID(order_id)
-            path = f"/orders/{order_id}"
+            path = f"/orders/{order_id}" if name == "order" else f"/tickets/{order_id}/verify"
         else:
             path = paths[name]
         start = time.monotonic()
@@ -85,8 +85,12 @@ class CampusPassAdapter:
             result = await self.read("order", resource)
             body = result["body"]
             tickets = body.get("tickets", [])
-            checks = {"order_read": result["ok"], "payment_paid": body.get("payment") == "paid", "exactly_one_ticket": len(tickets) == 1, "valid_entitlement": len(tickets) == 1 and tickets[0].get("valid") is True, "job_completed": body.get("job") == "done"}
-            return {"passed": all(checks.values()), "checks": checks, "evidence": result}
+            checks = {"order_read": result["ok"], "correct_order": body.get("id") == resource, "payment_paid": body.get("payment") == "paid", "exactly_one_ticket": len(tickets) == 1, "valid_entitlement": len(tickets) == 1 and tickets[0].get("valid") is True, "job_completed": body.get("job") == "done"}
+            ticket_verification = None
+            if len(tickets) == 1 and tickets[0].get("id"):
+                ticket_verification = await self.read("ticket", tickets[0]["id"])
+            checks["ticket_verified_by_application"] = bool(ticket_verification and ticket_verification["ok"] and ticket_verification["body"].get("valid") is True and ticket_verification["body"].get("ticket_id") == tickets[0]["id"])
+            return {"passed": all(checks.values()), "checks": checks, "evidence": result, "ticket_verification": ticket_verification}
         observations = []
         import asyncio
         for _ in range(3):
