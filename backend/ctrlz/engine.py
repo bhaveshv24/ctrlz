@@ -35,6 +35,9 @@ class Engine:
                 return
             if incident["kind"] == "code":
                 return
+            if incident["kind"] == "runtime":
+                await self.runtime_monitor.investigate(incident_id)
+                return
             try:
                 # An earlier operation could have succeeded before its result was persisted.
                 if incident.get("operation_intents"):

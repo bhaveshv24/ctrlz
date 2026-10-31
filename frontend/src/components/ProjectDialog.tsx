@@ -2,6 +2,7 @@ import { useState } from "react";
 import { ArrowRight } from "lucide-react";
 import type { Project } from "../api";
 import { Dialog } from "./ui";
+import RuntimeProjectForm from "./RuntimeProjectForm";
 const genericContract = {
   allowed: [],
   approval_required: [],
@@ -23,13 +24,16 @@ export default function ProjectDialog({
   busy,
   onClose,
   onSubmit,
+  token = "",
 }: {
   project: Project | "new";
   busy: boolean;
   onClose: () => void;
   onSubmit: (project: unknown) => Promise<void>;
+  token?: string;
 }) {
   const existing = project === "new" ? null : project;
+  const [runtimeMode, setRuntimeMode] = useState(existing?.project_type === "repository-deployment");
   const [name, setName] = useState(existing?.name || ""),
     [id, setId] = useState(existing?.id || ""),
     [url, setUrl] = useState(existing?.base_url || ""),
@@ -50,9 +54,10 @@ export default function ProjectDialog({
       JSON.stringify(existing?.contract || genericContract, null, 2),
     ),
     [error, setError] = useState("");
+  if (runtimeMode) return <RuntimeProjectForm project={existing} token={token} busy={busy} onClose={onClose} onBack={() => existing ? onClose() : setRuntimeMode(false)} onSubmit={onSubmit} />;
   return (
     <Dialog
-      title={existing ? "Project settings" : "Connect a service"}
+      title={existing ? "Project settings" : "Connect a project"}
       onClose={onClose}
       busy={busy}
     >
@@ -91,6 +96,7 @@ export default function ProjectDialog({
           <select
             value={adapter}
             onChange={(e) => {
+              if (e.target.value === "runtime-v1") { setRuntimeMode(true); return; }
               const campus = e.target.value === "campuspass-v1";
               setAdapter(e.target.value);
               setContract(
@@ -114,6 +120,7 @@ export default function ProjectDialog({
             }}
           >
             <option value="generic-http-v1">Generic HTTP service</option>
+            {!existing && <option value="runtime-v1">Repository + Deployment Monitoring</option>}
             <option value="campuspass-v1">
               CampusPass — optional demonstration preset
             </option>

@@ -35,6 +35,7 @@ import { useRouteMotion } from "./hooks/useRouteMotion";
 import PageTitle from "./components/PageTitle";
 import SignalCard from "./components/SignalCard";
 import ProjectDialog from "./components/ProjectDialog";
+import RuntimeProjectCard from "./components/RuntimeProjectCard";
 import ContinuationForm from "./components/ContinuationForm";
 import DemoLab from "./pages/DemoLab";
 import { OverviewPlate } from "./components/OverviewPlate";
@@ -626,6 +627,7 @@ export default function App() {
                   />
                   <div className="project-grid">
                     {projects.map((p) => (
+                      p.project.project_type === "repository-deployment" ? <RuntimeProjectCard key={p.project.id} signal={p} token={token} onManage={setProjectEdit} onIncidents={() => {setQuery(p.project.id);setFilter("all");navigate("incidents");}} /> :
                       <section
                         className="card project-panel"
                         key={p.project.id}
@@ -940,6 +942,7 @@ export default function App() {
       </div>
       {projectEdit && (
         <ProjectDialog
+          token={token}
           project={projectEdit}
           busy={busy}
           onClose={closeProject}

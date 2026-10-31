@@ -1,4 +1,5 @@
 import MotionHeading from "./MotionHeading";
+import RuntimeIncident from "./RuntimeIncident";
 import { useCallback, useEffect, useState } from "react";
 import { StoryPlate } from "./StoryPlate";
 import { FilePlate } from "./FilePlate";
@@ -34,6 +35,7 @@ import {
   lifecycle,
   measuredDuration,
   stamp,
+  receiptMatchesIncident,
   title,
   words,
 } from "../presentation";
@@ -93,7 +95,7 @@ export default function IncidentWorkspace({
       setBusy(false);
     }
   };
-  if (!receipt)
+  if (!receipt || !receiptMatchesIncident(receipt, incident.id))
     return (
       <>
         <button className="back-button" onClick={onBack}>
@@ -109,6 +111,7 @@ export default function IncidentWorkspace({
         )}
       </>
     );
+  if (receipt.incident.kind === "runtime") return <RuntimeIncident key={receipt.incident.id} receipt={receipt} token={token} onBack={onBack} onChange={onChange} />;
   const i = receipt.incident,
     verified = receipt.success,
     stages = lifecycle(receipt),
