@@ -1,0 +1,9 @@
+{
+  "name": "ctrlz",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "uv run --project backend python scripts/dev.py",
+    "start": "npm run dev"
+  }
+}

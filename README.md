@@ -15,8 +15,14 @@ uv sync --project backend --extra test --python 3.12
 npm --prefix frontend ci
 uv run --project backend python scripts/setup_env.py
 uv run --project backend python scripts/build_sandboxes.py
-uv run --project backend python scripts/dev.py
+npm run dev
 ```
+
+Once set up, run `npm run dev` from the project root to start the API and frontend
+together. `npm start` runs the same launcher. Ctrl+C stops both services and their
+child processes. If either service exits, the launcher stops the other.
+For alternate ports, use `npm run dev -- --api-port 8010 --web-port 5175`.
+The frontend proxy follows the selected API port.
 
 After command 3, add your NVIDIA_API_KEY and chosen NVIDIA_MODEL to `.env` locally before
 running command 5. Never put secrets in frontend code. Setup preserves any existing `.env`.
