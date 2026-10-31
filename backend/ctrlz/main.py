@@ -1,3 +1,4 @@
+from .settings import Settings
 import asyncio
 import contextlib
 import json
@@ -52,14 +53,15 @@ class RepositoryDemoRequest(BaseModel):
 
 
 def create_workspace_app(store=None, client=None, reasoner=None, runbooks=None, monitor=True, workspace_root=None):
-    store = store or Store(os.getenv("DATABASE_URL", "sqlite:///./ctrlz.db"))
+    settings = Settings()
+    store = store or Store(settings.DATABASE_URL)
     tasks = set()
     own_client = client is None
     client = client or httpx.AsyncClient()
-    data_dir = Path(workspace_root) if workspace_root else Path(os.getenv("DATA_DIR", "./data"))
-    runbooks = runbooks or Runbooks(Path(os.getenv("RUNBOOK_DIR", "../runbooks")), data_dir / "chroma")
+    data_dir = Path(workspace_root) if workspace_root else settings.DATA_DIR
+    runbooks = runbooks or Runbooks(settings.RUNBOOK_DIR, data_dir / "chroma")
     engine = Engine(store, client, reasoner or NIMReasoner(), runbooks)
-    continuation = Continuation(store, engine.reasoner, (data_dir / "imports") if workspace_root else Path(os.getenv("IMPORT_ROOT", "../imports")), data_dir / "patches")
+    continuation = Continuation(store, engine.reasoner, (data_dir / "imports") if workspace_root else settings.IMPORT_ROOT, data_dir / "patches", notifier=engine.notify)
     imports = RepositoryImports(continuation.root)
     intelligence = RepoIntelligence(store, client, token="" if workspace_root else None)
     if workspace_root:
@@ -68,7 +70,7 @@ def create_workspace_app(store=None, client=None, reasoner=None, runbooks=None, 
     demo_controls = DemoControls(store, client)
 
     def require_code_execution():
-        if os.getenv('CTRLZ_CODE_EXECUTION_ENABLED','true').lower() != 'true':
+        if not settings.CTRLZ_CODE_EXECUTION_ENABLED:
             raise HTTPException(503, 'Repository execution is disabled on this host; use the Docker-capable runner deployment')
 
     def spawn(coro):
@@ -97,7 +99,7 @@ def create_workspace_app(store=None, client=None, reasoner=None, runbooks=None, 
             except Exception:
                 import logging
                 logging.getLogger(__name__).exception("Monitor scan failed")
-            await asyncio.sleep(float(os.getenv("MONITOR_INTERVAL", "5")))
+            await asyncio.sleep(settings.MONITOR_INTERVAL)
 
     @asynccontextmanager
     async def lifespan(app):
@@ -120,12 +122,12 @@ def create_workspace_app(store=None, client=None, reasoner=None, runbooks=None, 
 
     app = FastAPI(title="CtrlZ Recovery API", version="0.1.0", lifespan=lifespan)
     app.state.store, app.state.engine, app.state.scan, app.state.tasks = store, engine, scan, tasks
-    app.add_middleware(CORSMiddleware, allow_origins=[o.strip() for o in os.getenv("CTRLZ_CORS_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173").split(",") if o.strip()], allow_methods=["GET", "POST", "PUT"], allow_headers=["Content-Type", "X-Operator-Token", "Last-Event-ID"])
+    app.add_middleware(CORSMiddleware, allow_origins=settings.cors_origins, allow_methods=["GET", "POST", "PUT"], allow_headers=["Content-Type", "X-Operator-Token", "Last-Event-ID"])
 
     def auth(request: Request, x_operator_token: str = Header(default="")):
         if getattr(request.state, "principal", None):
             return request.state.principal
-        expected = os.getenv("CTRLZ_OPERATOR_TOKEN", "")
+        expected = settings.CTRLZ_OPERATOR_TOKEN.get_secret_value()
         if not expected or not secrets.compare_digest(expected, x_operator_token):
             raise HTTPException(401, "Operator token required")
 
@@ -137,7 +139,7 @@ def create_workspace_app(store=None, client=None, reasoner=None, runbooks=None, 
 
     @app.get("/health")
     def health():
-        return {"status": "healthy", "nim_configured": bool(os.getenv("NVIDIA_API_KEY")), "provider": engine.reasoner.provider, "model": getattr(engine.reasoner, "selected_model", None), "demo_controls_enabled": os.getenv("CTRLZ_DEMO_CONTROLS_ENABLED", "false").lower() == "true"}
+        return {"status": "healthy", "nim_configured": bool(settings.NVIDIA_API_KEY.get_secret_value()), "provider": engine.reasoner.provider, "model": getattr(engine.reasoner, "selected_model", None), "demo_controls_enabled": settings.CTRLZ_DEMO_CONTROLS_ENABLED}
 
     @app.get("/overview", dependencies=[Depends(auth)])
     def insights():
@@ -273,9 +275,15 @@ def create_workspace_app(store=None, client=None, reasoner=None, runbooks=None, 
             spawn(engine.run(incident_id))
         return {"queued": True}
 
+    @app.get("/runtime", dependencies=[Depends(auth)])
+    async def runtime():
+        from .runtime import inspect_runtime
+        webhook = getattr(engine, "notification_webhook", settings.NOTIFICATION_WEBHOOK_URL.get_secret_value())
+        return await asyncio.to_thread(inspect_runtime, settings, store, runbooks, engine.reasoner, webhook)
+
     @app.get("/capabilities", dependencies=[Depends(auth)])
     def capabilities():
-        return {"code_execution_enabled": os.getenv("CTRLZ_CODE_EXECUTION_ENABLED","true").lower() == "true", "sources": ["github", "zip", "local"], "profiles": {key:{"label":value["label"],"image":value["image"]} for key,value in PROFILES.items()}, "maximum_upload_bytes": MAX_UPLOAD, "maximum_attempts": 3, "generic_http": True, "dependency_setup": "Explicit approval; npm scripts disabled / Python wheels only; tests offline", "publishes_changes": False}
+        return {"code_execution_enabled": settings.CTRLZ_CODE_EXECUTION_ENABLED, "sources": ["github", "zip", "local"], "profiles": {key:{"label":value["label"],"image":value["image"]} for key,value in PROFILES.items()}, "maximum_upload_bytes": MAX_UPLOAD, "maximum_attempts": 3, "generic_http": True, "dependency_setup": "Explicit approval; npm scripts disabled / Python wheels only; tests offline", "publishes_changes": False}
 
     @app.post("/repositories/import", dependencies=[Depends(auth)], status_code=201)
     async def import_repository(body: RepositorySource, request: Request):

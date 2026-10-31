@@ -1,8 +1,9 @@
 import asyncio
 import hashlib
 import json
-import os
 import uuid
+from urllib.parse import urlsplit
+from .settings import Settings
 from .adapter import ADAPTERS
 from .models import Candidate, Project, RecoveryPlan
 from .reasoning import ReasoningUnavailable
@@ -161,13 +162,13 @@ class Engine:
     async def notify(self, incident_id):
         url = getattr(self, "notification_webhook", None)
         if url is None:
-            url = os.getenv("NOTIFICATION_WEBHOOK_URL", "")
+            url = Settings().NOTIFICATION_WEBHOOK_URL.get_secret_value()
         if not url:
             self.store.record(incident_id, "notification", {"delivered": False, "reason": "Webhook not configured"})
             return
         incident = self.store.get(incident_id)
         text = f"CtrlZ · {incident['kind']} · {incident['id']} · {incident['status']}. Independent verification: {incident.get('verification', {}).get('passed')}. Review the recovery receipt for remaining risks."
-        payload = {"content": text} if "discord.com" in url else {"text": text}
+        payload = {"content": text} if urlsplit(url).hostname in {"discord.com", "discordapp.com"} else {"text": text}
         try:
             response = await self.client.post(url, json=payload, timeout=10, follow_redirects=False)
             self.store.record(incident_id, "notification", {"delivered": response.is_success, "status": response.status_code})

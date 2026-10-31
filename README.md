@@ -91,7 +91,7 @@ The optional sibling integration tests skip when that checkout is absent.
 ## Verification
 
 ```sh
-uv run --project backend pytest -q
+uv run --project backend python -m pytest -q
 npm --prefix frontend run build && npm --prefix frontend test
 ```
 

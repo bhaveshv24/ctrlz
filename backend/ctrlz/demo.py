@@ -1,5 +1,6 @@
 """Operator-only fault setup, deliberately separate from autonomous recovery decisions."""
 import os
+from .settings import Settings
 from typing import Literal
 from fastapi import HTTPException
 from pydantic import Field
@@ -17,7 +18,7 @@ class DemoControls:
         self.store, self.client = store, client
 
     async def run(self, project_id, request: DemoRequest):
-        if os.getenv("CTRLZ_DEMO_CONTROLS_ENABLED", "false").lower() != "true":
+        if not Settings().CTRLZ_DEMO_CONTROLS_ENABLED:
             raise HTTPException(403, "Demo controls are disabled in this environment")
         try:
             project = Project.model_validate(self.store.project(project_id))

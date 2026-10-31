@@ -1,3 +1,4 @@
+import RuntimeStatus from "./components/RuntimeStatus";
 import AccountSettings from "./components/AccountSettings";
 import MotionHeading from "./components/MotionHeading";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
@@ -831,6 +832,7 @@ export default function App() {
                     heading="Know what’s connected."
                     copy="Runtime configuration and capability boundaries, without exposing credentials."
                   />
+                  <RuntimeStatus token={token} />
                   <AccountSettings token={token} admin={account?.role === "admin"} signedOut={disconnect} />
                   <div className="settings-grid">
                     <section className="card">

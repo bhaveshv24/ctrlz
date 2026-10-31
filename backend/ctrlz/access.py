@@ -7,13 +7,15 @@ from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
+from .settings import Settings
 from .accounts import Accounts, Credentials
 from .store import Store
 
 
 def create_account_app(client=None, reasoner=None, runbooks=None, monitor=True):
     from .main import create_workspace_app
-    root = Path(os.getenv('DATA_DIR', './data')).resolve()
+    settings = Settings()
+    root = settings.DATA_DIR.resolve()
     accounts = Accounts(root)
     accounts.seed()
     workspaces = {}
@@ -26,7 +28,7 @@ def create_account_app(client=None, reasoner=None, runbooks=None, monitor=True):
                 directory = root / 'workspaces' / key
                 directory.mkdir(parents=True, exist_ok=True)
                 app = create_workspace_app(
-                    store=Store(os.getenv('DATABASE_URL', 'sqlite:///./ctrlz.db') if key == 'operator' else f'sqlite:///{directory / "workspace.db"}'),
+                    store=Store(settings.DATABASE_URL if key == 'operator' else f'sqlite:///{directory / "workspace.db"}'),
                     client=client, reasoner=reasoner, runbooks=runbooks, monitor=monitor,
                     workspace_root=None if key == 'operator' else directory)
                 await stack.enter_async_context(app.router.lifespan_context(app))
@@ -36,14 +38,16 @@ def create_account_app(client=None, reasoner=None, runbooks=None, monitor=True):
     @asynccontextmanager
     async def lifespan(app):
         # Resume monitoring even before users open a browser after a restart.
-        for user in accounts.users():
-            await workspace(user)
-        yield
-        await stack.aclose()
+        try:
+            for user in accounts.users():
+                await workspace(user)
+            yield
+        finally:
+            await stack.aclose()
 
     app = FastAPI(title='CtrlZ accounts and recovery', lifespan=lifespan)
     app.state.accounts = accounts
-    origins = [s.strip() for s in os.getenv('CTRLZ_CORS_ORIGINS', 'http://localhost:5173,http://127.0.0.1:5173').split(',') if s.strip()]
+    origins = settings.cors_origins
     app.add_middleware(CORSMiddleware, allow_origins=origins, allow_methods=['GET','POST','PUT'], allow_headers=['Content-Type','Authorization','X-Operator-Token','Last-Event-ID'])
 
     def token(request):
@@ -60,7 +64,7 @@ def create_account_app(client=None, reasoner=None, runbooks=None, monitor=True):
 
     @app.get('/auth/config')
     def config():
-        return {'registration_enabled': os.getenv('CTRLZ_ALLOW_REGISTRATION','true').lower() == 'true'}
+        return {'registration_enabled': settings.CTRLZ_ALLOW_REGISTRATION}
 
     @app.post('/auth/login')
     def login(body: Credentials, request: Request):
@@ -118,8 +122,8 @@ def create_account_app(client=None, reasoner=None, runbooks=None, monitor=True):
                 supplied = token(request)
                 # Retain explicit local CLI access only when enabled by the deployer.
                 import secrets
-                expected = os.getenv('CTRLZ_OPERATOR_TOKEN','')
-                if os.getenv('CTRLZ_ALLOW_OPERATOR_TOKEN','false').lower() == 'true' and expected and secrets.compare_digest(expected, supplied):
+                expected = settings.CTRLZ_OPERATOR_TOKEN.get_secret_value()
+                if settings.CTRLZ_ALLOW_OPERATOR_TOKEN and expected and secrets.compare_digest(expected, supplied):
                     user = {'id':'operator','email':'local-operator','role':'admin'}
                 else:
                     user = accounts.resolve(supplied)

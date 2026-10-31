@@ -1,3 +1,4 @@
+import os
 import httpx
 import pytest
 from ctrlz.accounts import Accounts, Credentials
@@ -16,7 +17,8 @@ def test_seed_and_password_storage(tmp_path):
     users = accounts.users()
     assert len(users) == 3
     assert sum(u['role'] == 'admin' for u in users) == 2
-    assert (tmp_path / 'initial-credentials.txt').stat().st_mode & 0o777 == 0o600
+    if os.name != 'nt':
+        assert (tmp_path / 'initial-credentials.txt').stat().st_mode & 0o777 == 0o600
     with accounts.connect() as db:
         assert all(len(r['password']) == 128 and len(r['salt']) == 32 for r in db.execute('SELECT * FROM users'))
 

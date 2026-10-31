@@ -1,5 +1,10 @@
 # Submission checklist — 31 October 2026
 
+Latest stack audit: **113 Docker-enabled backend tests passed**, frontend production build
+and **18 frontend tests passed**. Authenticated runtime checks were exercised in the in-app
+browser. See [STACK_STATUS.md](STACK_STATUS.md) for current implementation and verification
+boundaries. Earlier phase counts below are retained as historical evidence.
+
 Current scope is **local only and patch-only**. There is no remote for this project; no remote
 creation, pushing, merging, deployment or remote repository writes are authorized.
 

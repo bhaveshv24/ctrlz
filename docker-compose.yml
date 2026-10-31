@@ -9,7 +9,7 @@ services:
       CREWAI_STORAGE_DIR: /data/crewai
       IMPORT_ROOT: /imports
     ports: ["127.0.0.1:8000:8000"]
-    volumes: ["ctrlz-data:/data", "./runbooks:/runbooks:ro"]
+    volumes: ["ctrlz-data:/data", "ctrlz-imports:/imports", "./runbooks:/runbooks:ro"]
     networks:
       agentathon:
         aliases: [ctrlz-api]
@@ -20,7 +20,7 @@ services:
     networks: [agentathon]
 volumes:
   ctrlz-data:
+  ctrlz-imports:
 networks:
   agentathon:
     name: agentathon-demo
-    external: true

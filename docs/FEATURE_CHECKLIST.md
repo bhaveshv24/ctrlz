@@ -1,5 +1,10 @@
 # Feature completion and evidence
 
+Latest stack audit: **113 Docker-enabled backend tests passed**, frontend production build
+and **18 frontend tests passed**. Authenticated runtime checks were exercised in the in-app
+browser. See [STACK_STATUS.md](STACK_STATUS.md) for current implementation and verification
+boundaries. Earlier phase counts below are retained as historical evidence.
+
 New account/hosting work and exact A/B/C promise coverage are recorded in
 [DELIVERY_AUDIT.md](DELIVERY_AUDIT.md). The baseline totals and single-operator UI statements
 below describe the earlier revision; see that audit for current validation.

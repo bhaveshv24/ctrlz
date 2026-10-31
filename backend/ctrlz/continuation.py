@@ -65,7 +65,8 @@ def acceptance(baseline, candidate, immutable):
 
 
 class Continuation:
-    def __init__(self, store, reasoner, root: Path, artifacts: Path):
+    def __init__(self, store, reasoner, root: Path, artifacts: Path, notifier=None):
+        self.notifier = notifier
         self.store, self.reasoner = store, reasoner
         self.root, self.artifacts = root.resolve(), artifacts.resolve()
         self.root.mkdir(parents=True, exist_ok=True); self.artifacts.mkdir(parents=True, exist_ok=True)
@@ -248,3 +249,5 @@ class Continuation:
                     try:await asyncio.to_thread(git,['worktree','remove','--force',str(worktree)],repo)
                     except Exception:self.store.record(incident_id,'worktree_cleanup_required',{'worktree':str(worktree)})
                 shutil.rmtree(worktree.parent,ignore_errors=True)
+            if self.notifier and self.store.get(incident_id)["status"] in {"resolved", "blocked", "escalated"}:
+                await self.notifier(incident_id)

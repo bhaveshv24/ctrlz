@@ -54,8 +54,8 @@ async def test_real_worktree_sandbox_and_verified_artifact(tmp_path, first_inval
 
 async def test_replay_outage_in_disposable_compose(tmp_path, monkeypatch):
     campus = Path(__file__).resolve().parents[3] / "campuspass"
-    if not campus.exists():
-        pytest.skip("Sibling CampusPass repository required")
+    if not (campus / "demo/docker-compose.replay.yml").is_file():
+        pytest.skip("Complete sibling CampusPass checkout with controlled replay template required")
     monkeypatch.setenv("REPLAY_CAMPUSPASS_DIR", str(campus))
     store = Store(f"sqlite:///{tmp_path}/replay.db")
     incident, _ = store.create("demo", "outage", "service", {})

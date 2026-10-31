@@ -55,6 +55,11 @@ def diagnostics():
     state = snapshot()
     # Logs are read-only and bounded; no user-provided commands or container names.
     state['logs'] = docker('logs', '--tail', '30', name)[-6000:]
+    try:
+        sample = json.loads(docker('stats', '--no-stream', '--format', '{{json .}}', name))
+        state['resources'] = {'available': True, **{key: sample.get(key) for key in ['CPUPerc', 'MemUsage', 'MemPerc', 'NetIO', 'BlockIO', 'PIDs']}}
+    except (HTTPException, ValueError):
+        state['resources'] = {'available': False, 'reason': 'Docker did not return a resource sample'}
     return state
 
 

@@ -1,8 +1,8 @@
 import asyncio
 import json
-import os
 from crewai import Agent, Crew, LLM, Process, Task
 from crewai.tools import tool
+from .settings import Settings
 from .models import CodeProposal, RecoveryPlan
 
 
@@ -18,7 +18,7 @@ class NIMReasoner:
 
     @staticmethod
     def model_name():
-        model = os.getenv("NVIDIA_MODEL", "meta/llama-3.3-70b-instruct")
+        model = Settings().NVIDIA_MODEL
         # Accept CrewAI's optional routing prefix without altering real openai/org IDs.
         if model.startswith("openai/") and model.count("/") >= 2:
             model = model.removeprefix("openai/")
@@ -30,7 +30,8 @@ class NIMReasoner:
 
     @staticmethod
     def llm(selected_model=None):
-        key = os.getenv("NVIDIA_API_KEY")
+        settings = Settings()
+        key = settings.NVIDIA_API_KEY.get_secret_value()
         if not key:
             raise ReasoningUnavailable("NVIDIA_API_KEY is missing. Live reasoning is blocked; no simulated AI is substituted.")
         model = selected_model or NIMReasoner.model_name()
@@ -38,11 +39,9 @@ class NIMReasoner:
         if "nemotron-3" in model.lower():
             # NVIDIA's documented direct-answer mode avoids reasoning consuming the
             # entire structured-output budget. It does not bypass any safety check.
-            extra["extra_body"] = {"chat_template_kwargs": {"enable_thinking": os.getenv("NVIDIA_ENABLE_THINKING", "false").lower() == "true"}}
-        budget = int(os.getenv("NVIDIA_MAX_TOKENS", "8192"))
-        if not 512 <= budget <= 32768:
-            raise ValueError("NVIDIA_MAX_TOKENS must be between 512 and 32768")
-        return LLM(model="openai/" + model, base_url=os.getenv("NVIDIA_BASE_URL", "https://integrate.api.nvidia.com/v1").rstrip("/"), api_key=key, temperature=0.1, timeout=90, max_tokens=budget, **extra)
+            extra["extra_body"] = {"chat_template_kwargs": {"enable_thinking": settings.NVIDIA_ENABLE_THINKING}}
+        budget = settings.NVIDIA_MAX_TOKENS
+        return LLM(model="openai/" + model, base_url=settings.NVIDIA_BASE_URL, api_key=key, temperature=0.1, timeout=90, max_tokens=budget, **extra)
 
     def tools(self, adapter, store, incident_id, runbooks):
         loop = asyncio.get_running_loop()
