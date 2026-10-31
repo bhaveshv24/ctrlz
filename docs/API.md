@@ -34,7 +34,7 @@ JSON receipts include an integrity snapshot checksum; this is not a digital sign
 | POST /incidents/{id}/approve | {approval_hash} | exact pending plan execution |
 | POST /incidents/{id}/retry | {} | asynchronous reconciliation and new investigation |
 | POST /incidents/{id}/replay | {candidate_id} | asynchronous isolated fixture evaluation |
-| POST /continuations | {repository, requirements, context?} | 202 code import incident |
+| POST /continuations | {repository, mode?: repair or complete, requirements?, context?} | 202 repository task; completion requires an explicit prompt and accepts a passing baseline |
 | GET /events?after=N | Last-Event-ID header optional | authenticated resumable SSE |
 
 Project example (not secrets):

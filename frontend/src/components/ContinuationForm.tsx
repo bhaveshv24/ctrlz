@@ -8,6 +8,8 @@ import {
   ShieldCheck,
   FolderGit2,
   Upload,
+  Bug,
+  Sparkles,
 } from "lucide-react";
 import { api, API, saveFile, type Incident, type Act } from "../api";
 
@@ -47,6 +49,7 @@ export default function ContinuationForm({
   busy: boolean;
   open: (id: string) => void;
 }) {
+  const [mode, setMode] = useState<"repair" | "complete" | null>(null);
   const [kind, setKind] = useState("github"),
     [source, setSource] = useState(""),
     [subdirectory, setSubdirectory] = useState(""),
@@ -78,6 +81,27 @@ export default function ContinuationForm({
       setScanning(false);
     }
   };
+  if (!mode) return (
+    <section className="card repository-mode-picker">
+      <span className="eyebrow">01 / CHOOSE YOUR GOAL</span>
+      <h2>What would you like to do?</h2>
+      <p className="muted">Bring your repository. Choose the kind of help you need.</p>
+      <div className="repository-mode-grid">
+        <button type="button" className="repository-mode-card" disabled={busy} onClick={() => { setMode("repair"); reset(); }}>
+          <Bug size={28} aria-hidden="true" />
+          <strong>Debug & fix errors</strong>
+          <span>Find failing tests, repair the cause, and download the tested code.</span>
+          <span className="repository-mode-action">Fix my repository <ArrowRight size={16} /></span>
+        </button>
+        <button type="button" className="repository-mode-card" disabled={busy} onClick={() => { setMode("complete"); reset(); }}>
+          <Sparkles size={28} aria-hidden="true" />
+          <strong>Complete an unfinished project</strong>
+          <span>Import your work, describe what is missing, and build on the existing source.</span>
+          <span className="repository-mode-action">Continue my project <ArrowRight size={16} /></span>
+        </button>
+      </div>
+    </section>
+  );
   return (
     <form
       className="card continuation-form"
@@ -114,12 +138,13 @@ export default function ContinuationForm({
               });
             setSnapshot(imported);
             if (imported.supported && executionEnabled) await scan(imported);
-          } else if (!diagnosis || diagnosis.status !== "failing") {
+          } else if (!diagnosis || diagnosis.status === "blocked" || (mode === "repair" && diagnosis.status !== "failing")) {
             await scan(snapshot);
           } else {
             const i = await api<Incident>("/continuations", token, {
               repository: snapshot.repository,
-              ...(requirements.trim() ? { requirements } : {}),
+              mode,
+              ...(requirements.trim() ? { requirements: requirements.trim() } : {}),
               context,
               acceptance_profile: snapshot.profile,
               install_dependencies: true,
@@ -129,17 +154,18 @@ export default function ContinuationForm({
         });
       }}
     >
+      <button className="inline-link" type="button" disabled={busy} onClick={() => setMode(null)}>← Choose a different goal</button>
       {!executionEnabled && <p role="status" className="alert">This host supports repository inspection. Running repairs requires the Docker-capable runner deployment.</p>}
       <span className="eyebrow">
-        {snapshot ? "02 / AUTOMATIC DIAGNOSIS" : "01 / BRING A REPOSITORY"}
+        {snapshot ? (mode === "complete" ? "03 / DESCRIBE THE FINISH LINE" : "02 / AUTOMATIC DIAGNOSIS") : "02 / BRING A REPOSITORY"}
       </span>
       <h2>
-        {snapshot
+        {mode === "complete" ? (snapshot ? "What should we finish?" : "Pick up where you left off.") : snapshot
           ? "Evidence first. Then fix."
           : "Your repo. Your acceptance tests."}
       </h2>
       <p className="muted">
-        Connect a repository. CtrlZ runs its existing tests automatically, then offers a fix for reproduced failures.
+        {mode === "complete" ? "Import your project, then describe the missing features or unfinished work. CtrlZ proposes source changes and runs the existing tests." : "Connect a repository. CtrlZ runs its existing tests automatically, then offers a fix for reproduced failures."}
       </p>
       <RepoIntelligence
         token={token}
@@ -246,6 +272,12 @@ export default function ContinuationForm({
         </>
       ) : (
         <>
+          {mode === "complete" && <label className="completion-prompt">
+            What would you like completed? <span className="completion-required">Required</span>
+            <textarea rows={6} value={requirements} onChange={e => setRequirements(e.target.value)} required minLength={10} maxLength={20000}
+              placeholder="Describe what already works, what is unfinished, and how the finished feature should behave. For example: finish the task filters, connect them to the existing API, and show clear empty and error states." />
+            <small>Be specific about the expected result. Existing tests check regressions; review the generated changes against your prompt. This flow needs a supported test setup and preserves tests, dependency manifests and configuration.</small>
+          </label>}
           <p className="form-note">The download contains the imported source{snapshot.provenance?.subdirectory ? `, with ${snapshot.provenance.subdirectory} repaired in its original location` : " at the repository root"}. A separate frontend repository is not added automatically. Dependencies, secrets and build caches are excluded.</p>
           <details open={!snapshot.supported}>
             <summary>Repository files & detected test setup (optional)</summary>
@@ -309,7 +341,7 @@ export default function ContinuationForm({
             Choose another repository
           </button>
           <section aria-live="polite" className="repository-assessment">
-            <h3>{scanning ? "Running repository tests…" : diagnosis ? diagnosis.message : "Ready to run the existing tests"}</h3>
+            <h3>{scanning ? "Running repository tests…" : diagnosis ? (mode === "complete" && diagnosis.status === "healthy" ? "Baseline tests pass. Ready to continue your project." : diagnosis.message) : "Ready to run the existing tests"}</h3>
             {scanning && <p className="muted">Preparing declared dependencies and collecting real failures. This can take a few minutes.</p>}
             {diagnosis && <>
               <p>{diagnosis.passed} passed · {diagnosis.failed} failed · {diagnosis.skipped} skipped</p>
@@ -327,11 +359,11 @@ export default function ContinuationForm({
           </section>
           <details>
             <summary>Additional instructions (optional)</summary>
-            <label>
+            {mode === "repair" && <label>
               Intended behavior
               <textarea rows={3} value={requirements} onChange={e => setRequirements(e.target.value)} minLength={10} maxLength={20000}
                 placeholder="Only needed for behavior the existing tests do not describe." />
-            </label>
+            </label>}
             <label>
               Additional context
               <textarea rows={3} value={context} onChange={e => setContext(e.target.value)} maxLength={20000}
@@ -357,7 +389,7 @@ export default function ContinuationForm({
             ) : (
               <Code2 size={16} />
             )}
-            {busy ? (scanning ? "Inspecting & running tests…" : "Starting repair…") : diagnosis?.status === "failing" ? "Fix failing code" : "Run tests again"}
+            {busy ? (scanning ? "Inspecting & running tests…" : mode === "complete" ? "Starting project completion…" : "Starting repair…") : mode === "complete" && diagnosis && diagnosis.status !== "blocked" ? "Complete project" : diagnosis?.status === "failing" ? "Fix failing code" : "Run tests again"}
             <ArrowRight size={15} />
           </button>
         </>

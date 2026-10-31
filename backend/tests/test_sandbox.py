@@ -50,6 +50,37 @@ class CodeFixture:
         return CodeProposal(diagnosis="Explicit test patch for a reproduced arithmetic defect", changes=[FileChange(path="maths.py", content="def add(a, b):\n    return a + b\n")])
 
 
+async def test_completion_extends_a_healthy_project_and_exports_zip(tmp_path):
+    import io
+    import zipfile
+    from ctrlz.repository import RepositoryImports
+    source = 'def add(a, b):\n    return a + b\n\ndef multiply(a, b):\n    raise NotImplementedError\n'
+    data = io.BytesIO()
+    with zipfile.ZipFile(data, 'w') as archive:
+        archive.writestr('maths.py', source)
+        archive.writestr('test_maths.py', 'from maths import add\ndef test_add(): assert add(2, 3) == 5\n')
+    root = tmp_path/'imports'
+    snapshot = RepositoryImports(root).import_zip(data.getvalue())
+    class CompletionFixture:
+        provider = 'Explicit local completion fixture; no external model'
+        async def code(self, request, files, baseline):
+            assert request.mode == baseline['mode'] == 'complete'
+            assert baseline['exit_code'] == 0
+            from ctrlz.models import SourceEdit
+            return CodeProposal(diagnosis='Implement requested multiplication', edits=[SourceEdit(path='maths.py', before='raise NotImplementedError', after='return a * b')])
+    store = Store(f"sqlite:///{tmp_path/'completion.db'}")
+    incident, _ = store.create('project-completion', 'code', snapshot['repository'], {})
+    runner = Continuation(store, CompletionFixture(), root, tmp_path/'artifacts')
+    await runner.run(incident['id'], ImportRequest(repository=snapshot['repository'], mode='complete', requirements='Implement the unfinished multiplication function'))
+    result = store.get(incident['id'])
+    assert result['status'] == 'resolved', result
+    assert result['verification']['checks']['baseline_established']
+    with zipfile.ZipFile(io.BytesIO(runner.repaired_archive(result))) as archive:
+        assert b'return a * b' in archive.read('repaired-repository/maths.py')
+    assert (Path(snapshot['repository'])/'maths.py').read_text() == source
+    store.engine.dispose()
+
+
 @pytest.mark.parametrize("first_invalid", [False, True])
 async def test_real_worktree_sandbox_and_verified_artifact(tmp_path, first_invalid):
     repo = tmp_path / "imports" / "unfinished"

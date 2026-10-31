@@ -80,10 +80,13 @@ class ImportRequest(Strict):
     @classmethod
     def discard_legacy_model_override(cls, value):
         if isinstance(value, dict):
+            if value.get('mode') == 'complete' and len(str(value.get('requirements', '')).strip()) < 10:
+                raise ValueError('Describe what you want completed in at least 10 characters')
             return {key: item for key, item in value.items() if key != "model"}
         return value
 
     repository: str
+    mode: Literal['repair', 'complete'] = 'repair'
     requirements: str = Field(default="Diagnose and repair failures in the existing acceptance tests. Preserve intended behavior, payment validation, authorization, and all test files. Return a verified source patch.", min_length=10, max_length=20000)
     context: str = Field(default="", max_length=20000)
     acceptance_profile: Literal["auto", "python-pytest", "node-test", "javascript-vitest"] = "auto"

@@ -248,6 +248,12 @@ async def test_diagnose_api_authentication_and_automatic_defaults(tmp_path, monk
         await asyncio.sleep(0)
         assert retried == [(incident['id'], str(repo))]
         assert store.get(incident['id'])['verification']['passed'] is False
+        assert (await client.post('/continuations', json={'repository':str(repo), 'mode':'complete', 'install_dependencies':True}, headers=headers)).status_code == 422
+        completion = await client.post('/continuations', json={'repository':str(repo), 'mode':'complete', 'requirements':'Finish the existing search filters', 'install_dependencies':True}, headers=headers)
+        assert completion.status_code == 202
+        assert completion.json()['project_id'] == 'project-completion'
+        assert completion.json()['import_request']['mode'] == 'complete'
+        await asyncio.sleep(0)
     await app.state.engine.client.aclose()
     store.engine.dispose()
 
@@ -390,6 +396,56 @@ def test_comparison_search_covers_distinct_traceback_files(tmp_path):
     assert [proposal.edits[0].path for proposal in proposals[:2]] == ['entry.py', 'leaf.py']
     (tmp_path/'leaf.py').write_text('def process(state):\n    if state != "ready":\n        raise ValueError("Ready required")\n')
     assert guard_comparison_repairs(tmp_path, ['leaf.py']) == []
+
+
+def test_completion_requires_explicit_prompt_and_preserves_repair_default():
+    from pydantic import ValidationError
+    assert ImportRequest(repository='fixture').mode == 'repair'
+    with pytest.raises(ValidationError, match='Describe what you want completed'):
+        ImportRequest(repository='fixture', mode='complete')
+    with pytest.raises(ValidationError):
+        ImportRequest(repository='fixture', mode='complete', requirements='          ')
+    assert ImportRequest(repository='fixture', mode='complete', requirements='Finish the search filters').mode == 'complete'
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('mode', ['repair', 'complete'])
+async def test_completion_can_extend_healthy_source_while_repair_requires_failure(tmp_path, monkeypatch, mode):
+    from ctrlz.models import CodeProposal, SourceEdit
+    from ctrlz.store import Store
+    runner, snapshot = imported(tmp_path, 'def allowed(value):\n    return True\n\ndef unfinished():\n    raise NotImplementedError\n')
+    store = Store(f"sqlite:///{tmp_path/'completion.db'}")
+    runner.store = store
+    seen = []
+    class Sandbox:
+        profile = 'python-pytest'
+        def __init__(self, *args):pass
+        def prepare(self, inspection):return {}
+        def run(self):return {'exit_code':0, 'cases':[{'id':'test_allowed', 'passed':True, 'status':'passed'}], 'output':'1 passed'}
+        def close(self):pass
+    class Reasoner:
+        async def code(self, request, files, context):
+            seen.append(request)
+            assert request.mode == context['mode'] == 'complete'
+            assert request.requirements == 'Finish unfinished to return the number 42'
+            return CodeProposal(diagnosis='Implement requested unfinished function', edits=[SourceEdit(path='logic.py', before='raise NotImplementedError', after='return 42')])
+    monkeypatch.setattr('ctrlz.continuation.Sandbox', Sandbox)
+    runner.reasoner = Reasoner()
+    incident, _ = store.create('project-completion' if mode == 'complete' else 'code-import', 'code', snapshot['repository'], {})
+    await runner.run(incident['id'], ImportRequest(repository=snapshot['repository'], mode=mode, requirements='Finish unfinished to return the number 42'))
+    result = store.get(incident['id'])
+    if mode == 'complete':
+        assert result['status'] == 'resolved', result
+        assert result['verification']['checks']['baseline_established']
+        assert 'regression_proven' not in result['verification']['checks']
+        assert len(seen) == 1
+        with zipfile.ZipFile(io.BytesIO(runner.repaired_archive(result))) as archive:
+            assert b'return 42' in archive.read('repaired-repository/logic.py')
+        assert not any(e['stage'] == 'strategy_tests' for e in store.events())
+    else:
+        assert result['status'] == 'escalated'
+        assert not seen
+    store.engine.dispose()
 
 
 @pytest.mark.asyncio

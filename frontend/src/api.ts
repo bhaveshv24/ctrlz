@@ -52,6 +52,7 @@ export type Incident = {
   verification?: Verification;
   remaining_risks?: string[];
   patch?: string;
+  import_request?: {mode?: "repair" | "complete"; requirements?: string};
   commit?: string;
   selected_code_strategy?: string;
   suspect_commit?: {

@@ -353,7 +353,7 @@ def create_workspace_app(store=None, client=None, reasoner=None, runbooks=None, 
                 raise ValueError('Approve isolated dependency setup before starting this repair')
         except (ValueError, RuntimeError) as exc:
             raise HTTPException(422, str(exc)) from exc
-        incident, created = store.create("code-import", "code", str(repo), {"requirements": body.requirements, "context": body.context})
+        incident, created = store.create("project-completion" if body.mode == 'complete' else "code-import", "code", str(repo), {"requirements": body.requirements, "context": body.context, "mode":body.mode})
         if created:
             store.update(incident["id"], import_request=body.model_dump())
             store.record(incident["id"], "detect", {"explicit_import": True, "repository": str(repo)})

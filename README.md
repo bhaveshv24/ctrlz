@@ -54,6 +54,13 @@ The React/Vite dashboard receives persisted events through authenticated SSE.
 
 ## Repository repair
 
+Choose **Debug & fix errors** for a reproduced failure, or **Complete an unfinished
+project** to import an existing project and describe the missing functionality in a
+required prompt. Completion can start from passing tests. Both modes preserve the
+original acceptance tests and dependency configuration and return a tested source ZIP.
+Completion requires a supported test suite; passing existing tests does not prove all
+new prompt requirements, so review the requirement assessment and resulting changes.
+
 Open **Repository repair**. Import a public GitHub URL, upload a ZIP or copy an allowed local
 folder. **Inspect repository** detects the test profile, prepares declared dependencies
 in isolation and runs the existing tests automatically. Review the failing checks, then

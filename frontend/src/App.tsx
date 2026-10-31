@@ -703,9 +703,9 @@ export default function App() {
               {page === "continuity" && (
                 <>
                   <PageTitle
-                    eyebrow="VERIFIED REPOSITORY REPAIR"
-                    heading="Bring a broken repo. Leave with proof."
-                    copy="Python, JavaScript or TypeScript. Reproduce the regression, repair it in isolation, and inspect every result."
+                    eyebrow="YOUR REPOSITORY, MOVING FORWARD"
+                    heading="Fix bugs. Finish projects."
+                    copy="Debug an existing failure or describe what your unfinished project needs next. Review tested source changes before using them."
                   />
                   <div className="continuity-layout">
                     <ContinuationForm
@@ -733,8 +733,8 @@ export default function App() {
                             "Reproduce acceptance failures in a detached Git worktree and Docker sandbox.",
                           ],
                           [
-                            "Fix",
-                            "Review the failures and click Fix failing code to start the repair.",
+                            "Build",
+                            "Fix failing code, or describe the unfinished features you want completed.",
                           ],
                           [
                             "Prove",

@@ -5,7 +5,7 @@ export const title = (i: Incident) =>
     ? "Service interrupted"
     : i.kind === "workflow"
       ? "Workflow needs recovery"
-      : "Repository repair";
+      : i.import_request?.mode === "complete" ? "Project completion" : "Repository repair";
 export const tone = (s: string) =>
   ["resolved", "healthy", "passed", "verified"].includes(s)
     ? "green"
