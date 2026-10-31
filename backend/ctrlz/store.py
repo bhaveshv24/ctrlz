@@ -1,6 +1,7 @@
 import time
 import uuid
-from sqlalchemy import JSON, Float, Integer, String, create_engine, delete, select, text
+from sqlalchemy import JSON, Float, Integer, String, delete, select, text
+from .database import database_engine, private_tables
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, sessionmaker
 
 
@@ -53,10 +54,19 @@ class DemoRun(Base):
 
 
 class Store:
-    def __init__(self, url="sqlite:///./ctrlz.db"):
-        self.engine = create_engine(url, connect_args={"check_same_thread": False, "timeout": 30})
+    def __init__(self, url="sqlite:///./ctrlz.db", namespace="operator"):
+        self.engine = database_engine(url, "ctrlz_workspace_" + namespace)
         Base.metadata.create_all(self.engine)
+        private_tables(self.engine, Base.metadata.tables)
         self.sessions = sessionmaker(self.engine, expire_on_commit=False)
+
+    def lock(self, session):
+        if self.engine.dialect.name == 'sqlite':
+            session.execute(text('BEGIN IMMEDIATE'))
+        else:
+            # Serialize read-before-create operations within this workspace.
+            session.execute(text('SELECT pg_advisory_xact_lock(hashtext(:scope))'),
+                {'scope':str(self.engine.get_execution_options()['schema_translate_map'][None])})
 
     def projects(self):
         with self.sessions() as s:
@@ -90,7 +100,7 @@ class Store:
 
     def demo_start(self, request_id, project_id, scenario):
         with self.sessions.begin() as s:
-            s.execute(text("BEGIN IMMEDIATE"))
+            self.lock(s)
             row = s.get(DemoRun, request_id)
             if row:
                 if row.project_id != project_id or row.scenario != scenario:
@@ -114,7 +124,7 @@ class Store:
 
     def create(self, project_id, kind, resource, evidence):
         with self.sessions.begin() as s:
-            s.execute(text("BEGIN IMMEDIATE"))
+            self.lock(s)
             existing = s.scalar(select(Incident).where(Incident.project_id == project_id, Incident.kind == kind, Incident.resource == resource, Incident.status != "resolved"))
             if existing:
                 return self.view(existing), False

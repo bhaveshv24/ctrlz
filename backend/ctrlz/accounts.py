@@ -7,6 +7,10 @@ import sqlite3
 import time
 import uuid
 from pathlib import Path
+from contextlib import contextmanager
+from .database import database_engine, postgres_url
+from psycopg.rows import dict_row
+from psycopg import IntegrityError as PostgresIntegrityError
 from fastapi import HTTPException
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -30,10 +34,11 @@ def password_hash(password, salt):
 
 
 class Accounts:
-    def __init__(self, root):
+    def __init__(self, root, database_url=None):
         self.root = Path(root)
         self.root.mkdir(parents=True, exist_ok=True)
         self.path = self.root / 'accounts.db'
+        self.engine = database_engine(database_url, 'ctrlz_accounts') if database_url and postgres_url(database_url) else None
         with self.connect() as db:
             db.executescript('''
                 CREATE TABLE IF NOT EXISTS users(id TEXT PRIMARY KEY, email TEXT UNIQUE NOT NULL,
@@ -41,14 +46,25 @@ class Accounts:
                 CREATE TABLE IF NOT EXISTS sessions(digest TEXT PRIMARY KEY, user_id TEXT NOT NULL, expires REAL NOT NULL);
                 CREATE TABLE IF NOT EXISTS attempts(key TEXT PRIMARY KEY, count INTEGER NOT NULL, reset REAL NOT NULL);
             ''')
-        self.path.chmod(0o600)
+        if self.engine is None:self.path.chmod(0o600)
         self.dummy_salt = secrets.token_hex(16)
         self.dummy_hash = password_hash(secrets.token_urlsafe(24), self.dummy_salt)
 
+    @contextmanager
     def connect(self):
-        db = sqlite3.connect(self.path, timeout=30)
-        db.row_factory = sqlite3.Row
-        return db
+        if self.engine is None:
+            db = sqlite3.connect(self.path, timeout=30)
+            db.row_factory = sqlite3.Row
+            try:
+                with db:yield db
+            finally:db.close()
+        else:
+            with self.engine.connect() as connection:
+                db = connection.connection.driver_connection
+                db.row_factory = dict_row
+                with db.transaction():
+                    db.execute('SET LOCAL search_path TO ctrlz_accounts')
+                    yield PostgresAccountsConnection(db)
 
     @staticmethod
     def public(row):
@@ -63,10 +79,10 @@ class Accounts:
         hashed = password_hash(credentials.password, salt)
         try:
             with self.connect() as db:
-                if db.execute('SELECT COUNT(*) FROM users').fetchone()[0] >= 50:
+                if db.execute('SELECT COUNT(*) AS total FROM users').fetchone()['total'] >= 50:
                     raise HTTPException(409, 'This controlled deployment has reached its account limit')
                 db.execute('INSERT INTO users VALUES(?,?,?,?,?)', (uid, credentials.email, salt, hashed, role))
-        except sqlite3.IntegrityError:
+        except (sqlite3.IntegrityError, PostgresIntegrityError):
             raise HTTPException(409, 'Account could not be created; use sign in or contact an administrator')
         return {'id': uid, 'email': credentials.email, 'role': role}
 
@@ -99,7 +115,7 @@ class Accounts:
             row = db.execute('SELECT * FROM attempts WHERE key=?', (key,)).fetchone()
             if row and row['count'] >= limit:
                 raise HTTPException(429, 'Too many attempts. Try again in 15 minutes')
-            db.execute('INSERT INTO attempts VALUES(?,1,?) ON CONFLICT(key) DO UPDATE SET count=count+1', (key, now+900))
+            db.execute('INSERT INTO attempts VALUES(?,1,?) ON CONFLICT(key) DO UPDATE SET count=attempts.count+1', (key, now+900))
 
     def login(self, credentials):
         with self.connect() as db:
@@ -131,3 +147,16 @@ class Accounts:
         with self.connect() as db:
             db.execute('UPDATE users SET salt=?, password=? WHERE id=?', (salt, hashed, user['id']))
             db.execute('DELETE FROM sessions WHERE user_id=?', (user['id'],))
+
+
+class PostgresAccountsConnection:
+    def __init__(self, connection):self.connection = connection
+
+    def execute(self, sql, values=()):
+        return self.connection.execute(sql.replace('?', '%s'), values)
+
+    def executescript(self, sql):
+        for statement in sql.split(';'):
+            if statement.strip():self.connection.execute(statement.replace('expires REAL', 'expires DOUBLE PRECISION').replace('reset REAL', 'reset DOUBLE PRECISION'))
+        for name in ('users', 'sessions', 'attempts'):
+            self.connection.execute(f'ALTER TABLE {name} ENABLE ROW LEVEL SECURITY')

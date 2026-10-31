@@ -49,3 +49,25 @@ jobs:
       - run: uv sync --project backend --extra test --frozen
       - run: docker compose up --build -d
       - run: uv run --project backend python -m pytest -q
+  postgres:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_PASSWORD: local-ci-only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      CTRLZ_TEST_POSTGRES_URL: postgresql://postgres:local-ci-only@localhost:5432/postgres
+      OTEL_SDK_DISABLED: "true"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: astral-sh/setup-uv@v6
+      - run: uv sync --project backend --extra test --frozen
+      - run: uv run --project backend python -m pytest backend/tests/test_postgres.py -q

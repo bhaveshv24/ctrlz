@@ -16,7 +16,7 @@ def create_account_app(client=None, reasoner=None, runbooks=None, monitor=True):
     from .main import create_workspace_app
     settings = Settings()
     root = settings.DATA_DIR.resolve()
-    accounts = Accounts(root)
+    accounts = Accounts(root, settings.DATABASE_URL)
     accounts.seed()
     workspaces = {}
     stack, lock = AsyncExitStack(), asyncio.Lock()
@@ -28,7 +28,7 @@ def create_account_app(client=None, reasoner=None, runbooks=None, monitor=True):
                 directory = root / 'workspaces' / key
                 directory.mkdir(parents=True, exist_ok=True)
                 app = create_workspace_app(
-                    store=Store(settings.DATABASE_URL if key == 'operator' else f'sqlite:///{directory / "workspace.db"}'),
+                    store=Store(settings.DATABASE_URL if key == 'operator' or settings.DATABASE_URL.startswith(('postgresql:', 'postgresql+', 'postgres:')) else f'sqlite:///{directory / "workspace.db"}', namespace=key),
                     client=client, reasoner=reasoner, runbooks=runbooks, monitor=monitor,
                     workspace_root=None if key == 'operator' else directory)
                 await stack.enter_async_context(app.router.lifespan_context(app))
