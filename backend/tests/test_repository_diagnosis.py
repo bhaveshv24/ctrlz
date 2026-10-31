@@ -233,6 +233,21 @@ async def test_diagnose_api_authentication_and_automatic_defaults(tmp_path, monk
         with zipfile.ZipFile(io.BytesIO(response.content)) as archive:
             assert b'value == 2' in archive.read('repaired-repository/logic.py')
         assert (await client.get('/incidents/missing/repaired.zip', headers=headers)).status_code == 404
+        retried = []
+        async def retry_fixture(self, incident_id, request):
+            retried.append((incident_id, request.repository))
+            self.store.update(incident_id, status='diagnosing')
+        monkeypatch.setattr(Continuation, 'run', retry_fixture)
+        retry_url = '/incidents/'+incident['id']+'/retry-repair'
+        store.update(incident['id'], status='escalated', error='Previous invalid edit')
+        assert (await client.post(retry_url)).status_code == 401
+        response = await client.post(retry_url, headers=headers)
+        assert response.status_code == 202
+        assert (await client.post(retry_url, headers=headers)).status_code == 409
+        import asyncio
+        await asyncio.sleep(0)
+        assert retried == [(incident['id'], str(repo))]
+        assert store.get(incident['id'])['verification']['passed'] is False
     await app.state.engine.client.aclose()
     store.engine.dispose()
 
@@ -307,11 +322,16 @@ def test_rejection_guard_check_allows_repairing_invalid_python_syntax():
 
 
 @pytest.mark.asyncio
-async def test_unsafe_guard_proposal_triggers_bounded_automatic_repair(tmp_path, monkeypatch):
+@pytest.mark.parametrize('proposal_kind', ['unsafe_guard', 'unrelated_default'])
+async def test_unsafe_guard_proposal_triggers_bounded_automatic_repair(tmp_path, monkeypatch, proposal_kind):
     from ctrlz.models import CodeProposal, SourceEdit
     from ctrlz.store import Store
     source = 'def allowed(value):\n    if value.status == "ready":\n        raise ValueError("Ready state required")\n    return True\n'
     runner, snapshot = imported(tmp_path, source)
+    repo = Path(snapshot['repository'])
+    (repo/'defaults.py').write_bytes(b'MODE = "ready"\n')
+    git(['add', 'defaults.py'], repo)
+    git(['-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.test', 'commit', '-m', 'Unrelated default'], repo)
     store = Store(f"sqlite:///{tmp_path/'guard.db'}")
     runner.store = store
     calls = []
@@ -326,6 +346,8 @@ async def test_unsafe_guard_proposal_triggers_bounded_automatic_repair(tmp_path,
     class Reasoner:
         async def code(self, request, files, context):
             calls.append(True)
+            if proposal_kind == 'unrelated_default':
+                return CodeProposal(diagnosis='Wrong root cause', edits=[SourceEdit(path='defaults.py', before='MODE = "ready"', after='MODE = "waiting"')])
             return CodeProposal(diagnosis='Unsafe suggested removal', edits=[SourceEdit(path='logic.py', before='if value.status == "ready":', after='if not value:')])
     monkeypatch.setattr('ctrlz.continuation.Sandbox', Sandbox)
     runner.reasoner = Reasoner()
@@ -337,6 +359,8 @@ async def test_unsafe_guard_proposal_triggers_bounded_automatic_repair(tmp_path,
     assert '+    if value.status != "ready":' in result['patch']
     assert any(e['stage'] == 'guard_candidate_tests' and e['payload']['passed'] for e in store.events())
     assert (Path(snapshot['repository'])/'logic.py').read_text() == source
+    with zipfile.ZipFile(io.BytesIO(runner.repaired_archive(result))) as archive:
+        assert archive.read('repaired-repository/defaults.py') == b'MODE = "ready"\n'
     store.engine.dispose()
 
 
@@ -346,3 +370,58 @@ def test_advisory_metadata_cannot_discard_an_otherwise_valid_source_edit():
     assert proposal.requirements[0].status == 'incomplete'
     assert proposal.edits[0].after == 'x != 2'
     assert 'is_edit' not in proposal.edits[0].model_dump()
+
+
+def test_mixed_replacement_and_edit_are_rejected_before_application():
+    from ctrlz.models import CodeProposal
+    from pydantic import ValidationError
+    with pytest.raises(ValidationError, match='never both'):
+        CodeProposal.model_validate({'diagnosis': 'Conflicting proposal',
+            'changes': [{'path': 'logic.py', 'content': 'VALUE = 2'}],
+            'edits': [{'path': 'logic.py', 'before': 'VALUE = 1', 'after': 'VALUE = 2'}]})
+
+
+def test_comparison_search_covers_distinct_traceback_files(tmp_path):
+    from ctrlz.continuation import guard_comparison_repairs
+    (tmp_path/'entry.py').write_text('def route(value):\n'+''.join(f'    if value == "state{i}":\n        raise ValueError("State")\n' for i in range(6)))
+    (tmp_path/'leaf.py').write_text('def process(state):\n    if state == "ready":\n        raise ValueError("Ready required")\n')
+    proposals = guard_comparison_repairs(tmp_path, ['entry.py', 'leaf.py'])
+    assert len(proposals) == 4
+    assert [proposal.edits[0].path for proposal in proposals[:2]] == ['entry.py', 'leaf.py']
+    (tmp_path/'leaf.py').write_text('def process(state):\n    if state != "ready":\n        raise ValueError("Ready required")\n')
+    assert guard_comparison_repairs(tmp_path, ['leaf.py']) == []
+
+
+@pytest.mark.asyncio
+async def test_nonmatching_edits_retry_with_source_without_spending_test_attempt(tmp_path, monkeypatch):
+    from ctrlz.models import CodeProposal, SourceEdit
+    from ctrlz.store import Store
+    runner, snapshot = imported(tmp_path)
+    store = Store(f"sqlite:///{tmp_path/'mismatch.db'}")
+    runner.store = store
+    seen = []
+    class Sandbox:
+        profile = 'python-pytest'
+        def __init__(self, workspace, *args):self.workspace = workspace
+        def prepare(self, inspection):return {}
+        def run(self):
+            passed = 'return value == 2' in (self.workspace/'logic.py').read_text()
+            return {'exit_code': 0 if passed else 1, 'cases':[{'id':'test_allowed', 'passed':passed, 'status':'passed' if passed else 'failed'}], 'output':'logic.py: assertion'}
+        def close(self):pass
+    class Reasoner:
+        async def code(self, request, files, context):
+            seen.append(context['previous_attempt'])
+            if len(seen) == 1:
+                return CodeProposal(diagnosis='Stale snippet', edits=[SourceEdit(path='logic.py', before='return value == 99', after='return value == 2')])
+            assert seen[-1]['original_source']['path'] == 'logic.py'
+            assert 'return value != 2' in seen[-1]['original_source']['content']
+            return CodeProposal(diagnosis='Grounded repair', edits=[SourceEdit(path='logic.py', before='return value != 2', after='return value == 2')])
+    monkeypatch.setattr('ctrlz.continuation.Sandbox', Sandbox)
+    runner.reasoner = Reasoner()
+    incident, _ = store.create('code-import', 'code', snapshot['repository'], {})
+    await runner.run(incident['id'], ImportRequest(repository=snapshot['repository']))
+    result = store.get(incident['id'])
+    assert result['status'] == 'resolved', result
+    assert len(seen) == 2
+    assert [event['payload']['attempt'] for event in store.events() if event['stage'] == 'candidate_tests'] == [1]
+    store.engine.dispose()

@@ -155,6 +155,11 @@ export default function IncidentWorkspace({
         </div>
         <div className="heading-actions">
           <Badge state={i.status} />
+          {i.kind === "code" && ["escalated", "blocked"].includes(i.status) && (
+            <button className="button primary" disabled={busy} onClick={() => act(() => api("/incidents/" + i.id + "/retry-repair", token, {}), "Repair restarted with the original source and tests.")}>
+              <RotateCcw size={16} />Retry repair
+            </button>
+          )}
           {baseline && (
             <button className="button secondary" onClick={() => {
               const data = baseline.payload;

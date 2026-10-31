@@ -76,6 +76,10 @@ Repeated downloads reuse the saved archive, and legacy incidents prepare it on t
 first download. **Download errors before repair** exports the original test results
 both during inspection and from the incident. Import the repository you intend to run;
 CtrlZ does not add a frontend or launch scripts absent from that source.
+Conflicting replacement/edit proposals and nonmatching snippets receive source-grounded
+feedback before they consume a test attempt. After a failed candidate, a bounded search
+can test fail-closed comparison corrections from traceback files against unchanged tests.
+Stopped incidents offer **Retry repair**, retaining their previous evidence.
 
 For a disclosed local history fixture, run `uv run --project backend python
 scripts/create_history_demo.py` from this checkout. Import the printed server-folder path;

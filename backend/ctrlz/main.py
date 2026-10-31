@@ -360,6 +360,22 @@ def create_workspace_app(store=None, client=None, reasoner=None, runbooks=None, 
             spawn(continuation.run(incident["id"], body))
         return store.get(incident["id"])
 
+    @app.post("/incidents/{incident_id}/retry-repair", dependencies=[Depends(auth)], status_code=202)
+    async def retry_code_repair(incident_id: str):
+        require_code_execution()
+        incident = get_incident(incident_id)
+        if incident['kind'] != 'code' or incident['status'] not in {'escalated', 'blocked'}:
+            raise HTTPException(409, 'Retry is available only for a stopped repository repair.')
+        try:
+            body = ImportRequest.model_validate(incident['import_request'])
+            continuation.repository(body.repository)
+        except (ValueError, KeyError) as exc:
+            raise HTTPException(422, 'Re-import the source repository before retrying this repair: '+str(exc)) from exc
+        store.record(incident_id, 'repair_retry', {'previous_error':incident.get('error'), 'requested_by_user':True})
+        store.update(incident_id, status='queued', error=None, download_ready=False, verification={'passed':False})
+        spawn(continuation.run(incident_id, body))
+        return store.get(incident_id)
+
     @app.post("/incidents/{incident_id}/replay", dependencies=[Depends(auth)], status_code=202)
     async def replay_candidate(incident_id: str, body: ReplayRequest):
         require_code_execution()

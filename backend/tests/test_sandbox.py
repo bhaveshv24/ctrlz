@@ -11,6 +11,39 @@ from ctrlz.store import Store
 pytestmark = pytest.mark.skipif(os.getenv("RUN_DOCKER_TESTS") != "1", reason="Set RUN_DOCKER_TESTS=1 with Docker and sandbox image ready")
 
 
+async def test_traceback_recovery_preserves_contract_after_wrong_default_proposal(tmp_path):
+    import io
+    import zipfile
+    from ctrlz.models import SourceEdit
+    from ctrlz.repository import RepositoryImports
+    source = 'def authorize(state):\n    if state == "approved":\n        raise ValueError("Approval required")\n    return True\n'
+    tests = 'import pytest\nfrom logic import authorize\ndef test_approved(): assert authorize("approved")\ndef test_pending():\n    with pytest.raises(ValueError): authorize("pending")\n'
+    data = io.BytesIO()
+    with zipfile.ZipFile(data, 'w') as archive:
+        archive.writestr('logic.py', source)
+        archive.writestr('test_logic.py', tests)
+        archive.writestr('defaults.py', 'STATE = "approved"\n')
+    root = tmp_path/'imports'
+    snapshot = RepositoryImports(root).import_zip(data.getvalue())
+    class WrongDefault:
+        provider = 'Explicit wrong-root-cause regression fixture; no external model'
+        async def code(self, request, files, baseline):
+            return CodeProposal(diagnosis='Wrong default proposal', edits=[SourceEdit(path='defaults.py', before='STATE = "approved"', after='STATE = "pending"')])
+    store = Store(f"sqlite:///{tmp_path/'recovery.db'}")
+    incident, _ = store.create('code-import', 'code', snapshot['repository'], {})
+    runner = Continuation(store, WrongDefault(), root, tmp_path/'artifacts')
+    await runner.run(incident['id'], ImportRequest(repository=snapshot['repository']))
+    result = store.get(incident['id'])
+    assert result['status'] == 'resolved', result
+    with zipfile.ZipFile(io.BytesIO(runner.repaired_archive(result))) as archive:
+        assert b'state != "approved"' in archive.read('repaired-repository/logic.py')
+        assert archive.read('repaired-repository/defaults.py') == b'STATE = "approved"\n'
+        assert archive.read('repaired-repository/test_logic.py') == tests.encode()
+    assert (Path(snapshot['repository'])/'logic.py').read_text() == source
+    assert any(e['stage'] == 'guard_candidate_tests' and e['payload'].get('origin') == 'traceback_comparison_search' and e['payload']['passed'] for e in store.events())
+    store.engine.dispose()
+
+
 class CodeFixture:
     async def code(self, request, files, baseline):
         assert baseline["exit_code"] == 1

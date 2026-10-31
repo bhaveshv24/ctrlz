@@ -2,6 +2,7 @@ import asyncio
 import ast
 import hashlib
 import json
+import re
 import io
 import zipfile
 import zlib
@@ -77,7 +78,7 @@ def preserve_rejection_guards(before, after, filename):
 
 
 def guard_comparison_repairs(root, names, limit=4):
-    proposals = []
+    groups = []
     for name in names:
         if Path(name).suffix != '.py':continue
         target = validate_path(root, name)
@@ -85,18 +86,47 @@ def guard_comparison_repairs(root, names, limit=4):
         source = target.read_text(encoding='utf-8')
         try:tree = ast.parse(source)
         except SyntaxError:continue
+        proposals = []
         for branch in ast.walk(tree):
             if not isinstance(branch, ast.If) or not any(isinstance(statement, ast.Raise) for statement in branch.body):continue
             for node in ast.walk(branch.test):
                 if not isinstance(node, ast.Compare) or len(node.ops) != 1 or not isinstance(node.left, (ast.Name, ast.Attribute)):continue
                 if not isinstance(node.comparators[0], ast.Constant) or not isinstance(node.comparators[0].value, str):continue
-                if not isinstance(node.ops[0], (ast.Eq, ast.NotEq)):continue
+                # Synthesize fail-closed required-state guards only. Never turn
+                # a required-state rejection into a blacklist of that state.
+                if not isinstance(node.ops[0], ast.Eq):continue
                 before = ast.get_source_segment(source, node)
                 if not before or source.count(before) != 1:continue
-                old, new = ('==', '!=') if isinstance(node.ops[0], ast.Eq) else ('!=', '==')
+                old, new = '==', '!='
                 proposals.append(CodeProposal(diagnosis='Evaluate a minimal rejection-guard comparison correction; preserve its required value and all other source.', edits=[SourceEdit(path=name, before=before, after=before.replace(old,new,1))]))
-                if len(proposals) >= limit:return proposals
-    return proposals
+        if proposals:groups.append(proposals[:limit])
+    # Cover distinct traceback files before spending the budget on more guards
+    # from a large entry point that may only be forwarding another file's error.
+    return [group[index] for index in range(limit) for group in groups if len(group) > index][:limit]
+
+
+class EditMatchError(ValueError):
+    def __init__(self, path, matches, source):
+        super().__init__(f'{path}: before snippet matched {matches} source occurrences; exactly one is required. Read the original file and return a complete revised candidate.')
+        self.path, self.source = path, source[:16000]
+
+
+def proposal_sources(root, proposal, protected):
+    replacements = {}
+    for change in proposal.changes:
+        validate_path(root, change.path)
+        if change.path in protected:raise ValueError('Acceptance test files are immutable')
+        if change.path in replacements:raise ValueError('Duplicate full-file replacement')
+        replacements[change.path] = change.content
+    for edit in proposal.edits:
+        target = validate_path(root, edit.path)
+        if edit.path in protected:raise ValueError('Acceptance test files are immutable')
+        text = replacements.get(edit.path, target.read_text(encoding='utf-8') if target.is_file() else '')
+        matches = text.count(edit.before)
+        if matches != 1:
+            raise EditMatchError(edit.path, matches, text)
+        replacements[edit.path] = text.replace(edit.before, edit.after, 1)
+    return replacements
 
 
 def acceptance(baseline, candidate, immutable):
@@ -290,6 +320,7 @@ class Continuation:
             relevant_tests = [p for p in inspection['tests'] if Path(p).stem in failed_ids]
             failure_output = baseline.get('output', '')
             implicated_sources = [name for name in inspection['editable_files'] if name in failure_output]
+            implicated_sources.sort(key=lambda name:len(re.findall(re.escape(name)+r':\d+:\s+\w*(?:Error|Exception)', failure_output)), reverse=True)
             # Prioritize failing test context over unrelated source excerpts.
             selected = implicated_sources+relevant_tests+inspection['tests'][:2]+[p for p in paths if p in {'pyproject.toml', 'package.json', 'requirements.txt'}]+inspection['editable_files'][:3]
             budget = 42000
@@ -322,11 +353,18 @@ class Continuation:
                 context = {**baseline, 'profile': inspection['profile'], 'repository_tree': paths[:1000], 'previous_attempt': feedback, '_workspace': str(worktree), '_allowed_files': paths, '_record': lambda payload:self.store.record(incident_id,'tool_result',payload)}
                 proposal = None
                 for format_attempt in range(3):
+                    proposal = None
                     context['previous_attempt'] = feedback
                     try:
                         proposal = await reasoner.code(request, initial, context)
+                        replacements = proposal_sources(worktree, proposal, protected)
                         break
+                    except EditMatchError as exc:
+                        proposal = None
+                        feedback = {**(feedback or {}), 'attempt':attempt+1, 'edit_error':str(exc), 'original_source':{'path':exc.path, 'content':exc.source}, 'instruction':'Do not repeat the rejected edit. Match the original source exactly once. Keep the previous test failure evidence and fix its cause; never edit acceptance tests.'}
+                        self.store.record(incident_id,'code_proposal_rejected',{'attempt':attempt+1, 'format_attempt':format_attempt+1, **feedback})
                     except ValidationError as exc:
+                        proposal = None
                         feedback = {**(feedback or {}), 'attempt':attempt+1, 'schema_error':str(exc)[:3000], 'instruction':'Return a complete candidate against the original snapshot, retaining the previous test failure feedback. Each exact edit has ONLY path, before, after. Do not add is_edit or other metadata. Include a nonempty changes or edits array.'}
                         self.store.record(incident_id,'code_proposal_rejected',{'attempt':attempt+1, 'format_attempt':format_attempt+1, **feedback})
                     except Exception as exc:
@@ -340,19 +378,7 @@ class Continuation:
                 self.store.record(incident_id, 'code_proposal', {'attempt': attempt+1, **proposal.model_dump()})
                 result = {'exit_code': 4, 'cases': [], 'output': 'Candidate not validated'}
                 try:
-                    replacements = {}
-                    for change in proposal.changes:
-                        validate_path(worktree, change.path)
-                        if change.path in protected:raise ValueError('Acceptance test files are immutable')
-                        if change.path in replacements:raise ValueError('Duplicate full-file replacement')
-                        replacements[change.path] = change.content
-                    for edit in proposal.edits:
-                        target = validate_path(worktree, edit.path)
-                        if edit.path in protected:raise ValueError('Acceptance test files are immutable')
-                        text = replacements.get(edit.path, target.read_text(encoding='utf-8') if target.is_file() else '')
-                        if text.count(edit.before) != 1:
-                            raise ValueError('Exact edit must match one and only one source occurrence')
-                        replacements[edit.path] = text.replace(edit.before, edit.after, 1)
+                    replacements = proposal_sources(worktree, proposal, protected)
                     for name, content in replacements.items():
                         target = validate_path(worktree, name)
                         if len(content.encode()) > 256000 or '\x00' in content:
@@ -408,7 +434,39 @@ class Continuation:
                 passed = all(checks.values())
                 self.store.record(incident_id, 'candidate_tests', {'attempt': attempt+1, 'passed': passed, 'acceptance': details, **result})
                 if passed:break
+                # A failed model candidate may target a symptom rather than the
+                # throwing guard. Probe bounded comparisons from traceback files
+                # against the original snapshot and immutable acceptance suite.
                 feedback = {'attempt': attempt+1, 'candidate': proposal.model_dump(), 'test_result': result, 'acceptance': details}
+                if implicated_sources:
+                    tournament.restore()
+                    originals = {}; new_files = set()
+                    for guard_proposal in guard_comparison_repairs(worktree, implicated_sources):
+                        edit = guard_proposal.edits[0]
+                        if edit.path in protected:continue
+                        target = validate_path(worktree, edit.path)
+                        original = target.read_bytes()
+                        content = original.decode('utf-8').replace(edit.before, edit.after, 1)
+                        preserve_rejection_guards(original.decode('utf-8'), content, edit.path)
+                        target.write_bytes(content.encode('utf-8'))
+                        try:
+                            agent_runs += 1
+                            guard_result = await asyncio.to_thread(sandbox.run)
+                            guard_checks, guard_details = qualify(guard_result)
+                            guard_passed = all(guard_checks.values())
+                            self.store.record(incident_id, 'guard_candidate_tests', {'attempt':attempt+1, 'origin':'traceback_comparison_search', 'edit':edit.model_dump(), 'passed':guard_passed, **guard_result})
+                            if guard_passed:
+                                result, checks, details = guard_result, guard_checks, guard_details
+                                diff = git(['diff', '--no-ext-diff', '--no-textconv'], worktree)
+                                checks['nonempty_patch'] = bool(diff)
+                                passed = bool(diff)
+                                repair_origin = 'Bounded traceback comparison search passed original immutable acceptance; source values inferred from this repository'
+                                self.store.record(incident_id, 'code_proposal', {'attempt':attempt+1, 'origin':'traceback_comparison_search', **guard_proposal.model_dump()})
+                                self.store.update(incident_id, diagnosis=guard_proposal.diagnosis)
+                                break
+                        finally:
+                            if not passed:target.write_bytes(original)
+                    if passed:break
             tournament.agent(result,checks,details,diff,agent_runs,repair_origin or agent_error)
             winner = tournament.record()
             if winner:

@@ -139,4 +139,7 @@ class CodeProposal(Strict):
             raise ValueError("A proposal must contain a source change or exact text edit")
         if len({c.path for c in self.changes} | {e.path for e in self.edits}) > 8:
             raise ValueError("At most eight source files may change")
+        overlap = {c.path for c in self.changes} & {e.path for e in self.edits}
+        if overlap:
+            raise ValueError("Use either changes or edits for each file, never both: " + ', '.join(sorted(overlap)))
         return self
