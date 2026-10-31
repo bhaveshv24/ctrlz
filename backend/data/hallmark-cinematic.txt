@@ -1,0 +1,373 @@
+frontend/src/App.tsx
+  FAIL 54 :126 eyebrow "AUTONOMOUS SOFTWARE RECOVERY" before <h1> | fix: Cut it; the heading already says this (craft.md § 7 has twelve other openings)
+  FAIL 54 :147 eyebrow "WELCOME TO YOUR CONTROL CENTER" before <h2>
+  FAIL 54 :365 eyebrow "RECOVERY OPERATIONS" before <h1>
+  FAIL 54 :427 eyebrow "LIVE SIGNALS" before <h2>
+  FAIL 54 :465 eyebrow "RECOVERY QUEUE" before <h2>
+  FAIL 54 :497 eyebrow "THE CTRLZ DIFFERENCE" before <h2>
+  FAIL 54 :880 eyebrow "DEPLOYMENT PREPARATION" before <h2>
+  FAIL 67 :122 "SYSTEM RECOVERY / HUMAN CONTROL" typed in capitals at 9px tracked 0.17777777777777778em (<span class="art-coordinate">) | fix: Sentence case in the body face; capitals survive only as a wordmark or as the display voice
+  FAIL 67 :126 "AUTONOMOUS SOFTWARE RECOVERY" typed in capitals at 9px tracked 0.1111111111111111em (<span class="eyebrow">)
+  FAIL 67 :191 "AGENTATHON 2026" typed in capitals at 9px tracked 0.1111111111111111em (<span>)
+  FAIL 67 :224 "CONTROL CENTER" typed in capitals at 9px tracked 0.1111111111111111em (<span class="nav-caption">)
+  FAIL 67 :399 "NVIDIA NIM × CREWAI" typed in capitals at 9px tracked 0.1111111111111111em (<span class="command-label">)
+frontend/src/components/IncidentWorkspace.tsx
+  FAIL 54 :129 eyebrow "RECOVERY WORKSPACE /" before <h1>
+  FAIL 54 :270 eyebrow "01 / INVESTIGATE" before <h2>
+  FAIL 54 :292 eyebrow "SOURCE EVIDENCE" before <h2>
+  FAIL 54 :308 eyebrow "02 / DECIDE" before <h2>
+  FAIL 54 :362 eyebrow "03 / PROVE" before <h2>
+  FAIL 54 :540 eyebrow "PERSISTED AUDIT TRAIL" before <h2>
+  FAIL 54 :650 eyebrow "CODE RECOVERY ARTIFACT" before <h2>
+  WARN F1 :368 straight quote in prose x1 (first: ult yet. An agent's recommendati) | fix: Use typographic quotes: “ ” ’
+frontend/src/components/ui.tsx
+  FAIL 54 :105 eyebrow "CTRLZ WORKSPACE" before <h2>
+frontend/src/pages/DemoLab.tsx
+  FAIL 54 :183 eyebrow "PERSISTED RUN HISTORY" before <h2>
+  FAIL 54 :247 eyebrow "THE MOMENTS THAT MATTER" before <h2>
+  WARN F1 :254 straight quote in prose x1 (first: with the customer's broken exper)
+frontend/src/components/ContinuationForm.tsx
+  FAIL 63 :143 middle-dot meta string "Repository ZIP 25 MiB upload · 64 MiB expanded · …" | fix: Line breaks, columns or hairlines; one dot in a byline at most
+  FAIL 63 :154 middle-dot meta string "25 MiB upload · 64 MiB expanded · 3,000 files max…"
+  FAIL 63 :221 middle-dot meta string "files · acceptance · source"
+  WARN 49 :261 long clickable label "Choose another repository" without nowrap | fix: Shorten the label or set nowrap
+frontend/src/style.css
+  FAIL 67 :627 .edition: letter-spaced tracked 0.1142857142857143em at 7px in a label role | fix: Labels, captions, table heads, nav links and meta are the body face (or the theme's label face), a step smaller, sentence case, untracked
+  FAIL 67 :672 .nav-caption: letter-spaced tracked 0.1875em at 8px in a label role
+  FAIL 67 :890 .eyebrow: uppercase tracked 0.1875em at 8px in a label role
+  FAIL 67 :1046 .command-label: letter-spaced tracked 0.18571428571428572em at 7px in a label role
+  FAIL 67 :1409 .workspace-footer: letter-spaced tracked 0.1285714285714286em at 7px in a label role
+  FAIL 67 :1938 .source-label: letter-spaced tracked 0.05714285714285715em at 7px in a label role
+  FAIL 67 :2329 .receipt-heading > span: letter-spaced tracked 0.175em at 8px in a label role
+  FAIL 67 :2682 .scenario-top > span: letter-spaced tracked 0.15em at 8px in a label role
+  FAIL 67 :2706 .scenario-proof > span: letter-spaced tracked 0.14285714285714285em at 7px in a label role
+  FAIL 67 :2936 .art-coordinate: letter-spaced tracked 0.2285714285714286em at 7px in a label role
+  FAIL 67 :3035 .login-content > footer: letter-spaced tracked 0.15714285714285717em at 7px in a label role
+  FAIL 67 :3878 .login-form .eyebrow: letter-spaced tracked 0.1111111111111111em at 9px in a label role
+  REFLEX 64 :673 monospace label voice on .nav-caption | fix: Labels in the body face, a step smaller, sentence case; mono only for code and figures
+  REFLEX 64 :712 monospace label voice on nav a small
+  REFLEX 64 :894 monospace label voice on .eyebrow
+  REFLEX 64 :1939 monospace label voice on .source-label
+  WARN 29 :2479 glass panel: backdrop-filter blur over a translucent black on .modal-backdrop | fix: Solid or grained surface; elevation by lightness
+  WARN 40 :1607 4.31:1 < 4.5:1 on .guide-icon | fix: Raise the contrast to threshold
+  WARN 40 :1812 4.40:1 < 4.5:1 on .outcome-banner.verified .outcome-symbol
+  WARN 40 :2781 4.22:1 < 4.5:1 on .scenario-workflow > .button
+  WARN F5 :2071 icon-in-coloured-circle coin: .check-icon, .fail-icon | fix: Drop the tinted coin; set the icon at text size in currentColor
+  WARN F6 :1396 numeric selector .proof-stat strong at display size without tabular figures | fix: Add font-variant-numeric: tabular-nums
+  WARN F24 :2464 a hairline border under a wide soft shadow on .toast | fix: Commit to one: a defined edge, or elevation by shadow
+  NOTE 24b :548 padding: 12px 13px (off the 4px scale) on input, textarea, select | fix: Use the 4px spacing scale
+  NOTE 24b :569 margin-top: 9px (off the 4px scale) on label > input, label > textarea, label > select
+  NOTE 24b :573 margin-top: 7px (off the 4px scale) on label > small
+  NOTE 24b :595 padding: 30px 17px 17px (off the 4px scale) on .sidebar
+  NOTE 24b :605 gap: 9px (off the 4px scale) on .brand
+  NOTE 24b :612 padding: 0 9px (off the 4px scale) on .sidebar .brand
+  NOTE 24b :641 gap: 9px (off the 4px scale) on .workspace-switch
+  NOTE 24b :642 padding: 11px 9px (off the 4px scale) on .workspace-switch
+  NOTE 24b :643 margin: 33px 0 29px (off the 4px scale) on .workspace-switch
+  NOTE 24b :666 margin-top: 3px (off the 4px scale) on .workspace-switch span:not(.workspace-monogram)
+  NOTE 24b :676 padding: 0 12px 14px (off the 4px scale) on .nav-caption
+  NOTE 24b :680 gap: 5px (off the 4px scale) on nav
+  NOTE 24b :685 gap: 10px (off the 4px scale) on nav a
+  NOTE 24b :686 padding: 11px 12px (off the 4px scale) on nav a
+  NOTE 24b :705 padding: 2px 5px (off the 4px scale) on nav a > b
+  NOTE 24b :715 padding: 3px 4px (off the 4px scale) on nav a small
+  NOTE 24b :725 padding-top: 45px (off the 4px scale) on .sidebar-bottom
+  NOTE 24b :731 padding: 14px 12px (off the 4px scale) on .sidebar-principle
+  NOTE 24b :732 margin-bottom: 18px (off the 4px scale) on .sidebar-principle
+  NOTE 24b :745 margin: 11px 0 15px (off the 4px scale) on .sidebar-principle p
+  NOTE 24b :761 gap: 10px (off the 4px scale) on .sidebar-settings
+  NOTE 24b :763 padding: 11px (off the 4px scale) on .sidebar-settings
+  NOTE 24b :764 margin-bottom: 15px (off the 4px scale) on .sidebar-settings
+  NOTE 24b :772 gap: 9px (off the 4px scale) on .operator
+  NOTE 24b :775 padding: 17px 4px 0 (off the 4px scale) on .operator
+  NOTE 24b :805 padding: 0 35px (off the 4px scale) on .topbar
+  NOTE 24b :821 gap: 19px (off the 4px scale) on .topbar-actions
+  NOTE 24b :826 gap: 7px (off the 4px scale) on .connection
+  NOTE 24b :828 padding: 6px 9px (off the 4px scale) on .connection
+  NOTE 24b :861 padding: 7px (off the 4px scale) on .notification-button
+  NOTE 24b :885 padding: 35px 35px 0 (off the 4px scale) on .main-content
+  NOTE 24b :907 margin-bottom: 26px (off the 4px scale) on .page-title
+  NOTE 24b :910 margin-top: 10px (off the 4px scale) on .page-title h1
+  NOTE 24b :914 margin-top: 10px (off the 4px scale) on .page-title p
+  NOTE 24b :917 margin: 0 6px (off the 4px scale) on .page-title p > span
+  NOTE 24b :924 gap: 9px (off the 4px scale) on .button
+  NOTE 24b :925 padding: 11px 15px (off the 4px scale) on .button
+  NOTE 24b :968 gap: 7px (off the 4px scale) on .inline-link
+  NOTE 24b :971 padding: 5px 0 (off the 4px scale) on .inline-link
+  NOTE 24b :980 padding: 7px (off the 4px scale) on .icon-button
+  NOTE 24b :1018 gap: 15px (off the 4px scale) on .command-banner
+  NOTE 24b :1019 padding: 20px 22px (off the 4px scale) on .command-banner
+  NOTE 24b :1023 margin-bottom: 21px (off the 4px scale) on .command-banner
+  NOTE 24b :1043 margin-top: 5px (off the 4px scale) on .command-banner p
+  NOTE 24b :1052 padding: 7px 9px (off the 4px scale) on .command-label
+  NOTE 24b :1059 gap: 15px (off the 4px scale) on .metrics-grid
+  NOTE 24b :1060 margin: 23px 0 33px (off the 4px scale) on .metrics-grid
+  NOTE 24b :1069 padding: 19px 20px (off the 4px scale) on .metric
+  NOTE 24b :1086 margin: 15px 0 12px (off the 4px scale) on .metric strong
+  NOTE 24b :1117 gap: 14px (off the 4px scale) on .section-heading, .section-title
+  NOTE 24b :1120 margin-bottom: 18px (off the 4px scale) on .section-heading
+  NOTE 24b :1124 margin-top: 6px (off the 4px scale) on .section-heading h2
+  NOTE 24b :1132 margin-top: 6px (off the 4px scale) on .section-title h2
+  NOTE 24b :1141 padding: 23px (off the 4px scale) on .card
+  NOTE 24b :1148 gap: 18px (off the 4px scale) on .signal-grid
+  NOTE 24b :1149 margin-bottom: 27px (off the 4px scale) on .signal-grid
+  NOTE 24b :1154 gap: 11px (off the 4px scale) on .signal-top
+  NOTE 24b :1173 margin-top: 3px (off the 4px scale) on .signal-top p
+  NOTE 24b :1181 gap: 5px (off the 4px scale) on .badge
+  NOTE 24b :1182 padding: 4px 7px (off the 4px scale) on .badge
+  NOTE 24b :1223 margin: 23px 0 10px (off the 4px scale) on .signal-readings
+  NOTE 24b :1235 gap: 6px (off the 4px scale) on .signal-readings strong
+  NOTE 24b :1247 margin: 15px 0 10px (off the 4px scale) on .sparkline
+  NOTE 24b :1256 margin: 15px 0 10px (off the 4px scale) on .sparkline-empty
+  NOTE 24b :1264 padding-top: 10px (off the 4px scale) on .signal-bottom
+  NOTE 24b :1276 margin: 0 -23px -23px (off the 4px scale) on .incident-list
+  NOTE 24b :1282 padding: 19px 23px (off the 4px scale) on .incident-row
+  NOTE 24b :1333 gap: 7px (off the 4px scale) on .incident-name > span
+  NOTE 24b :1336 margin-top: 5px (off the 4px scale) on .incident-name > span
+  NOTE 24b :1348 margin-left: 14px (off the 4px scale) on .incident-row > time
+  NOTE 24b :1353 margin-left: 6px (off the 4px scale) on .row-arrow
+  NOTE 24b :1359 padding-top: 25px (off the 4px scale) on .proof-card
+  NOTE 24b :1380 margin: 10px 0 13px (off the 4px scale) on .proof-card h2
+  NOTE 24b :1392 padding: 17px 0 12px (off the 4px scale) on .proof-stat
+  NOTE 24b :1393 margin-top: 22px (off the 4px scale) on .proof-stat
+  NOTE 24b :1413 gap: 15px (off the 4px scale) on .workspace-footer
+  NOTE 24b :1414 margin-top: 33px (off the 4px scale) on .workspace-footer
+  NOTE 24b :1415 padding: 25px 0 28px (off the 4px scale) on .workspace-footer
+  NOTE 24b :1423 gap: 7px (off the 4px scale) on .workspace-footer > span:first-child
+  NOTE 24b :1429 margin: 0 6px (off the 4px scale) on .workspace-footer b
+  NOTE 24b :1435 gap: 18px (off the 4px scale) on .list-toolbar
+  NOTE 24b :1436 margin-bottom: 23px (off the 4px scale) on .list-toolbar
+  NOTE 24b :1440 padding: 3px (off the 4px scale) on .segmented
+  NOTE 24b :1448 padding: 7px 11px (off the 4px scale) on .segmented button
+  NOTE 24b :1465 padding: 0 10px (off the 4px scale) on .search-field
+  NOTE 24b :1472 padding: 7px 0 (off the 4px scale) on .search-field input
+  NOTE 24b :1482 padding: 39px 15px (off the 4px scale) on .empty
+  NOTE 24b :1490 margin: 0 auto 17px (off the 4px scale) on .empty-orbit
+  NOTE 24b :1499 margin-bottom: 10px (off the 4px scale) on .empty h3
+  NOTE 24b :1510 margin-top: 21px (off the 4px scale) on .empty .button
+  NOTE 24b :1523 padding: 23px (off the 4px scale) on .signal-card.nested
+  NOTE 24b :1527 padding: 22px (off the 4px scale) on .contract-summary
+  NOTE 24b :1540 gap: 6px (off the 4px scale) on .operation-chips
+  NOTE 24b :1541 margin: 15px 0 (off the 4px scale) on .operation-chips
+  NOTE 24b :1548 padding: 4px 7px (off the 4px scale) on .operation-chips code
+  NOTE 24b :1557 gap: 15px (off the 4px scale) on .project-actions
+  NOTE 24b :1568 gap: 23px (off the 4px scale) on .continuity-layout
+  NOTE 24b :1572 margin: 9px 0 27px (off the 4px scale) on .continuation-form h2
+  NOTE 24b :1575 margin: 23px 0 (off the 4px scale) on .continuation-form > label
+  NOTE 24b :1581 margin-left: 7px (off the 4px scale) on .optional
+  NOTE 24b :1585 gap: 9px (off the 4px scale) on .form-note
+  NOTE 24b :1591 padding-top: 17px (off the 4px scale) on .form-note
+  NOTE 24b :1601 padding: 30px (off the 4px scale) on .continuity-guide
+  NOTE 24b :1612 margin-bottom: 25px (off the 4px scale) on .guide-icon
+  NOTE 24b :1625 gap: 14px (off the 4px scale) on .continuity-guide li
+  NOTE 24b :1642 margin-bottom: 5px (off the 4px scale) on .continuity-guide h3
+  NOTE 24b :1651 padding-top: 18px (off the 4px scale) on .guide-note
+  NOTE 24b :1654 gap: 9px (off the 4px scale) on .guide-note
+  NOTE 24b :1670 margin-bottom: 11px (off the 4px scale) on .principles-grid h3
+  NOTE 24b :1680 gap: 23px (off the 4px scale) on .settings-grid
+  NOTE 24b :1683 margin: 22px 0 (off the 4px scale) on .settings-list
+  NOTE 24b :1687 gap: 15px (off the 4px scale) on .settings-list > div
+  NOTE 24b :1689 padding: 14px 0 (off the 4px scale) on .settings-list > div
+  NOTE 24b :1707 margin-top: 21px (off the 4px scale) on .settings-grid .card > .button
+  NOTE 24b :1720 margin-top: 11px (off the 4px scale) on .deployment-card h2
+  NOTE 24b :1724 margin-top: 15px (off the 4px scale) on .deployment-card p
+  NOTE 24b :1734 gap: 9px (off the 4px scale) on .deployment-card li
+  NOTE 24b :1739 margin: 14px 0 (off the 4px scale) on .deployment-card li
+  NOTE 24b :1747 margin: 0 5px (off the 4px scale) on .pending-dot
+  NOTE 24b :1752 margin-top: 18px (off the 4px scale) on .deployment-card > small
+  NOTE 24b :1758 gap: 7px (off the 4px scale) on .back-button
+  NOTE 24b :1762 padding: 0 0 23px (off the 4px scale) on .back-button
+  NOTE 24b :1779 padding: 21px (off the 4px scale) on .outcome-banner
+  NOTE 24b :1780 margin: 23px 0 (off the 4px scale) on .outcome-banner
+  NOTE 24b :1800 margin-top: 5px (off the 4px scale) on .outcome-banner p
+  NOTE 24b :1847 padding: 22px 0 26px (off the 4px scale) on .lifecycle
+  NOTE 24b :1858 gap: 7px (off the 4px scale) on .lifecycle li
+  NOTE 24b :1904 gap: 26px (off the 4px scale) on .workspace-tabs
+  NOTE 24b :1906 margin-bottom: 25px (off the 4px scale) on .workspace-tabs
+  NOTE 24b :1911 padding: 12px 0 15px (off the 4px scale) on .workspace-tabs button
+  NOTE 24b :1923 margin-left: 7px (off the 4px scale) on .workspace-tabs button > span
+  NOTE 24b :1926 padding: 1px 5px (off the 4px scale) on .workspace-tabs button > span
+  NOTE 24b :1933 gap: 23px (off the 4px scale) on .incident-columns
+  NOTE 24b :1950 padding: 4px 7px (off the 4px scale) on .count
+  NOTE 24b :1962 margin-bottom: 13px (off the 4px scale) on .markdown p
+  NOTE 24b :1968 margin: 22px 0 10px (off the 4px scale) on .markdown h1, .markdown h2, .markdown h3
+  NOTE 24b :1973 padding-left: 18px (off the 4px scale) on .markdown ul, .markdown ol
+  NOTE 24b :1987 margin: 17px 0 (off the 4px scale) on .markdown table
+  NOTE 24b :2001 padding: 1px 3px (off the 4px scale) on .markdown code
+  NOTE 24b :2008 margin-top: 10px (off the 4px scale) on .selected-strategy > h2
+  NOTE 24b :2013 margin-top: 15px (off the 4px scale) on .selected-strategy > p
+  NOTE 24b :2017 margin-top: 13px (off the 4px scale) on .selected-strategy .inline-link
+  NOTE 24b :2022 margin: 19px 0 15px (off the 4px scale) on .operation-list
+  NOTE 24b :2026 padding: 10px 0 (off the 4px scale) on .operation-list > div
+  NOTE 24b :2029 gap: 10px (off the 4px scale) on .operation-list > div
+  NOTE 24b :2053 padding: 11px 0 (off the 4px scale) on .acceptance-list > div
+  NOTE 24b :2090 margin-bottom: 15px (off the 4px scale) on .approval-card > svg
+  NOTE 24b :2099 margin: 13px 0 19px (off the 4px scale) on .approval-card p
+  NOTE 24b :2105 padding: 18px (off the 4px scale) on .risk-card
+  NOTE 24b :2111 margin-bottom: 10px (off the 4px scale) on .risk-card h3
+  NOTE 24b :2124 gap: 11px (off the 4px scale) on .evidence-item summary
+  NOTE 24b :2126 padding: 15px 0 (off the 4px scale) on .evidence-item summary
+  NOTE 24b :2165 padding: 15px (off the 4px scale) on pre
+  NOTE 24b :2175 margin: 0 0 25px (off the 4px scale) on .view-intro
+  NOTE 24b :2179 margin-bottom: 10px (off the 4px scale) on .view-intro h2
+  NOTE 24b :2202 margin-bottom: 22px (off the 4px scale) on .strategy-top
+  NOTE 24b :2220 margin: 13px 0 (off the 4px scale) on .strategy-checks > div
+  NOTE 24b :2236 padding: 13px 0 (off the 4px scale) on .disclosure
+  NOTE 24b :2247 padding: 5px 0 (off the 4px scale) on .disclosure li
+  NOTE 24b :2256 margin: 10px 0 (off the 4px scale) on .approval-note
+  NOTE 24b :2268 margin-top: 10px (off the 4px scale) on .replay-control .subtle
+  NOTE 24b :2276 gap: 14px (off the 4px scale) on .flight-event summary
+  NOTE 24b :2280 padding: 18px 0 (off the 4px scale) on .flight-event summary
+  NOTE 24b :2286 padding: 6px (off the 4px scale) on .event-index
+  NOTE 24b :2299 margin-top: 5px (off the 4px scale) on .flight-event summary p
+  NOTE 24b :2310 padding: 35px (off the 4px scale) on .receipt-card
+  NOTE 24b :2317 padding-bottom: 25px (off the 4px scale) on .receipt-heading
+  NOTE 24b :2341 margin-bottom: 10px (off the 4px scale) on .receipt-card > h2
+  NOTE 24b :2350 gap: 17px (off the 4px scale) on .receipt-facts
+  NOTE 24b :2354 padding: 23px 0 (off the 4px scale) on .receipt-facts
+  NOTE 24b :2370 margin: 25px 0 14px (off the 4px scale) on .receipt-card > h3
+  NOTE 24b :2375 margin: 10px 0 (off the 4px scale) on .receipt-risk
+  NOTE 24b :2381 padding: 18px (off the 4px scale) on .receipt-provenance
+  NOTE 24b :2382 margin: 27px 0 (off the 4px scale) on .receipt-provenance
+  NOTE 24b :2387 gap: 7px (off the 4px scale) on .receipt-provenance > span
+  NOTE 24b :2394 margin: 11px 0 (off the 4px scale) on .receipt-provenance p
+  NOTE 24b :2401 margin-bottom: 10px (off the 4px scale) on .receipt-provenance code
+  NOTE 24b :2422 gap: 10px (off the 4px scale) on .alert
+  NOTE 24b :2423 padding: 13px 15px (off the 4px scale) on .alert
+  NOTE 24b :2469 gap: 10px (off the 4px scale) on .toast
+  NOTE 24b :2470 padding: 15px 18px (off the 4px scale) on .toast
+  NOTE 24b :2501 gap: 15px (off the 4px scale) on .dialog-heading
+  NOTE 24b :2502 margin-bottom: 22px (off the 4px scale) on .dialog-heading
+  NOTE 24b :2506 margin-top: 7px (off the 4px scale) on .dialog-heading h2
+  NOTE 24b :2515 margin-bottom: 23px (off the 4px scale) on .dialog-copy
+  NOTE 24b :2523 margin: 23px 0 (off the 4px scale) on .dialog label
+  NOTE 24b :2528 gap: 15px (off the 4px scale) on .form-grid
+  NOTE 24b :2540 padding: 13px (off the 4px scale) on .checkbox-label
+  NOTE 24b :2568 gap: 11px (off the 4px scale) on .dialog-actions
+  NOTE 24b :2569 padding-top: 21px (off the 4px scale) on .dialog-actions
+  NOTE 24b :2577 padding: 17px (off the 4px scale) on .approval-detail
+  NOTE 24b :2589 margin: 13px 0 19px (off the 4px scale) on .approval-detail p
+  NOTE 24b :2602 margin-top: 5px (off the 4px scale) on .approval-action small
+  NOTE 24b :2609 padding-left: 15px (off the 4px scale) on .approval-detail ul
+  NOTE 24b :2610 margin-top: 13px (off the 4px scale) on .approval-detail ul
+  NOTE 24b :2617 gap: 14px (off the 4px scale) on .loading-state
+  NOTE 24b :2628 gap: 25px (off the 4px scale) on .demo-workspace
+  NOTE 24b :2629 padding: 20px 23px (off the 4px scale) on .demo-workspace
+  NOTE 24b :2643 margin-top: 6px (off the 4px scale) on .demo-workspace select
+  NOTE 24b :2645 padding: 8px 11px (off the 4px scale) on .demo-workspace select
+  NOTE 24b :2661 gap: 18px (off the 4px scale) on .scenario-grid
+  NOTE 24b :2662 margin: 25px 0 (off the 4px scale) on .scenario-grid
+  NOTE 24b :2665 padding: 25px 23px (off the 4px scale) on .scenario-card
+  NOTE 24b :2680 margin-bottom: 25px (off the 4px scale) on .scenario-top
+  NOTE 24b :2691 margin-bottom: 17px (off the 4px scale) on .scenario-card h2
+  NOTE 24b :2701 margin: 24px 0 22px (off the 4px scale) on .scenario-proof
+  NOTE 24b :2703 padding-top: 17px (off the 4px scale) on .scenario-proof
+  NOTE 24b :2715 margin-top: 9px (off the 4px scale) on .scenario-proof > p
+  NOTE 24b :2789 gap: 22px (off the 4px scale) on .demo-lower
+  NOTE 24b :2792 margin: 0 -23px -23px (off the 4px scale) on .run-list
+  NOTE 24b :2799 padding: 17px 23px (off the 4px scale) on .run-row
+  NOTE 24b :2825 margin-top: 5px (off the 4px scale) on .run-row p
+  NOTE 24b :2843 margin: 11px 0 24px (off the 4px scale) on .rehearsal-notes h2
+  NOTE 24b :2852 padding-left: 5px (off the 4px scale) on .rehearsal-notes li
+  NOTE 24b :2853 margin: 13px 0 (off the 4px scale) on .rehearsal-notes li
+  NOTE 24b :2860 padding-top: 17px (off the 4px scale) on .rehearsal-notes > p
+  NOTE 24b :2867 padding-top: 35px (off the 4px scale) on .presentation .scenario-card
+  NOTE 24b :2868 padding-bottom: 30px (off the 4px scale) on .presentation .scenario-card
+  NOTE 24b :2986 padding: 50px 0 (off the 4px scale) on .login-form
+  NOTE 24b :2997 margin: 13px 0 17px (off the 4px scale) on .login-form h2
+  NOTE 24b :3003 margin-bottom: 29px (off the 4px scale) on .login-form > p
+  NOTE 24b :3010 margin: 10px 0 (off the 4px scale) on .login-form form input
+  NOTE 24b :3019 margin-bottom: 23px (off the 4px scale) on .login-form form > small
+  NOTE 24b :3033 padding-top: 23px (off the 4px scale) on .login-trust
+  NOTE 24b :3050 padding: 13px (off the 4px scale) on .skip-link
+  NOTE 24b :3070 padding-top: 45px (off the 4px scale) on .main-content
+  NOTE 24b :3091 padding: 27px (off the 4px scale) on .signal-card
+  NOTE 24b :3097 padding: 31px (off the 4px scale) on .scenario-card
+  NOTE 24b :3115 padding-left: 13px (off the 4px scale) on .sidebar
+  NOTE 24b :3116 padding-right: 13px (off the 4px scale) on .sidebar
+  NOTE 24b :3119 margin-left: 210px (off the 4px scale) on .main-shell
+  NOTE 24b :3123 padding: 30px 25px 0 (off the 4px scale) on .main-content
+  NOTE 24b :3126 padding: 0 25px (off the 4px scale) on .topbar
+  NOTE 24b :3141 padding: 18px 15px (off the 4px scale) on .metric
+  NOTE 24b :3156 gap: 13px (off the 4px scale) on .scenario-grid
+  NOTE 24b :3159 padding: 23px 18px (off the 4px scale) on .scenario-card
+  NOTE 24b :3177 margin-top: 7px (off the 4px scale) on .lifecycle li > strong
+  NOTE 24b :3199 gap: 18px (off the 4px scale) on .demo-workspace
+  NOTE 24b :3211 padding: 25px (off the 4px scale) on .continuity-guide
+  NOTE 24b :3214 padding: 35px 10% (off the 4px scale) on .login-content
+  NOTE 24b :3220 gap: 23px (off the 4px scale) on .principles-grid
+  NOTE 24b :3246 gap: 0 25px (off the 4px scale) on .scenario-card
+  NOTE 24b :3270 padding: 13px (off the 4px scale) on .scenario-card > .button
+  NOTE 24b :3324 padding: 30px 10% (off the 4px scale) on .login-content
+  NOTE 24b :3370 padding: 0 18px (off the 4px scale) on .topbar
+  NOTE 24b :3379 gap: 9px (off the 4px scale) on .topbar-actions
+  NOTE 24b :3386 padding: 5px 7px (off the 4px scale) on .connection
+  NOTE 24b :3389 gap: 9px (off the 4px scale) on .breadcrumbs
+  NOTE 24b :3397 padding: 28px 18px 0 (off the 4px scale) on .main-content
+  NOTE 24b :3401 margin-bottom: 22px (off the 4px scale) on .page-title
+  NOTE 24b :3420 padding: 17px 15px (off the 4px scale) on .command-banner
+  NOTE 24b :3437 gap: 10px (off the 4px scale) on .metrics-grid
+  NOTE 24b :3444 padding: 17px 15px (off the 4px scale) on .metric
+  NOTE 24b :3448 margin: 14px 0 11px (off the 4px scale) on .metric strong
+  NOTE 24b :3459 gap: 15px (off the 4px scale) on .section-heading
+  NOTE 24b :3472 padding: 19px (off the 4px scale) on .card
+  NOTE 24b :3475 gap: 9px (off the 4px scale) on .signal-top
+  NOTE 24b :3487 gap: 10px (off the 4px scale) on .signal-readings
+  NOTE 24b :3488 margin-top: 23px (off the 4px scale) on .signal-readings
+  NOTE 24b :3509 margin: 0 -19px -19px (off the 4px scale) on .incident-list
+  NOTE 24b :3512 padding: 17px 19px (off the 4px scale) on .incident-row
+  NOTE 24b :3513 gap: 10px (off the 4px scale) on .incident-row
+  NOTE 24b :3528 padding: 4px 5px (off the 4px scale) on .incident-row > .badge
+  NOTE 24b :3544 padding: 7px 8px (off the 4px scale) on .segmented button
+  NOTE 24b :3554 padding: 19px (off the 4px scale) on .signal-card.nested
+  NOTE 24b :3557 padding: 19px (off the 4px scale) on .contract-summary
+  NOTE 24b :3560 gap: 10px (off the 4px scale) on .project-actions
+  NOTE 24b :3582 margin-top: 27px (off the 4px scale) on .workspace-footer
+  NOTE 24b :3599 margin-top: 18px (off the 4px scale) on .heading-actions
+  NOTE 24b :3610 gap: 11px (off the 4px scale) on .outcome-banner
+  NOTE 24b :3631 padding: 10px 0 23px (off the 4px scale) on .lifecycle
+  NOTE 24b :3643 gap: 22px (off the 4px scale) on .workspace-tabs
+  NOTE 24b :3644 margin-bottom: 22px (off the 4px scale) on .workspace-tabs
+  NOTE 24b :3666 padding: 19px (off the 4px scale) on .recorder
+  NOTE 24b :3669 gap: 10px (off the 4px scale) on .flight-event summary
+  NOTE 24b :3682 padding: 5px (off the 4px scale) on .flight-event .event-index
+  NOTE 24b :3685 padding: 22px (off the 4px scale) on .receipt-card
+  NOTE 24b :3688 gap: 9px (off the 4px scale) on .receipt-heading
+  NOTE 24b :3728 padding: 23px (off the 4px scale) on .scenario-card
+  NOTE 24b :3737 margin-bottom: 25px (off the 4px scale) on .scenario-top
+  NOTE 24b :3741 padding-top: 18px (off the 4px scale) on .scenario-proof
+  NOTE 24b :3754 padding: 17px (off the 4px scale) on .demo-workspace
+  NOTE 24b :3755 gap: 14px (off the 4px scale) on .demo-workspace
+  NOTE 24b :3764 margin: 0 -19px -19px (off the 4px scale) on .run-list
+  NOTE 24b :3767 padding: 17px 19px (off the 4px scale) on .run-row
+  NOTE 24b :3768 gap: 9px (off the 4px scale) on .run-row
+  NOTE 24b :3782 margin-left: 37px (off the 4px scale) on .run-row > .inline-link, .run-message
+  NOTE 24b :3802 padding: 13px (off the 4px scale) on .alert
+  NOTE 24b :3806 margin-left: 26px (off the 4px scale) on .alert > .inline-link
+  NOTE 24b :3812 padding: 12px 15px (off the 4px scale) on .toast
+  NOTE 24b :3816 padding: 15px (off the 4px scale) on .modal-backdrop
+  NOTE 24b :3819 padding: 23px (off the 4px scale) on .dialog
+  NOTE 24b :3829 gap: 9px (off the 4px scale) on .dialog-actions
+  NOTE 24b :3835 padding-left: 10px (off the 4px scale) on .dialog-actions > .button
+  NOTE 24b :3836 padding-right: 10px (off the 4px scale) on .dialog-actions > .button
+  NOTE 24b :3867 padding: 33px 9% (off the 4px scale) on .login-content
+  NOTE 24b :3870 padding: 50px 0 (off the 4px scale) on .login-form
+  NOTE 24b :3899 padding: 25px (off the 4px scale) on .presentation .scenario-card
+  NOTE 24b :3946 margin-top: 18px (off the 4px scale) on .repository-assessment details
+  NOTE 24b :3984 gap: 14px (off the 4px scale) on .readiness-facts
+  NOTE 24b :4000 gap: 10px (off the 4px scale) on .language-row
+  NOTE 24b :4034 padding: 10px (off the 4px scale) on .tournament-table th, .tournament-table td
+  NOTE 24b :4071 padding-right: 190px (off the 4px scale) on .overview-recovery-banner
+  NOTE 24b :4115 padding-right: 22px (off the 4px scale) on .overview-recovery-banner
+  NOTE 24b :4157 gap: 6px (off the 4px scale) on .recovery-scene-controls
+  NOTE 24b :4183 padding-right: 355px (off the 4px scale) on .overview-recovery-banner
+  NOTE 24b :4200 padding-right: 285px (off the 4px scale) on .overview-recovery-banner
+  NOTE 24b :4212 padding-right: 22px (off the 4px scale) on .overview-recovery-banner
+frontend/src/components/RepoIntelligence.tsx
+  WARN 49 :237 long clickable label "Use failing HEAD checks in requirem…" without nowrap
+  NOTE 19 :112 dash "—" in copy | fix: A comma, a colon, a full stop or parentheses; never a dash
+frontend/src/components/ProjectDialog.tsx
+  NOTE 19 :118 dash "—" in copy
+sloplint: 37 FAIL, 4 REFLEX, 11 WARN, 310 NOTE across 12 file(s) and 1 URL(s).
+render tier not run: no puppeteer-core found locally, globally or via HALLMARK_PUPPETEER
+kept: links 8/8, fields 7/7, handlers 73/73; before 496 FAIL, 307 REFLEX, now 37 FAIL, 4 REFLEX

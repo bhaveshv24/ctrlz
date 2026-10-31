@@ -1,0 +1,19 @@
+  FAIL 19 x2 frontend/src/components/ProjectDialog.tsx:118 dash "—" in copy; frontend/src/components/RepoIntelligence.tsx:112 dash "—" in copy | fix: A comma, a colon, a full stop or parentheses; never a dash
+  FAIL 48 x457 frontend/src/style.css:69 colour literal #1fa786 outside tokens (outline on button:focus-…; frontend/src/style.css:106 colour literal #617068 outside tokens (color on p) | fix: Lift the value into the token block
+  FAIL 54 x17 frontend/src/App.tsx:122 eyebrow "AUTONOMOUS SOFTWARE RECOVERY" before <h1>; frontend/src/App.tsx:143 eyebrow "WELCOME TO YOUR CONTROL CENTER" before <h2> | fix: Cut it; the heading already says this (craft.md § 7 has twelve other openings)
+  FAIL 63 x3 frontend/src/components/ContinuationForm.tsx:143 middle-dot meta string "Repository ZIP 25 MiB upload · 64 MiB e…; frontend/src/components/ContinuationForm.tsx:154 middle-dot meta string "25 MiB upload · 64 MiB expanded · 3,000… | fix: Line breaks, columns or hairlines; one dot in a byline at most
+  FAIL 67 x17 frontend/src/App.tsx:118 "SYSTEM RECOVERY / HUMAN CONTROL" typed in capitals at 9px trac…; frontend/src/App.tsx:122 "AUTONOMOUS SOFTWARE RECOVERY" typed in capitals at 9px tracked… | fix: Sentence case in the body face; capitals survive only as a wordmark or as the display voice
+  REFLEX 24b x302 frontend/src/style.css:132 padding: 12px 13px (off the 4px scale) on input, textarea, sele…; frontend/src/style.css:153 margin-top: 9px (off the 4px scale) on label > input, label > t… | fix: Use the 4px spacing scale
+  REFLEX 26b frontend/src/style.css:1 no :active styling anywhere | fix: All eight states; guard: not a form control, no aria-disabled anywhere
+  REFLEX 64 x4 frontend/src/style.css:261 monospace label voice on .nav-caption; frontend/src/style.css:302 monospace label voice on nav a small | fix: Labels in the body face, a step smaller, sentence case; mono only for code and figures
+  WARN 29 frontend/src/style.css:2091 glass panel: backdrop-filter blur over a translucent black on .… | fix: Solid or grained surface; elevation by lightness
+  WARN 40 x3 frontend/src/style.css:1201 4.31:1 < 4.5:1 on .guide-icon; frontend/src/style.css:1408 4.40:1 < 4.5:1 on .outcome-banner.verified .outcome-symbol | fix: Raise the contrast to threshold
+  WARN 49 x2 frontend/src/components/ContinuationForm.tsx:261 long clickable label "Choose another repository" without nowrap; frontend/src/components/RepoIntelligence.tsx:237 long clickable label "Use failing HEAD checks in requirem…" wit… | fix: Shorten the label or set nowrap
+  WARN F1 x2 frontend/src/components/IncidentWorkspace.tsx:368 straight quote in prose x1 (first: ult yet. An agent's recommen…; frontend/src/pages/DemoLab.tsx:254 straight quote in prose x1 (first: with the customer's broken e… | fix: Use typographic quotes: “ ” ’
+  WARN F3 frontend/src/style.css:78 no text-wrap: balance on any display head (45 head rule(s), e.g… | fix: Add text-wrap: balance to h1/h2-level heads
+  WARN F5 frontend/src/style.css:1673 icon-in-coloured-circle coin: .check-icon, .fail-icon | fix: Drop the tinted coin; set the icon at text size in currentColor
+  WARN F6 frontend/src/style.css:988 numeric selector .proof-stat strong at display size without tab… | fix: Add font-variant-numeric: tabular-nums
+  WARN F24 frontend/src/style.css:2076 a hairline border under a wide soft shadow on .toast | fix: Commit to one: a defined edge, or elevation by shadow
+sloplint: 496 FAIL, 307 REFLEX, 12 WARN across 11 file(s) and 1 URL(s), grouped by gate; every line is in .hallmark/before.txt.
+render tier not run: no puppeteer-core found locally, globally or via HALLMARK_PUPPETEER
+before: recorded 8 links, 7 fields, 73 handlers, 0 test hooks, 0 script hooks in .hallmark/before.json; --kept checks a redesign against it

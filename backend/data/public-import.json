@@ -1,0 +1,53 @@
+{
+  "id": "repo-4b4b089846a2",
+  "repository": "/Users/bvell/Documents/PES/EVENTS/HACKATHONS/agentathon/ctrlz/imports/repo-4b4b089846a2",
+  "commit": "9da12594345b8e9141277cfc51e642ee4974236b",
+  "provenance": {
+    "kind": "github",
+    "url": "https://github.com/r1chardj0n3s/parse",
+    "upstream_commit": "7f07b64089338ee7b7db85a752eb45c4816c2657",
+    "subdirectory": ""
+  },
+  "omitted_files": [],
+  "profile": "python-pytest",
+  "profile_label": "Python / pytest",
+  "supported": true,
+  "dependencies": [],
+  "dependency_install_required": false,
+  "tests": [
+    "tests/check_typing.py",
+    "tests/test_bugs.py",
+    "tests/test_findall.py",
+    "tests/test_parse.py",
+    "tests/test_parsetype.py",
+    "tests/test_pattern.py",
+    "tests/test_result.py",
+    "tests/test_search.py"
+  ],
+  "editable_files": [
+    "parse/__init__.py"
+  ],
+  "file_count": 18,
+  "source_count": 1,
+  "warnings": [],
+  "files": [
+    ".git-blame-ignore-revs",
+    ".github/SECURITY.md",
+    ".github/dependabot.yml",
+    ".github/workflows/test.yml",
+    "LICENSE",
+    "README.rst",
+    "parse/__init__.py",
+    "parse/__init__.pyi",
+    "pyproject.toml",
+    "tests/check_typing.py",
+    "tests/requirements.txt",
+    "tests/test_bugs.py",
+    "tests/test_findall.py",
+    "tests/test_parse.py",
+    "tests/test_parsetype.py",
+    "tests/test_pattern.py",
+    "tests/test_result.py",
+    "tests/test_search.py"
+  ]
+}

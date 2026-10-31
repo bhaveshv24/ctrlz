@@ -1,0 +1,4065 @@
+{
+  "schema_version": 1,
+  "incident": {
+    "id": "4480cb07-9fc6-432e-9fa2-9bb477e9dc7f",
+    "project_id": "code-import",
+    "kind": "code",
+    "resource": "/Users/bvell/Documents/PES/EVENTS/HACKATHONS/agentathon/ctrlz/imports/repo-3979feff3210",
+    "status": "resolved",
+    "created": 1793409697.602241,
+    "updated": 1793414635.985377,
+    "evidence": {
+      "requirements": "Repair the percentage field conversion regression while preserving all existing upstream tests and other conversion behavior.",
+      "proof": "Live NIM portability validation"
+    },
+    "import_request": {
+      "repository": "/Users/bvell/Documents/PES/EVENTS/HACKATHONS/agentathon/ctrlz/imports/repo-3979feff3210",
+      "requirements": "Repair the percentage field conversion regression while preserving all existing upstream tests and other conversion behavior.",
+      "context": "",
+      "acceptance_profile": "auto",
+      "install_dependencies": true
+    },
+    "error": null,
+    "reasoning_provider": "CrewAI / NVIDIA NIM",
+    "model": "nvidia/nemotron-3.5-lightning-30b-a3b",
+    "repair_profile": "python-pytest",
+    "verification": {
+      "passed": true,
+      "checks": {
+        "candidate_tests": true,
+        "regression_proven": true,
+        "same_acceptance_tests": true,
+        "all_required_cases_passed": true,
+        "no_new_skips": true,
+        "nonempty_patch": true
+      }
+    },
+    "patch": "diff --git a/parse/__init__.py b/parse/__init__.py\nindex 3fb9ce3..ea52a8b 100644\n--- a/parse/__init__.py\n+++ b/parse/__init__.py\n@@ -111,7 +111,7 @@ class convert_first:\n \n \n def percentage(string, match):\n-    return float(string[:-1]) / 10.0\n+    return float(string.rstrip('%')) / 100.0\n \n \n class FixedTzOffset(tzinfo):",
+    "commit": "89f423f75783d02b0396f57db22a26468f4140f8",
+    "remaining_risks": [
+      "Verified against the imported acceptance suite only; patch review and deployment remain operator actions."
+    ]
+  },
+  "events": [
+    {
+      "id": 70,
+      "incident_id": "4480cb07-9fc6-432e-9fa2-9bb477e9dc7f",
+      "timestamp": 1793409697.607614,
+      "stage": "detect",
+      "payload": {
+        "explicit_import": true,
+        "validation_run": true,
+        "provenance": {
+          "kind": "github",
+          "url": "https://github.com/r1chardj0n3s/parse",
+          "upstream_commit": "7f07b64089338ee7b7db85a752eb45c4816c2657",
+          "subdirectory": "",
+          "controlled_regression": {
+            "file": "parse/__init__.py",
+            "description": "Intentionally changed percentage conversion; not an upstream defect",
+            "original_upstream_suite_passed": true,
+            "upstream_test_cases": 118
+          }
+        }
+      }
+    },
+    {
+      "id": 72,
+      "incident_id": "4480cb07-9fc6-432e-9fa2-9bb477e9dc7f",
+      "timestamp": 1793409697.6276321,
+      "stage": "repository_assessment",
+      "payload": {
+        "profile": "python-pytest",
+        "profile_label": "Python / pytest",
+        "supported": true,
+        "dependencies": [
+          "pytest",
+          "pytest-cov",
+          "typing-extensions"
+        ],
+        "dependency_install_required": true,
+        "tests": [
+          "tests/check_typing.py",
+          "tests/test_bugs.py",
+          "tests/test_findall.py",
+          "tests/test_parse.py",
+          "tests/test_parsetype.py",
+          "tests/test_pattern.py",
+          "tests/test_result.py",
+          "tests/test_search.py"
+        ],
+        "editable_files": [
+          "parse/__init__.py"
+        ],
+        "file_count": 18,
+        "source_count": 1,
+        "warnings": []
+      }
+    },
+    {
+      "id": 73,
+      "incident_id": "4480cb07-9fc6-432e-9fa2-9bb477e9dc7f",
+      "timestamp": 1793409697.629375,
+      "stage": "source_provenance",
+      "payload": {
+        "id": "repo-3979feff3210",
+        "repository": "/Users/bvell/Documents/PES/EVENTS/HACKATHONS/agentathon/ctrlz/imports/repo-3979feff3210",
+        "commit": "89f423f75783d02b0396f57db22a26468f4140f8",
+        "provenance": {
+          "kind": "github",
+          "url": "https://github.com/r1chardj0n3s/parse",
+          "upstream_commit": "7f07b64089338ee7b7db85a752eb45c4816c2657",
+          "subdirectory": "",
+          "controlled_regression": {
+            "file": "parse/__init__.py",
+            "description": "Intentionally changed percentage conversion; not an upstream defect",
+            "original_upstream_suite_passed": true,
+            "upstream_test_cases": 118
+          }
+        },
+        "omitted_files": []
+      }
+    },
+    {
+      "id": 78,
+      "incident_id": "4480cb07-9fc6-432e-9fa2-9bb477e9dc7f",
+      "timestamp": 1793409701.257898,
+      "stage": "dependency_environment",
+      "payload": {
+        "approved": true,
+        "phase": "dependency_setup",
+        "exit_code": 0,
+        "declared": [
+          "pytest",
+          "pytest-cov",
+          "typing-extensions"
+        ],
+        "output": "Collecting pytest (from -r /manifests/requirements.txt (line 1))\n  Downloading pytest-9.2.0-py3-none-any.whl.metadata (7.9 kB)\nCollecting pytest-cov (from -r /manifests/requirements.txt (line 2))\n  Downloading pytest_cov-7.1.0-py3-none-any.whl.metadata (32 kB)\nCollecting typing-extensions (from -r /manifests/requirements.txt (line 3))\n  Downloading typing_extensions-4.16.0-py3-none-any.whl.metadata (3.3 kB)\nCollecting iniconfig>=2 (from pytest->-r /manifests/requirements.txt (line 1))\n  Downloading iniconfig-2.3.1-py3-none-any.whl.metadata (2.8 kB)\nCollecting packaging>=24 (from pytest->-r /manifests/requirements.txt (line 1))\n  Downloading packaging-26.3-py3-none-any.whl.metadata (3.5 kB)\nCollecting pluggy<2,>=1.6 (from pytest->-r /manifests/requirements.txt (line 1))\n  Downloading pluggy-1.7.0-py3-none-any.whl.metadata (5.0 kB)\nCollecting pygments>=2.15 (from pytest->-r /manifests/requirements.txt (line 1))\n  Downloading pygments-2.21.0-py3-none-any.whl.metadata (2.5 kB)\nCollecting coverage>=7.10.6 (from coverage[toml]>=7.10.6->pytest-cov->-r /manifests/requirements.txt (line 2))\n  Downloading coverage-7.17.0-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl.metadata (8.1 kB)\nDownloading pytest-9.2.0-py3-none-any.whl (411 kB)\nDownloading pytest_cov-7.1.0-py3-none-any.whl (22 kB)\nDownloading typing_extensions-4.16.0-py3-none-any.whl (45 kB)\nDownloading coverage-7.17.0-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl (262 kB)\nDownloading iniconfig-2.3.1-py3-none-any.whl (7.6 kB)\nDownloading packaging-26.3-py3-none-any.whl (129 kB)\nDownloading pluggy-1.7.0-py3-none-any.whl (27 kB)\nDownloading pygments-2.21.0-py3-none-any.whl (1.3 MB)\n   \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 1.3/1.3 MB 32.0 MB/s eta 0:00:00\nInstalling collected packages: typing-extensions, pygments, pluggy, packaging, iniconfig, coverage, pytest, pytest-cov\nSuccessfully installed coverage-7.17.0 iniconfig-2.3.1 packaging-26.3 pluggy-1.7.0 pygments-2.21.0 pytest-9.2.0 pytest-cov-7.1.0 typing-extensions-4.16.0\n",
+        "install_scripts": "disabled; Python binary wheels only",
+        "test_network": "none"
+      }
+    },
+    {
+      "id": 79,
+      "incident_id": "4480cb07-9fc6-432e-9fa2-9bb477e9dc7f",
+      "timestamp": 1793409702.404494,
+      "stage": "baseline_tests",
+      "payload": {
+        "exit_code": 1,
+        "output": "...............................................F.......................s [ 61%]\n..............................................                           [100%]\n=================================== FAILURES ===================================\n_________________________________ test_numbers _________________________________\n\n    def test_numbers():\n        # pull a numbers out of a string\n        def y(fmt, s, e, str_equals=False):\n            p = parse.compile(fmt)\n            r = p.parse(s)\n            assert r is not None, \"{!r} does not match {!r} ({!r})\".format(s, fmt, p._expression)\n            r = r.fixed[0]\n            if str_equals:\n                assert str(r) == str(e)\n            else:\n                assert r == e\n    \n        def n(fmt, s, e):\n            assert parse.parse(fmt, s) is None\n    \n        y(\"a {:d} b\", \"a 0 b\", 0)\n        y(\"a {:d} b\", \"a 12 b\", 12)\n        y(\"a {:5d} b\", \"a    12 b\", 12)\n        y(\"a {:5d} b\", \"a   -12 b\", -12)\n        y(\"a {:d} b\", \"a -12 b\", -12)\n        y(\"a {:d} b\", \"a +12 b\", 12)\n        y(\"a {:d} b\", \"a  12 b\", 12)\n        y(\"a {:d} b\", \"a 0b1000 b\", 8)\n        y(\"a {:d} b\", \"a 0o1000 b\", 512)\n        y(\"a {:d} b\", \"a 0x1000 b\", 4096)\n        y(\"a {:d} b\", \"a 0xabcdef b\", 0xABCDEF)\n    \n>       y(\"a {:%} b\", \"a 100% b\", 1)\n\ntests/test_parse.py:262: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nfmt = 'a {:%} b', s = 'a 100% b', e = 1, str_equals = False\n\n    def y(fmt, s, e, str_equals=False):\n        p = parse.compile(fmt)\n        r = p.parse(s)\n        assert r is not None, \"{!r} does not match {!r} ({!r})\".format(s, fmt, p._expression)\n        r = r.fixed[0]\n        if str_equals:\n            assert str(r) == str(e)\n        else:\n>           assert r == e\n                   ^^^^^^\nE           AssertionError\n\ntests/test_parse.py:245: AssertionError\n================================ tests coverage ================================\n_______________ coverage: platform linux, python 3.12.16-final-0 _______________\n\nName                Stmts   Miss Branch BrPart  Cover   Missing\n---------------------------------------------------------------\nparse/__init__.py     554     27    246     15    94%   133, 136, 141, 250, 300, 389-390, 392-393, 414, 458, 466-470, 483-485, 501, 533->535, 556->558, 650-653, 746, 851-853, 858->863, 863->867, 876\n---------------------------------------------------------------\nTOTAL                 554     27    246     15    94%\n=========================== short test summary info ============================\nFAILED tests/test_parse.py::test_numbers - AssertionError\n1 failed, 116 passed, 1 skipped in 0.70s\n\ntests.test_parse::test_numbers: AssertionError def test_numbers():\n        # pull a numbers out of a string\n        def y(fmt, s, e, str_equals=False):\n            p = parse.compile(fmt)\n            r = p.parse(s)\n            assert r is not None, \"{!r} does not match {!r} ({!r})\".format(s, fmt, p._expression)\n            r = r.fixed[0]\n            if str_equals:\n                assert str(r) == str(e)\n            else:\n                assert r == e\n    \n        def n(fmt, s, e):\n            assert parse.parse(fmt, s) is None\n    \n        y(\"a {:d} b\", \"a 0 b\", 0)\n        y(\"a {:d} b\", \"a 12 b\", 12)\n        y(\"a {:5d} b\", \"a    12 b\", 12)\n        y(\"a {:5d} b\", \"a   -12 b\", -12)\n        y(\"a {:d} b\", \"a -12 b\", -12)\n        y(\"a {:d} b\", \"a +12 b\", 12)\n        y(\"a {:d} b\", \"a  12 b\", 12)\n        y(\"a {:d} b\", \"a 0b1000 b\", 8)\n        y(\"a {:d} b\", \"a 0o1000 b\", 512)\n        y(\"a {:d} b\", \"a 0x1000 b\", 4096)\n        y(\"a {:d} b\", \"a 0xabcdef b\", 0xABCDEF)\n    \n>       y(\"a {:%} b\", \"a 100% b\", 1)\n\ntests/test_parse.py:262: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nfmt = 'a {:%} b', s = 'a 100% b', e = 1, str_equals = False\n\n    def y(fmt, s, e, str_equals=False):\n        p = parse.compile(fmt)\n        r = p.parse(s)\n        assert r is not None, \"{!r} does not match {!r} ({!r})\".format(s, fmt, p._expression)\n        r = r.fixed[0]\n        if str_equals:\n            assert str(r) == str(e)\n        else:\n>           assert r == e\n                   ^^^^^^\nE           AssertionError\n\ntests/test_parse.py:245: AssertionError",
+        "cases": [
+          {
+            "id": "README.rst::README.rst",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "parse.__init__::parse.with_pattern",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_bugs::test_tz_compare_to_None",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_bugs::test_named_date_issue7",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_bugs::test_dotted_type_conversion_pull_8",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_bugs::test_pm_overflow_issue16",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_bugs::test_pm_handling_issue57",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_bugs::test_user_type_with_group_count_issue60",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_bugs::test_unmatched_brace_doesnt_match",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_bugs::test_pickling_bug_110",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_bugs::test_unused_centered_alignment_bug",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_bugs::test_unused_left_alignment_bug",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_bugs::test_match_trailing_newline",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_bugs::test_case_insensitive_month_names",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_bugs::test_microsecond_precision_issue162",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_bugs::test_time_type_requires_an_actual_time",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_findall::test_findall",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_findall::test_no_evaluate_result",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_findall::test_case_sensitivity",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_no_match",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_nothing",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_no_evaluate_result",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_regular_expression",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_question_mark",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_pipe",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_unicode",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_hexadecimal",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_fixed",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_left",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_right",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_center",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_typed",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_sign",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_precision",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_custom_type",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_typed_fail",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_named",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_named_repeated",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_named_repeated_type",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_named_repeated_fail_value",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_named_repeated_type_fail_value",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_named_repeated_type_mismatch",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_mixed",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_named_typed",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_named_aligned_typed",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_multiline",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_spans",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_numbers",
+            "passed": false,
+            "status": "failed",
+            "detail": "AssertionError def test_numbers():\n        # pull a numbers out of a string\n        def y(fmt, s, e, str_equals=False):\n            p = parse.compile(fmt)\n            r = p.parse(s)\n            assert r is not None, \"{!r} does not match {!r} ({!r})\".format(s, fmt, p._expression)\n            r = r.fixed[0]\n            if str_equals:\n                assert str(r) == str(e)\n            else:\n                assert r == e\n    \n        def n(fmt, s, e):\n            assert parse.parse(fmt, s) is None\n    \n        y(\"a {:d} b\", \"a 0 b\", 0)\n        y(\"a {:d} b\", \"a 12 b\", 12)\n        y(\"a {:5d} b\", \"a    12 b\", 12)\n        y(\"a {:5d} b\", \"a   -12 b\", -12)\n        y(\"a {:d} b\", \"a -12 b\", -12)\n        y(\"a {:d} b\", \"a +12 b\", 12)\n        y(\"a {:d} b\", \"a  12 b\", 12)\n        y(\"a {:d} b\", \"a 0b1000 b\", 8)\n        y(\"a {:d} b\", \"a 0o1000 b\", 512)\n        y(\"a {:d} b\", \"a 0x1000 b\", 4096)\n        y(\"a {:d} b\", \"a 0xabcdef b\", 0xABCDEF)\n    \n>       y(\"a {:%} b\", \"a 100% b\", 1)\n\ntests/test_parse.py:262: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nfmt = 'a {:%} b', s = 'a 100% b', e = 1, str_equals = False\n\n    def y(fmt, s, e, str_equals=False):\n        p = parse.compile(fmt)\n        r = p.parse(s)\n        assert r is not None, \"{!r} does not match {!r} ({!r})\".format(s, fmt, p._expression)\n        r = r.fixed[0]\n        if str_equals:\n            assert str(r) == str(e)\n        else:\n>           assert r == e\n                   ^^^^^^\nE           AssertionError\n\ntests/test_parse.py:245: AssertionError"
+          },
+          {
+            "id": "tests.test_parse::test_two_datetimes",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_flexible_datetimes",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_flexible_datetime_with_colon",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_datetime_with_various_subsecond_precision",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_flexible_datetime_with_timezone",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_flexible_datetime_with_timezone_that_has_colons",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_flexible_time",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_flexible_time_no_hour",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_flexible_time_ms",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_flexible_dates_single_digit",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_flexible_dates_j",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_flexible_dates_year_current_year_inferred",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_flexible_dates_inferred_year_leap_day",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_flexible_dates_inferred_year_day_of_year",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_invalid_timezone_minutes[+01:60]",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_invalid_timezone_minutes[-0199]",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_invalid_timezone_minutes[+160]",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_invalid_timezone_minutes[-1:99]",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_datetimes",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_datetime_group_count",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_datetime_group_count_with_timezone",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_mixed_types",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_mixed_type_variant",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_too_many_fields",
+            "passed": false,
+            "status": "skipped",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_letters",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_strftime_strptime_roundtrip",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_parser_format",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_hyphen_inside_field_name",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_hyphen_inside_field_name_collision_handling",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_flexible_time_preserves_timezone[+0530]",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_flexible_time_preserves_timezone[-0430]",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_flexible_time_preserves_timezone[+00:00]",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_flexible_time_preserves_timezone[+0000]",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_strftime_timezone_rejects_what_strptime_rejects[10:30|0200]",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_strftime_timezone_rejects_what_strptime_rejects[10:30+02]",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_strftime_timezone_rejects_what_strptime_rejects[10:30z]",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_strftime_timezone_zulu",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_flexible_time_without_timezone_stays_naive",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parsetype::test_pattern_should_be_used",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parsetype::test_pattern_should_be_used2",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parsetype::test_with_pattern",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parsetype::test_with_pattern_and_regex_group_count",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parsetype::test_with_pattern_and_wrong_regex_group_count_raises_error",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parsetype::test_with_pattern_and_regex_group_count_is_none",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parsetype::test_case_sensitivity",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parsetype::test_decimal_value",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parsetype::test_width_str",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parsetype::test_width_constraints",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parsetype::test_width_multi_int",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parsetype::test_width_empty_input",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parsetype::test_int_convert_stateless_base",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_pattern::test_braces",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_pattern::test_fixed",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_pattern::test_named",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_pattern::test_named_typed",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_pattern::test_numbered",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_pattern::test_bird",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_pattern::test_format_variety",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_pattern::test_dot_separated_fields",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_pattern::test_dict_style_fields",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_pattern::test_dot_separated_fields_name_collisions",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_pattern::test_invalid_groupnames_are_handled_gracefully",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_result::test_fixed_access",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_result::test_slice_access",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_result::test_named_access",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_result::test_contains",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_search::test_basic",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_search::test_multiline",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_search::test_pos",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_search::test_no_evaluate_result",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          }
+        ],
+        "profile": "python-pytest",
+        "network": "none"
+      }
+    },
+    {
+      "id": 100,
+      "incident_id": "4480cb07-9fc6-432e-9fa2-9bb477e9dc7f",
+      "timestamp": 1793410040.367771,
+      "stage": "continuation_failed",
+      "payload": {
+        "error_type": "TimeoutError",
+        "message": ""
+      }
+    },
+    {
+      "id": 101,
+      "incident_id": "4480cb07-9fc6-432e-9fa2-9bb477e9dc7f",
+      "timestamp": 1793414460.960169,
+      "stage": "retry",
+      "payload": {
+        "operator_requested": true,
+        "reason": "Reduced prompt context after provider timeout; original tests and model preserved"
+      }
+    },
+    {
+      "id": 102,
+      "incident_id": "4480cb07-9fc6-432e-9fa2-9bb477e9dc7f",
+      "timestamp": 1793414461.007118,
+      "stage": "repository_assessment",
+      "payload": {
+        "profile": "python-pytest",
+        "profile_label": "Python / pytest",
+        "supported": true,
+        "dependencies": [
+          "pytest",
+          "pytest-cov",
+          "typing-extensions"
+        ],
+        "dependency_install_required": true,
+        "tests": [
+          "tests/check_typing.py",
+          "tests/test_bugs.py",
+          "tests/test_findall.py",
+          "tests/test_parse.py",
+          "tests/test_parsetype.py",
+          "tests/test_pattern.py",
+          "tests/test_result.py",
+          "tests/test_search.py"
+        ],
+        "editable_files": [
+          "parse/__init__.py"
+        ],
+        "file_count": 18,
+        "source_count": 1,
+        "warnings": []
+      }
+    },
+    {
+      "id": 103,
+      "incident_id": "4480cb07-9fc6-432e-9fa2-9bb477e9dc7f",
+      "timestamp": 1793414461.00952,
+      "stage": "source_provenance",
+      "payload": {
+        "id": "repo-3979feff3210",
+        "repository": "/Users/bvell/Documents/PES/EVENTS/HACKATHONS/agentathon/ctrlz/imports/repo-3979feff3210",
+        "commit": "89f423f75783d02b0396f57db22a26468f4140f8",
+        "provenance": {
+          "kind": "github",
+          "url": "https://github.com/r1chardj0n3s/parse",
+          "upstream_commit": "7f07b64089338ee7b7db85a752eb45c4816c2657",
+          "subdirectory": "",
+          "controlled_regression": {
+            "file": "parse/__init__.py",
+            "description": "Intentionally changed percentage conversion; not an upstream defect",
+            "original_upstream_suite_passed": true,
+            "upstream_test_cases": 118
+          }
+        },
+        "omitted_files": []
+      }
+    },
+    {
+      "id": 104,
+      "incident_id": "4480cb07-9fc6-432e-9fa2-9bb477e9dc7f",
+      "timestamp": 1793414464.621547,
+      "stage": "dependency_environment",
+      "payload": {
+        "approved": true,
+        "phase": "dependency_setup",
+        "exit_code": 0,
+        "declared": [
+          "pytest",
+          "pytest-cov",
+          "typing-extensions"
+        ],
+        "output": "Collecting pytest (from -r /manifests/requirements.txt (line 1))\n  Downloading pytest-9.2.0-py3-none-any.whl.metadata (7.9 kB)\nCollecting pytest-cov (from -r /manifests/requirements.txt (line 2))\n  Downloading pytest_cov-7.1.0-py3-none-any.whl.metadata (32 kB)\nCollecting typing-extensions (from -r /manifests/requirements.txt (line 3))\n  Downloading typing_extensions-4.16.0-py3-none-any.whl.metadata (3.3 kB)\nCollecting iniconfig>=2 (from pytest->-r /manifests/requirements.txt (line 1))\n  Downloading iniconfig-2.3.1-py3-none-any.whl.metadata (2.8 kB)\nCollecting packaging>=24 (from pytest->-r /manifests/requirements.txt (line 1))\n  Downloading packaging-26.3-py3-none-any.whl.metadata (3.5 kB)\nCollecting pluggy<2,>=1.6 (from pytest->-r /manifests/requirements.txt (line 1))\n  Downloading pluggy-1.7.0-py3-none-any.whl.metadata (5.0 kB)\nCollecting pygments>=2.15 (from pytest->-r /manifests/requirements.txt (line 1))\n  Downloading pygments-2.21.0-py3-none-any.whl.metadata (2.5 kB)\nCollecting coverage>=7.10.6 (from coverage[toml]>=7.10.6->pytest-cov->-r /manifests/requirements.txt (line 2))\n  Downloading coverage-7.17.0-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl.metadata (8.1 kB)\nDownloading pytest-9.2.0-py3-none-any.whl (411 kB)\nDownloading pytest_cov-7.1.0-py3-none-any.whl (22 kB)\nDownloading typing_extensions-4.16.0-py3-none-any.whl (45 kB)\nDownloading coverage-7.17.0-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl (262 kB)\nDownloading iniconfig-2.3.1-py3-none-any.whl (7.6 kB)\nDownloading packaging-26.3-py3-none-any.whl (129 kB)\nDownloading pluggy-1.7.0-py3-none-any.whl (27 kB)\nDownloading pygments-2.21.0-py3-none-any.whl (1.3 MB)\n   \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 1.3/1.3 MB 30.4 MB/s eta 0:00:00\nInstalling collected packages: typing-extensions, pygments, pluggy, packaging, iniconfig, coverage, pytest, pytest-cov\nSuccessfully installed coverage-7.17.0 iniconfig-2.3.1 packaging-26.3 pluggy-1.7.0 pygments-2.21.0 pytest-9.2.0 pytest-cov-7.1.0 typing-extensions-4.16.0\n",
+        "install_scripts": "disabled; Python binary wheels only",
+        "test_network": "none"
+      }
+    },
+    {
+      "id": 105,
+      "incident_id": "4480cb07-9fc6-432e-9fa2-9bb477e9dc7f",
+      "timestamp": 1793414465.7131379,
+      "stage": "baseline_tests",
+      "payload": {
+        "exit_code": 1,
+        "output": "...............................................F.......................s [ 61%]\n..............................................                           [100%]\n=================================== FAILURES ===================================\n_________________________________ test_numbers _________________________________\n\n    def test_numbers():\n        # pull a numbers out of a string\n        def y(fmt, s, e, str_equals=False):\n            p = parse.compile(fmt)\n            r = p.parse(s)\n            assert r is not None, \"{!r} does not match {!r} ({!r})\".format(s, fmt, p._expression)\n            r = r.fixed[0]\n            if str_equals:\n                assert str(r) == str(e)\n            else:\n                assert r == e\n    \n        def n(fmt, s, e):\n            assert parse.parse(fmt, s) is None\n    \n        y(\"a {:d} b\", \"a 0 b\", 0)\n        y(\"a {:d} b\", \"a 12 b\", 12)\n        y(\"a {:5d} b\", \"a    12 b\", 12)\n        y(\"a {:5d} b\", \"a   -12 b\", -12)\n        y(\"a {:d} b\", \"a -12 b\", -12)\n        y(\"a {:d} b\", \"a +12 b\", 12)\n        y(\"a {:d} b\", \"a  12 b\", 12)\n        y(\"a {:d} b\", \"a 0b1000 b\", 8)\n        y(\"a {:d} b\", \"a 0o1000 b\", 512)\n        y(\"a {:d} b\", \"a 0x1000 b\", 4096)\n        y(\"a {:d} b\", \"a 0xabcdef b\", 0xABCDEF)\n    \n>       y(\"a {:%} b\", \"a 100% b\", 1)\n\ntests/test_parse.py:262: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nfmt = 'a {:%} b', s = 'a 100% b', e = 1, str_equals = False\n\n    def y(fmt, s, e, str_equals=False):\n        p = parse.compile(fmt)\n        r = p.parse(s)\n        assert r is not None, \"{!r} does not match {!r} ({!r})\".format(s, fmt, p._expression)\n        r = r.fixed[0]\n        if str_equals:\n            assert str(r) == str(e)\n        else:\n>           assert r == e\n                   ^^^^^^\nE           AssertionError\n\ntests/test_parse.py:245: AssertionError\n================================ tests coverage ================================\n_______________ coverage: platform linux, python 3.12.16-final-0 _______________\n\nName                Stmts   Miss Branch BrPart  Cover   Missing\n---------------------------------------------------------------\nparse/__init__.py     554     27    246     15    94%   133, 136, 141, 250, 300, 389-390, 392-393, 414, 458, 466-470, 483-485, 501, 533->535, 556->558, 650-653, 746, 851-853, 858->863, 863->867, 876\n---------------------------------------------------------------\nTOTAL                 554     27    246     15    94%\n=========================== short test summary info ============================\nFAILED tests/test_parse.py::test_numbers - AssertionError\n1 failed, 116 passed, 1 skipped in 0.68s\n\ntests.test_parse::test_numbers: AssertionError def test_numbers():\n        # pull a numbers out of a string\n        def y(fmt, s, e, str_equals=False):\n            p = parse.compile(fmt)\n            r = p.parse(s)\n            assert r is not None, \"{!r} does not match {!r} ({!r})\".format(s, fmt, p._expression)\n            r = r.fixed[0]\n            if str_equals:\n                assert str(r) == str(e)\n            else:\n                assert r == e\n    \n        def n(fmt, s, e):\n            assert parse.parse(fmt, s) is None\n    \n        y(\"a {:d} b\", \"a 0 b\", 0)\n        y(\"a {:d} b\", \"a 12 b\", 12)\n        y(\"a {:5d} b\", \"a    12 b\", 12)\n        y(\"a {:5d} b\", \"a   -12 b\", -12)\n        y(\"a {:d} b\", \"a -12 b\", -12)\n        y(\"a {:d} b\", \"a +12 b\", 12)\n        y(\"a {:d} b\", \"a  12 b\", 12)\n        y(\"a {:d} b\", \"a 0b1000 b\", 8)\n        y(\"a {:d} b\", \"a 0o1000 b\", 512)\n        y(\"a {:d} b\", \"a 0x1000 b\", 4096)\n        y(\"a {:d} b\", \"a 0xabcdef b\", 0xABCDEF)\n    \n>       y(\"a {:%} b\", \"a 100% b\", 1)\n\ntests/test_parse.py:262: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nfmt = 'a {:%} b', s = 'a 100% b', e = 1, str_equals = False\n\n    def y(fmt, s, e, str_equals=False):\n        p = parse.compile(fmt)\n        r = p.parse(s)\n        assert r is not None, \"{!r} does not match {!r} ({!r})\".format(s, fmt, p._expression)\n        r = r.fixed[0]\n        if str_equals:\n            assert str(r) == str(e)\n        else:\n>           assert r == e\n                   ^^^^^^\nE           AssertionError\n\ntests/test_parse.py:245: AssertionError",
+        "cases": [
+          {
+            "id": "README.rst::README.rst",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "parse.__init__::parse.with_pattern",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_bugs::test_tz_compare_to_None",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_bugs::test_named_date_issue7",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_bugs::test_dotted_type_conversion_pull_8",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_bugs::test_pm_overflow_issue16",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_bugs::test_pm_handling_issue57",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_bugs::test_user_type_with_group_count_issue60",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_bugs::test_unmatched_brace_doesnt_match",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_bugs::test_pickling_bug_110",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_bugs::test_unused_centered_alignment_bug",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_bugs::test_unused_left_alignment_bug",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_bugs::test_match_trailing_newline",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_bugs::test_case_insensitive_month_names",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_bugs::test_microsecond_precision_issue162",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_bugs::test_time_type_requires_an_actual_time",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_findall::test_findall",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_findall::test_no_evaluate_result",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_findall::test_case_sensitivity",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_no_match",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_nothing",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_no_evaluate_result",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_regular_expression",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_question_mark",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_pipe",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_unicode",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_hexadecimal",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_fixed",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_left",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_right",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_center",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_typed",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_sign",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_precision",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_custom_type",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_typed_fail",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_named",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_named_repeated",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_named_repeated_type",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_named_repeated_fail_value",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_named_repeated_type_fail_value",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_named_repeated_type_mismatch",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_mixed",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_named_typed",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_named_aligned_typed",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_multiline",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_spans",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_numbers",
+            "passed": false,
+            "status": "failed",
+            "detail": "AssertionError def test_numbers():\n        # pull a numbers out of a string\n        def y(fmt, s, e, str_equals=False):\n            p = parse.compile(fmt)\n            r = p.parse(s)\n            assert r is not None, \"{!r} does not match {!r} ({!r})\".format(s, fmt, p._expression)\n            r = r.fixed[0]\n            if str_equals:\n                assert str(r) == str(e)\n            else:\n                assert r == e\n    \n        def n(fmt, s, e):\n            assert parse.parse(fmt, s) is None\n    \n        y(\"a {:d} b\", \"a 0 b\", 0)\n        y(\"a {:d} b\", \"a 12 b\", 12)\n        y(\"a {:5d} b\", \"a    12 b\", 12)\n        y(\"a {:5d} b\", \"a   -12 b\", -12)\n        y(\"a {:d} b\", \"a -12 b\", -12)\n        y(\"a {:d} b\", \"a +12 b\", 12)\n        y(\"a {:d} b\", \"a  12 b\", 12)\n        y(\"a {:d} b\", \"a 0b1000 b\", 8)\n        y(\"a {:d} b\", \"a 0o1000 b\", 512)\n        y(\"a {:d} b\", \"a 0x1000 b\", 4096)\n        y(\"a {:d} b\", \"a 0xabcdef b\", 0xABCDEF)\n    \n>       y(\"a {:%} b\", \"a 100% b\", 1)\n\ntests/test_parse.py:262: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nfmt = 'a {:%} b', s = 'a 100% b', e = 1, str_equals = False\n\n    def y(fmt, s, e, str_equals=False):\n        p = parse.compile(fmt)\n        r = p.parse(s)\n        assert r is not None, \"{!r} does not match {!r} ({!r})\".format(s, fmt, p._expression)\n        r = r.fixed[0]\n        if str_equals:\n            assert str(r) == str(e)\n        else:\n>           assert r == e\n                   ^^^^^^\nE           AssertionError\n\ntests/test_parse.py:245: AssertionError"
+          },
+          {
+            "id": "tests.test_parse::test_two_datetimes",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_flexible_datetimes",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_flexible_datetime_with_colon",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_datetime_with_various_subsecond_precision",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_flexible_datetime_with_timezone",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_flexible_datetime_with_timezone_that_has_colons",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_flexible_time",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_flexible_time_no_hour",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_flexible_time_ms",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_flexible_dates_single_digit",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_flexible_dates_j",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_flexible_dates_year_current_year_inferred",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_flexible_dates_inferred_year_leap_day",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_flexible_dates_inferred_year_day_of_year",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_invalid_timezone_minutes[+01:60]",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_invalid_timezone_minutes[-0199]",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_invalid_timezone_minutes[+160]",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_invalid_timezone_minutes[-1:99]",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_datetimes",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_datetime_group_count",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_datetime_group_count_with_timezone",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_mixed_types",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_mixed_type_variant",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_too_many_fields",
+            "passed": false,
+            "status": "skipped",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_letters",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_strftime_strptime_roundtrip",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_parser_format",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_hyphen_inside_field_name",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_hyphen_inside_field_name_collision_handling",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_flexible_time_preserves_timezone[+0530]",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_flexible_time_preserves_timezone[-0430]",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_flexible_time_preserves_timezone[+00:00]",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_flexible_time_preserves_timezone[+0000]",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_strftime_timezone_rejects_what_strptime_rejects[10:30|0200]",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_strftime_timezone_rejects_what_strptime_rejects[10:30+02]",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_strftime_timezone_rejects_what_strptime_rejects[10:30z]",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_strftime_timezone_zulu",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_flexible_time_without_timezone_stays_naive",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parsetype::test_pattern_should_be_used",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parsetype::test_pattern_should_be_used2",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parsetype::test_with_pattern",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parsetype::test_with_pattern_and_regex_group_count",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parsetype::test_with_pattern_and_wrong_regex_group_count_raises_error",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parsetype::test_with_pattern_and_regex_group_count_is_none",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parsetype::test_case_sensitivity",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parsetype::test_decimal_value",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parsetype::test_width_str",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parsetype::test_width_constraints",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parsetype::test_width_multi_int",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parsetype::test_width_empty_input",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parsetype::test_int_convert_stateless_base",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_pattern::test_braces",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_pattern::test_fixed",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_pattern::test_named",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_pattern::test_named_typed",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_pattern::test_numbered",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_pattern::test_bird",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_pattern::test_format_variety",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_pattern::test_dot_separated_fields",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_pattern::test_dict_style_fields",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_pattern::test_dot_separated_fields_name_collisions",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_pattern::test_invalid_groupnames_are_handled_gracefully",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_result::test_fixed_access",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_result::test_slice_access",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_result::test_named_access",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_result::test_contains",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_search::test_basic",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_search::test_multiline",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_search::test_pos",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_search::test_no_evaluate_result",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          }
+        ],
+        "profile": "python-pytest",
+        "network": "none"
+      }
+    },
+    {
+      "id": 106,
+      "incident_id": "4480cb07-9fc6-432e-9fa2-9bb477e9dc7f",
+      "timestamp": 1793414498.638145,
+      "stage": "code_proposal",
+      "payload": {
+        "attempt": 1,
+        "diagnosis": "The percentage field conversion regression is caused by the `percentage` function in parse/__init__.py using `string[:-1]` to strip the trailing '%' character. When the input is '100%', this strips the last character leaving '100' (correct), but the function then divides by 10.0 producing 10.0 instead of the expected 1.0. The correct behavior should divide by 100.0 to convert a percentage string to a decimal fraction.",
+        "changes": [
+          {
+            "path": "parse/__init__.py",
+            "content": "from __future__ import absolute_import\n\nimport logging\nimport re\nimport sys\nfrom datetime import datetime\nfrom datetime import time\nfrom datetime import timedelta\nfrom datetime import tzinfo\nfrom decimal import Decimal\nfrom functools import partial\n\n\n__version__ = \"1.22.3\"\n__all__ = [\"parse\", \"search\", \"findall\", \"with_pattern\"]\n\nlog = logging.getLogger(__name__)\n\n\ndef with_pattern(pattern, regex_group_count=None):\n    r\"\"\"Attach a regular expression pattern matcher to a custom type converter\n    function.\n\n    This annotates the type converter with the :attr:`pattern` attribute.\n\n    EXAMPLE:\n        >>> import parse\n        >>> @parse.with_pattern(r\"\\d+\")\n        ... def parse_number(text):\n        ...     return int(text)\n\n    is equivalent to:\n\n        >>> def parse_number(text):\n        ...     return int(text)\n        >>> parse_number.pattern = r\"\\d+\"\n\n    :param pattern: regular expression pattern (as text)\n    :param regex_group_count: Indicates how many regex-groups are in pattern.\n    :return: wrapped function\n    \"\"\"\n\n    def decorator(func):\n        func.pattern = pattern\n        func.regex_group_count = regex_group_count\n        return func\n\n    return decorator\n\n\nclass int_convert:\n    \"\"\"Convert a string to an integer.\n\n    The string may start with a sign.\n\n    It may be of a base other than 2, 8, 10 or 16.\n\n    If base isn't specified, it will be detected automatically based\n    on a string format. When string starts with a base indicator, 0#nnnn,\n    it overrides the default base of 10.\n\n    It may also have other non-numeric characters that we can ignore.\n    \"\"\"\n\n    CHARS = \"0123456789abcdefghijklmnopqrstuvwxyz\"\n\n    def __init__(self, base=None):\n        self.base = base\n\n    def __call__(self, string, match):\n        if string[0] == \"-\":\n            sign = -1\n            number_start = 1\n        elif string[0] == \"+\":\n            sign = 1\n            number_start = 1\n        else:\n            sign = 1\n            number_start = 0\n\n        base = self.base\n        # If base wasn't specified, detect it automatically\n        if base is None:\n            # Assume decimal number, unless different base is detected\n            base = 10\n\n            # For number formats starting with 0b, 0o, 0x, use corresponding base ...\n            if string[number_start] == \"0\" and len(string) - number_start > 2:\n                if string[number_start + 1] in \"bB\":\n                    base = 2\n                elif string[number_start + 1] in \"oO\":\n                    base = 8\n                elif string[number_start + 1] in \"xX\":\n                    base = 16\n\n        chars = int_convert.CHARS[:base]\n        string = re.sub(\"[^%s]\" % chars, \"\", string.lower())\n        return sign * int(string, base)\n\n\nclass convert_first:\n    \"\"\"Convert the first element of a pair.\n    This equivalent to lambda s,m: converter(s). But unlike a lambda function, it can be pickled\n    \"\"\"\n\n    def __init__(self, converter):\n        self.converter = converter\n\n    def __call__(self, string, match):\n        return self.converter(string)\n\n\ndef percentage(string, match):\n    return float(string[:-1]) / 100.0\n\n\nclass FixedTzOffset(tzinfo):\n    \"\"\"Fixed offset in minutes east from UTC.\"\"\"\n\n    ZERO = timedelta(0)\n\n    def __init__(self, offset, name):\n        self._offset = timedelta(minutes=offset)\n        self._name = name\n\n    def __repr__(self):\n        return \"<%s %s %s>\" % (self.__class__.__name__, self._name, self._offset)\n\n    def utcoffset(self, dt):\n        return self._offset\n\n    def tzname(self, dt):\n        return self._name\n\n    def dst(self, dt):\n        return self.ZERO\n\n    def __eq__(self, other):\n        if not isinstance(other, FixedTzOffset):\n            return NotImplemented\n        return self._name == other._name and self._offset == other._offset\n\n\nMONTHS_MAP = {\n    \"Jan\": 1,\n    \"January\": 1,\n    \"Feb\": 2,\n    \"February\": 2,\n    \"Mar\": 3,\n    \"March\": 3,\n    \"Apr\": 4,\n    \"April\": 4,\n    \"May\": 5,\n    \"Jun\": 6,\n    \"June\": 6,\n    \"Jul\": 7,\n    \"July\": 7,\n    \"Aug\": 8,\n    \"August\": 8,\n    \"Sep\": 9,\n    \"September\": 9,\n    \"Oct\": 10,\n    \"October\": 10,\n    \"Nov\": 11,\n    \"November\": 11,\n    \"Dec\": 12,\n    \"December\": 12,\n}\nDAYS_PAT = r\"(Mon|Tue|Wed|Thu|Fri|Sat|Sun)\"\nMONTHS_PAT = r\"(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\"\nALL_MONTHS_PAT = r\"(%s)\" % \"|\".join(MONTHS_MAP)\nTIME_PAT = r\"(\\d{1,2}:\\d{1,2}(:\\d{1,2}(\\.\\d+)?)?)\"\nAM_PAT = r\"(\\s+[AP]M)\"\nTZ_PAT = r\"(\\s+[-+]\\d\\d?:?\\d\\d)\"\n\n\ndef date_convert(\n    string,\n    match,\n    ymd=None,\n    mdy=None,\n    dmy=None,\n    d_m_y=None,\n    hms=None,\n    am=None,\n    tz=None,\n    mm=None,\n    dd=None,\n):\n    \"\"\"Convert the incoming string containing some date / time info into a\n    datetime instance.\n    \"\"\"\n    groups = match.groups()\n    time_only = False\n    if mm and dd:\n        y = datetime.today().year\n        m = groups[mm]\n        d = groups[dd]\n    elif ymd is not None:\n        y, m, d = re.split(r\"[-/\\s]\", groups[ymd])\n    elif mdy is not None:\n        m, d, y = re.split(r\"[-/\\s]\", groups[mdy])\n    elif dmy is not None:\n        d, m, y = re.split(r\"[-/\\s]\", groups[dmy])\n    elif d_m_y is not None:\n        d, m, y = d_m_y\n        d = groups[d]\n        m = groups[m]\n        y = groups[y]\n    else:\n        time_only = True\n\n    H = M = S = u = 0\n    if hms is not None and groups[hms]:\n        t = groups[hms].split(\":\")\n        if len(t) == 2:\n            H, M = t\n        else:\n            H, M, S = t\n            if \".\" in S:\n                S, u = S.split(\".\")\n                u = int(u.ljust(6, \"0\")[:6])\n            S = int(S)\n        H = int(H)\n        M = int(M)\n\n    if am is not None:\n        am = groups[am]\n        if am:\n            # matching is case-insensitive (re.IGNORECASE), so normalise the\n            # captured meridiem before the case-sensitive conversion below\n            am = am.strip().upper()\n        if am == \"AM\" and H == 12:\n            # correction for \"12\" hour functioning as \"0\" hour: 12:15 AM = 00:15 by 24 hr clock\n            H -= 12\n        elif am == \"PM\" and H == 12:\n            # no correction needed: 12PM is midday, 12:00 by 24 hour clock\n            pass\n        elif am == \"PM\":\n            H += 12\n\n    if tz is not None:\n        tz = groups[tz]\n    if tz and tz.strip().upper() == \"Z\":\n        tz = FixedTzOffset(0, \"UTC\")\n    elif tz:\n        tz = tz.strip()\n        if tz.isupper():\n            # TODO use the awesome python TZ module?\n            pass\n        else:\n            sign = tz[0]\n            if \":\" in tz:\n                tzh, tzm = tz[1:].split(\":\")\n            elif len(tz) == 4:  # 'snnn'\n                tzh, tzm = tz[1], tz[2:4]\n            else:\n                tzh, tzm = tz[1:3], tz[3:5]\n            if int(tzm) >= 60:\n                raise ValueError(\"timezone minute must be in 0..59\")\n            offset = int(tzm) + int(tzh) * 60\n            if sign == \"-\":\n                offset = -offset\n            tz = FixedTzOffset(offset, tz)\n\n    if time_only:\n        d = time(H, M, S, u, tzinfo=tz)\n    else:\n        y = int(y)\n        if m.isdigit():\n            m = int(m)\n        else:\n            # matching is case-insensitive (re.IGNORECASE), so normalise the\n            # captured month name before the case-sensitive lookup below\n            m = MONTHS_MAP[m.capitalize()]\n        d = int(d)\n        d = datetime(y, m, d, H, M, S, u, tzinfo=tz)\n\n    return d\n\n\ndef strf_date_convert(x, _, type):\n    is_date = any(\"%\" + x in type for x in \"aAwdbBmyYjUW\")\n    is_time = any(\"%\" + x in type for x in \"HIpMSfz\")\n\n    if \"%y\" not in type and \"%Y\" not in type:  # year not specified\n        # Parse against the current year rather than strptime's default of\n        # 1900, so that Feb 29 and %j day numbers resolve in the right year.\n        x = \"%s %d\" % (x, datetime.today().year)\n        type += \" %Y\"\n    dt = datetime.strptime(x, type)\n\n    if is_date and is_time:\n        return dt\n    elif is_date:\n        return dt.date()\n    elif is_time:\n        return dt.timetz"
+          }
+        ],
+        "edits": [
+          {
+            "path": "parse/__init__.py",
+            "before": "def percentage(string, match):\n    return float(string[:-1]) / 10.0",
+            "after": "def percentage(string, match):\n    return float(string[:-1]) / 100.0"
+          }
+        ]
+      }
+    },
+    {
+      "id": 107,
+      "incident_id": "4480cb07-9fc6-432e-9fa2-9bb477e9dc7f",
+      "timestamp": 1793414498.670088,
+      "stage": "candidate_tests",
+      "payload": {
+        "attempt": 1,
+        "passed": false,
+        "acceptance": {
+          "collected_test_identities_preserved": false,
+          "baseline_collection_failure": false,
+          "baseline_cases": 118,
+          "candidate_cases": 0,
+          "passed_cases": 0
+        },
+        "exit_code": 4,
+        "cases": [],
+        "output": "ValueError: Exact edit must match one and only one source occurrence"
+      }
+    },
+    {
+      "id": 108,
+      "incident_id": "4480cb07-9fc6-432e-9fa2-9bb477e9dc7f",
+      "timestamp": 1793414526.528675,
+      "stage": "continuation_failed",
+      "payload": {
+        "error_type": "ValidationError",
+        "message": "1 validation error for CodeProposal\nedits.0.path\n  Field required [type=missing, input_value={'before': 'def percentag...t(string[:-1]) / 100.0'}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.12/v/missing"
+      }
+    },
+    {
+      "id": 109,
+      "incident_id": "4480cb07-9fc6-432e-9fa2-9bb477e9dc7f",
+      "timestamp": 1793414618.3388748,
+      "stage": "retry",
+      "payload": {
+        "operator_requested": true,
+        "reason": "Explicit exact-edit schema and bounded malformed-proposal feedback; tests unchanged"
+      }
+    },
+    {
+      "id": 110,
+      "incident_id": "4480cb07-9fc6-432e-9fa2-9bb477e9dc7f",
+      "timestamp": 1793414618.394721,
+      "stage": "repository_assessment",
+      "payload": {
+        "profile": "python-pytest",
+        "profile_label": "Python / pytest",
+        "supported": true,
+        "dependencies": [
+          "pytest",
+          "pytest-cov",
+          "typing-extensions"
+        ],
+        "dependency_install_required": true,
+        "tests": [
+          "tests/check_typing.py",
+          "tests/test_bugs.py",
+          "tests/test_findall.py",
+          "tests/test_parse.py",
+          "tests/test_parsetype.py",
+          "tests/test_pattern.py",
+          "tests/test_result.py",
+          "tests/test_search.py"
+        ],
+        "test_file_count": 8,
+        "editable_files": [
+          "parse/__init__.py"
+        ],
+        "file_count": 18,
+        "source_count": 1,
+        "warnings": []
+      }
+    },
+    {
+      "id": 111,
+      "incident_id": "4480cb07-9fc6-432e-9fa2-9bb477e9dc7f",
+      "timestamp": 1793414618.397133,
+      "stage": "source_provenance",
+      "payload": {
+        "id": "repo-3979feff3210",
+        "repository": "/Users/bvell/Documents/PES/EVENTS/HACKATHONS/agentathon/ctrlz/imports/repo-3979feff3210",
+        "commit": "89f423f75783d02b0396f57db22a26468f4140f8",
+        "provenance": {
+          "kind": "github",
+          "url": "https://github.com/r1chardj0n3s/parse",
+          "upstream_commit": "7f07b64089338ee7b7db85a752eb45c4816c2657",
+          "subdirectory": "",
+          "controlled_regression": {
+            "file": "parse/__init__.py",
+            "description": "Intentionally changed percentage conversion; not an upstream defect",
+            "original_upstream_suite_passed": true,
+            "upstream_test_cases": 118
+          }
+        },
+        "omitted_files": []
+      }
+    },
+    {
+      "id": 112,
+      "incident_id": "4480cb07-9fc6-432e-9fa2-9bb477e9dc7f",
+      "timestamp": 1793414622.174687,
+      "stage": "dependency_environment",
+      "payload": {
+        "approved": true,
+        "phase": "dependency_setup",
+        "exit_code": 0,
+        "declared": [
+          "pytest",
+          "pytest-cov",
+          "typing-extensions"
+        ],
+        "output": "Collecting pytest (from -r /manifests/requirements.txt (line 1))\n  Downloading pytest-9.2.0-py3-none-any.whl.metadata (7.9 kB)\nCollecting pytest-cov (from -r /manifests/requirements.txt (line 2))\n  Downloading pytest_cov-7.1.0-py3-none-any.whl.metadata (32 kB)\nCollecting typing-extensions (from -r /manifests/requirements.txt (line 3))\n  Downloading typing_extensions-4.16.0-py3-none-any.whl.metadata (3.3 kB)\nCollecting iniconfig>=2 (from pytest->-r /manifests/requirements.txt (line 1))\n  Downloading iniconfig-2.3.1-py3-none-any.whl.metadata (2.8 kB)\nCollecting packaging>=24 (from pytest->-r /manifests/requirements.txt (line 1))\n  Downloading packaging-26.3-py3-none-any.whl.metadata (3.5 kB)\nCollecting pluggy<2,>=1.6 (from pytest->-r /manifests/requirements.txt (line 1))\n  Downloading pluggy-1.7.0-py3-none-any.whl.metadata (5.0 kB)\nCollecting pygments>=2.15 (from pytest->-r /manifests/requirements.txt (line 1))\n  Downloading pygments-2.21.0-py3-none-any.whl.metadata (2.5 kB)\nCollecting coverage>=7.10.6 (from coverage[toml]>=7.10.6->pytest-cov->-r /manifests/requirements.txt (line 2))\n  Downloading coverage-7.17.0-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl.metadata (8.1 kB)\nDownloading pytest-9.2.0-py3-none-any.whl (411 kB)\nDownloading pytest_cov-7.1.0-py3-none-any.whl (22 kB)\nDownloading typing_extensions-4.16.0-py3-none-any.whl (45 kB)\nDownloading coverage-7.17.0-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl (262 kB)\nDownloading iniconfig-2.3.1-py3-none-any.whl (7.6 kB)\nDownloading packaging-26.3-py3-none-any.whl (129 kB)\nDownloading pluggy-1.7.0-py3-none-any.whl (27 kB)\nDownloading pygments-2.21.0-py3-none-any.whl (1.3 MB)\n   \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 1.3/1.3 MB 23.2 MB/s eta 0:00:00\nInstalling collected packages: typing-extensions, pygments, pluggy, packaging, iniconfig, coverage, pytest, pytest-cov\nSuccessfully installed coverage-7.17.0 iniconfig-2.3.1 packaging-26.3 pluggy-1.7.0 pygments-2.21.0 pytest-9.2.0 pytest-cov-7.1.0 typing-extensions-4.16.0\n",
+        "install_scripts": "disabled; Python binary wheels only",
+        "test_network": "none"
+      }
+    },
+    {
+      "id": 113,
+      "incident_id": "4480cb07-9fc6-432e-9fa2-9bb477e9dc7f",
+      "timestamp": 1793414623.242948,
+      "stage": "baseline_tests",
+      "payload": {
+        "exit_code": 1,
+        "output": "...............................................F.......................s [ 61%]\n..............................................                           [100%]\n=================================== FAILURES ===================================\n_________________________________ test_numbers _________________________________\n\n    def test_numbers():\n        # pull a numbers out of a string\n        def y(fmt, s, e, str_equals=False):\n            p = parse.compile(fmt)\n            r = p.parse(s)\n            assert r is not None, \"{!r} does not match {!r} ({!r})\".format(s, fmt, p._expression)\n            r = r.fixed[0]\n            if str_equals:\n                assert str(r) == str(e)\n            else:\n                assert r == e\n    \n        def n(fmt, s, e):\n            assert parse.parse(fmt, s) is None\n    \n        y(\"a {:d} b\", \"a 0 b\", 0)\n        y(\"a {:d} b\", \"a 12 b\", 12)\n        y(\"a {:5d} b\", \"a    12 b\", 12)\n        y(\"a {:5d} b\", \"a   -12 b\", -12)\n        y(\"a {:d} b\", \"a -12 b\", -12)\n        y(\"a {:d} b\", \"a +12 b\", 12)\n        y(\"a {:d} b\", \"a  12 b\", 12)\n        y(\"a {:d} b\", \"a 0b1000 b\", 8)\n        y(\"a {:d} b\", \"a 0o1000 b\", 512)\n        y(\"a {:d} b\", \"a 0x1000 b\", 4096)\n        y(\"a {:d} b\", \"a 0xabcdef b\", 0xABCDEF)\n    \n>       y(\"a {:%} b\", \"a 100% b\", 1)\n\ntests/test_parse.py:262: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nfmt = 'a {:%} b', s = 'a 100% b', e = 1, str_equals = False\n\n    def y(fmt, s, e, str_equals=False):\n        p = parse.compile(fmt)\n        r = p.parse(s)\n        assert r is not None, \"{!r} does not match {!r} ({!r})\".format(s, fmt, p._expression)\n        r = r.fixed[0]\n        if str_equals:\n            assert str(r) == str(e)\n        else:\n>           assert r == e\n                   ^^^^^^\nE           AssertionError\n\ntests/test_parse.py:245: AssertionError\n================================ tests coverage ================================\n_______________ coverage: platform linux, python 3.12.16-final-0 _______________\n\nName                Stmts   Miss Branch BrPart  Cover   Missing\n---------------------------------------------------------------\nparse/__init__.py     554     27    246     15    94%   133, 136, 141, 250, 300, 389-390, 392-393, 414, 458, 466-470, 483-485, 501, 533->535, 556->558, 650-653, 746, 851-853, 858->863, 863->867, 876\n---------------------------------------------------------------\nTOTAL                 554     27    246     15    94%\n=========================== short test summary info ============================\nFAILED tests/test_parse.py::test_numbers - AssertionError\n1 failed, 116 passed, 1 skipped in 0.66s\n\ntests.test_parse::test_numbers: AssertionError def test_numbers():\n        # pull a numbers out of a string\n        def y(fmt, s, e, str_equals=False):\n            p = parse.compile(fmt)\n            r = p.parse(s)\n            assert r is not None, \"{!r} does not match {!r} ({!r})\".format(s, fmt, p._expression)\n            r = r.fixed[0]\n            if str_equals:\n                assert str(r) == str(e)\n            else:\n                assert r == e\n    \n        def n(fmt, s, e):\n            assert parse.parse(fmt, s) is None\n    \n        y(\"a {:d} b\", \"a 0 b\", 0)\n        y(\"a {:d} b\", \"a 12 b\", 12)\n        y(\"a {:5d} b\", \"a    12 b\", 12)\n        y(\"a {:5d} b\", \"a   -12 b\", -12)\n        y(\"a {:d} b\", \"a -12 b\", -12)\n        y(\"a {:d} b\", \"a +12 b\", 12)\n        y(\"a {:d} b\", \"a  12 b\", 12)\n        y(\"a {:d} b\", \"a 0b1000 b\", 8)\n        y(\"a {:d} b\", \"a 0o1000 b\", 512)\n        y(\"a {:d} b\", \"a 0x1000 b\", 4096)\n        y(\"a {:d} b\", \"a 0xabcdef b\", 0xABCDEF)\n    \n>       y(\"a {:%} b\", \"a 100% b\", 1)\n\ntests/test_parse.py:262: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nfmt = 'a {:%} b', s = 'a 100% b', e = 1, str_equals = False\n\n    def y(fmt, s, e, str_equals=False):\n        p = parse.compile(fmt)\n        r = p.parse(s)\n        assert r is not None, \"{!r} does not match {!r} ({!r})\".format(s, fmt, p._expression)\n        r = r.fixed[0]\n        if str_equals:\n            assert str(r) == str(e)\n        else:\n>           assert r == e\n                   ^^^^^^\nE           AssertionError\n\ntests/test_parse.py:245: AssertionError",
+        "cases": [
+          {
+            "id": "README.rst::README.rst",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "parse.__init__::parse.with_pattern",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_bugs::test_tz_compare_to_None",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_bugs::test_named_date_issue7",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_bugs::test_dotted_type_conversion_pull_8",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_bugs::test_pm_overflow_issue16",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_bugs::test_pm_handling_issue57",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_bugs::test_user_type_with_group_count_issue60",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_bugs::test_unmatched_brace_doesnt_match",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_bugs::test_pickling_bug_110",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_bugs::test_unused_centered_alignment_bug",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_bugs::test_unused_left_alignment_bug",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_bugs::test_match_trailing_newline",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_bugs::test_case_insensitive_month_names",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_bugs::test_microsecond_precision_issue162",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_bugs::test_time_type_requires_an_actual_time",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_findall::test_findall",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_findall::test_no_evaluate_result",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_findall::test_case_sensitivity",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_no_match",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_nothing",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_no_evaluate_result",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_regular_expression",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_question_mark",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_pipe",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_unicode",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_hexadecimal",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_fixed",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_left",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_right",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_center",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_typed",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_sign",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_precision",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_custom_type",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_typed_fail",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_named",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_named_repeated",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_named_repeated_type",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_named_repeated_fail_value",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_named_repeated_type_fail_value",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_named_repeated_type_mismatch",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_mixed",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_named_typed",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_named_aligned_typed",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_multiline",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_spans",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_numbers",
+            "passed": false,
+            "status": "failed",
+            "detail": "AssertionError def test_numbers():\n        # pull a numbers out of a string\n        def y(fmt, s, e, str_equals=False):\n            p = parse.compile(fmt)\n            r = p.parse(s)\n            assert r is not None, \"{!r} does not match {!r} ({!r})\".format(s, fmt, p._expression)\n            r = r.fixed[0]\n            if str_equals:\n                assert str(r) == str(e)\n            else:\n                assert r == e\n    \n        def n(fmt, s, e):\n            assert parse.parse(fmt, s) is None\n    \n        y(\"a {:d} b\", \"a 0 b\", 0)\n        y(\"a {:d} b\", \"a 12 b\", 12)\n        y(\"a {:5d} b\", \"a    12 b\", 12)\n        y(\"a {:5d} b\", \"a   -12 b\", -12)\n        y(\"a {:d} b\", \"a -12 b\", -12)\n        y(\"a {:d} b\", \"a +12 b\", 12)\n        y(\"a {:d} b\", \"a  12 b\", 12)\n        y(\"a {:d} b\", \"a 0b1000 b\", 8)\n        y(\"a {:d} b\", \"a 0o1000 b\", 512)\n        y(\"a {:d} b\", \"a 0x1000 b\", 4096)\n        y(\"a {:d} b\", \"a 0xabcdef b\", 0xABCDEF)\n    \n>       y(\"a {:%} b\", \"a 100% b\", 1)\n\ntests/test_parse.py:262: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nfmt = 'a {:%} b', s = 'a 100% b', e = 1, str_equals = False\n\n    def y(fmt, s, e, str_equals=False):\n        p = parse.compile(fmt)\n        r = p.parse(s)\n        assert r is not None, \"{!r} does not match {!r} ({!r})\".format(s, fmt, p._expression)\n        r = r.fixed[0]\n        if str_equals:\n            assert str(r) == str(e)\n        else:\n>           assert r == e\n                   ^^^^^^\nE           AssertionError\n\ntests/test_parse.py:245: AssertionError"
+          },
+          {
+            "id": "tests.test_parse::test_two_datetimes",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_flexible_datetimes",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_flexible_datetime_with_colon",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_datetime_with_various_subsecond_precision",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_flexible_datetime_with_timezone",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_flexible_datetime_with_timezone_that_has_colons",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_flexible_time",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_flexible_time_no_hour",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_flexible_time_ms",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_flexible_dates_single_digit",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_flexible_dates_j",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_flexible_dates_year_current_year_inferred",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_flexible_dates_inferred_year_leap_day",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_flexible_dates_inferred_year_day_of_year",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_invalid_timezone_minutes[+01:60]",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_invalid_timezone_minutes[-0199]",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_invalid_timezone_minutes[+160]",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_invalid_timezone_minutes[-1:99]",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_datetimes",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_datetime_group_count",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_datetime_group_count_with_timezone",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_mixed_types",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_mixed_type_variant",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_too_many_fields",
+            "passed": false,
+            "status": "skipped",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_letters",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_strftime_strptime_roundtrip",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_parser_format",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_hyphen_inside_field_name",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_hyphen_inside_field_name_collision_handling",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_flexible_time_preserves_timezone[+0530]",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_flexible_time_preserves_timezone[-0430]",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_flexible_time_preserves_timezone[+00:00]",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_flexible_time_preserves_timezone[+0000]",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_strftime_timezone_rejects_what_strptime_rejects[10:30|0200]",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_strftime_timezone_rejects_what_strptime_rejects[10:30+02]",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_strftime_timezone_rejects_what_strptime_rejects[10:30z]",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_strftime_timezone_zulu",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_flexible_time_without_timezone_stays_naive",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parsetype::test_pattern_should_be_used",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parsetype::test_pattern_should_be_used2",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parsetype::test_with_pattern",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parsetype::test_with_pattern_and_regex_group_count",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parsetype::test_with_pattern_and_wrong_regex_group_count_raises_error",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parsetype::test_with_pattern_and_regex_group_count_is_none",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parsetype::test_case_sensitivity",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parsetype::test_decimal_value",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parsetype::test_width_str",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parsetype::test_width_constraints",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parsetype::test_width_multi_int",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parsetype::test_width_empty_input",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parsetype::test_int_convert_stateless_base",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_pattern::test_braces",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_pattern::test_fixed",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_pattern::test_named",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_pattern::test_named_typed",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_pattern::test_numbered",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_pattern::test_bird",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_pattern::test_format_variety",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_pattern::test_dot_separated_fields",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_pattern::test_dict_style_fields",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_pattern::test_dot_separated_fields_name_collisions",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_pattern::test_invalid_groupnames_are_handled_gracefully",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_result::test_fixed_access",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_result::test_slice_access",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_result::test_named_access",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_result::test_contains",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_search::test_basic",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_search::test_multiline",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_search::test_pos",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_search::test_no_evaluate_result",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          }
+        ],
+        "profile": "python-pytest",
+        "network": "none"
+      }
+    },
+    {
+      "id": 114,
+      "incident_id": "4480cb07-9fc6-432e-9fa2-9bb477e9dc7f",
+      "timestamp": 1793414631.0201821,
+      "stage": "code_proposal_rejected",
+      "payload": {
+        "attempt": 1,
+        "schema_error": "3 validation errors for CodeProposal\nchanges.0.content\n  Field required [type=missing, input_value={'path': 'parse/__init__....rstrip('%')) / 100.0\\n\"}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.12/v/missing\nchanges.0.before\n  Extra inputs are not permitted [type=extra_forbidden, input_value='def percentage(string, m...t(string[:-1]) / 10.0\\n', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.12/v/extra_forbidden\nchanges.0.after\n  Extra inputs are not permitted [type=extra_forbidden, input_value=\"def percentage(string, m....rstrip('%')) / 100.0\\n\", input_type=str]\n    For further information visit https://errors.pydantic.dev/2.12/v/extra_forbidden",
+        "instruction": "Return the required path, before and after for every edit; preserve tests and source boundaries"
+      }
+    },
+    {
+      "id": 115,
+      "incident_id": "4480cb07-9fc6-432e-9fa2-9bb477e9dc7f",
+      "timestamp": 1793414634.6314309,
+      "stage": "code_proposal",
+      "payload": {
+        "attempt": 2,
+        "diagnosis": "The percentage field conversion '{:%}' is implemented incorrectly in parse/__init__.py. The current percentage() function strips only one trailing '%' character and divides by 10.0, but the test expects division by 100.0 (e.g., '100%' -> 1.0, '50%' -> 0.5). The function needs to strip trailing '%' and divide by 100.0.",
+        "changes": [],
+        "edits": [
+          {
+            "path": "parse/__init__.py",
+            "before": "def percentage(string, match):\n    return float(string[:-1]) / 10.0\n",
+            "after": "def percentage(string, match):\n    return float(string.rstrip('%')) / 100.0\n"
+          }
+        ]
+      }
+    },
+    {
+      "id": 116,
+      "incident_id": "4480cb07-9fc6-432e-9fa2-9bb477e9dc7f",
+      "timestamp": 1793414635.9801412,
+      "stage": "candidate_tests",
+      "payload": {
+        "attempt": 2,
+        "passed": true,
+        "acceptance": {
+          "collected_test_identities_preserved": true,
+          "baseline_collection_failure": false,
+          "baseline_cases": 118,
+          "candidate_cases": 118,
+          "passed_cases": 117
+        },
+        "exit_code": 0,
+        "output": ".......................................................................s [ 61%]\n..............................................                           [100%]\n================================ tests coverage ================================\n_______________ coverage: platform linux, python 3.12.16-final-0 _______________\n\nName                Stmts   Miss Branch BrPart  Cover   Missing\n---------------------------------------------------------------\nparse/__init__.py     554     19    246     10    96%   133, 136, 141, 250, 300, 414, 458, 466-470, 483-485, 501, 533->535, 556->558, 650-653, 863->867, 876\n---------------------------------------------------------------\nTOTAL                 554     19    246     10    96%\n117 passed, 1 skipped in 0.67s\n\n",
+        "cases": [
+          {
+            "id": "README.rst::README.rst",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "parse.__init__::parse.with_pattern",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_bugs::test_tz_compare_to_None",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_bugs::test_named_date_issue7",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_bugs::test_dotted_type_conversion_pull_8",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_bugs::test_pm_overflow_issue16",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_bugs::test_pm_handling_issue57",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_bugs::test_user_type_with_group_count_issue60",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_bugs::test_unmatched_brace_doesnt_match",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_bugs::test_pickling_bug_110",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_bugs::test_unused_centered_alignment_bug",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_bugs::test_unused_left_alignment_bug",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_bugs::test_match_trailing_newline",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_bugs::test_case_insensitive_month_names",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_bugs::test_microsecond_precision_issue162",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_bugs::test_time_type_requires_an_actual_time",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_findall::test_findall",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_findall::test_no_evaluate_result",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_findall::test_case_sensitivity",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_no_match",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_nothing",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_no_evaluate_result",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_regular_expression",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_question_mark",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_pipe",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_unicode",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_hexadecimal",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_fixed",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_left",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_right",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_center",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_typed",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_sign",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_precision",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_custom_type",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_typed_fail",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_named",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_named_repeated",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_named_repeated_type",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_named_repeated_fail_value",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_named_repeated_type_fail_value",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_named_repeated_type_mismatch",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_mixed",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_named_typed",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_named_aligned_typed",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_multiline",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_spans",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_numbers",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_two_datetimes",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_flexible_datetimes",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_flexible_datetime_with_colon",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_datetime_with_various_subsecond_precision",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_flexible_datetime_with_timezone",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_flexible_datetime_with_timezone_that_has_colons",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_flexible_time",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_flexible_time_no_hour",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_flexible_time_ms",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_flexible_dates_single_digit",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_flexible_dates_j",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_flexible_dates_year_current_year_inferred",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_flexible_dates_inferred_year_leap_day",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_flexible_dates_inferred_year_day_of_year",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_invalid_timezone_minutes[+01:60]",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_invalid_timezone_minutes[-0199]",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_invalid_timezone_minutes[+160]",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_invalid_timezone_minutes[-1:99]",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_datetimes",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_datetime_group_count",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_datetime_group_count_with_timezone",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_mixed_types",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_mixed_type_variant",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_too_many_fields",
+            "passed": false,
+            "status": "skipped",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_letters",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_strftime_strptime_roundtrip",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_parser_format",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_hyphen_inside_field_name",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_hyphen_inside_field_name_collision_handling",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_flexible_time_preserves_timezone[+0530]",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_flexible_time_preserves_timezone[-0430]",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_flexible_time_preserves_timezone[+00:00]",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_flexible_time_preserves_timezone[+0000]",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_strftime_timezone_rejects_what_strptime_rejects[10:30|0200]",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_strftime_timezone_rejects_what_strptime_rejects[10:30+02]",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_strftime_timezone_rejects_what_strptime_rejects[10:30z]",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_strftime_timezone_zulu",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_flexible_time_without_timezone_stays_naive",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parsetype::test_pattern_should_be_used",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parsetype::test_pattern_should_be_used2",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parsetype::test_with_pattern",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parsetype::test_with_pattern_and_regex_group_count",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parsetype::test_with_pattern_and_wrong_regex_group_count_raises_error",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parsetype::test_with_pattern_and_regex_group_count_is_none",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parsetype::test_case_sensitivity",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parsetype::test_decimal_value",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parsetype::test_width_str",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parsetype::test_width_constraints",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parsetype::test_width_multi_int",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parsetype::test_width_empty_input",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parsetype::test_int_convert_stateless_base",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_pattern::test_braces",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_pattern::test_fixed",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_pattern::test_named",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_pattern::test_named_typed",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_pattern::test_numbered",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_pattern::test_bird",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_pattern::test_format_variety",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_pattern::test_dot_separated_fields",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_pattern::test_dict_style_fields",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_pattern::test_dot_separated_fields_name_collisions",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_pattern::test_invalid_groupnames_are_handled_gracefully",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_result::test_fixed_access",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_result::test_slice_access",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_result::test_named_access",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_result::test_contains",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_search::test_basic",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_search::test_multiline",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_search::test_pos",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_search::test_no_evaluate_result",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          }
+        ],
+        "profile": "python-pytest",
+        "network": "none"
+      }
+    },
+    {
+      "id": 117,
+      "incident_id": "4480cb07-9fc6-432e-9fa2-9bb477e9dc7f",
+      "timestamp": 1793414635.982974,
+      "stage": "verification",
+      "payload": {
+        "exit_code": 0,
+        "output": ".......................................................................s [ 61%]\n..............................................                           [100%]\n================================ tests coverage ================================\n_______________ coverage: platform linux, python 3.12.16-final-0 _______________\n\nName                Stmts   Miss Branch BrPart  Cover   Missing\n---------------------------------------------------------------\nparse/__init__.py     554     19    246     10    96%   133, 136, 141, 250, 300, 414, 458, 466-470, 483-485, 501, 533->535, 556->558, 650-653, 863->867, 876\n---------------------------------------------------------------\nTOTAL                 554     19    246     10    96%\n117 passed, 1 skipped in 0.67s\n\n",
+        "cases": [
+          {
+            "id": "README.rst::README.rst",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "parse.__init__::parse.with_pattern",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_bugs::test_tz_compare_to_None",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_bugs::test_named_date_issue7",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_bugs::test_dotted_type_conversion_pull_8",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_bugs::test_pm_overflow_issue16",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_bugs::test_pm_handling_issue57",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_bugs::test_user_type_with_group_count_issue60",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_bugs::test_unmatched_brace_doesnt_match",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_bugs::test_pickling_bug_110",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_bugs::test_unused_centered_alignment_bug",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_bugs::test_unused_left_alignment_bug",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_bugs::test_match_trailing_newline",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_bugs::test_case_insensitive_month_names",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_bugs::test_microsecond_precision_issue162",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_bugs::test_time_type_requires_an_actual_time",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_findall::test_findall",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_findall::test_no_evaluate_result",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_findall::test_case_sensitivity",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_no_match",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_nothing",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_no_evaluate_result",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_regular_expression",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_question_mark",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_pipe",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_unicode",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_hexadecimal",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_fixed",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_left",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_right",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_center",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_typed",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_sign",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_precision",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_custom_type",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_typed_fail",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_named",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_named_repeated",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_named_repeated_type",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_named_repeated_fail_value",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_named_repeated_type_fail_value",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_named_repeated_type_mismatch",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_mixed",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_named_typed",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_named_aligned_typed",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_multiline",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_spans",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_numbers",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_two_datetimes",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_flexible_datetimes",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_flexible_datetime_with_colon",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_datetime_with_various_subsecond_precision",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_flexible_datetime_with_timezone",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_flexible_datetime_with_timezone_that_has_colons",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_flexible_time",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_flexible_time_no_hour",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_flexible_time_ms",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_flexible_dates_single_digit",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_flexible_dates_j",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_flexible_dates_year_current_year_inferred",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_flexible_dates_inferred_year_leap_day",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_flexible_dates_inferred_year_day_of_year",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_invalid_timezone_minutes[+01:60]",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_invalid_timezone_minutes[-0199]",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_invalid_timezone_minutes[+160]",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_invalid_timezone_minutes[-1:99]",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_datetimes",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_datetime_group_count",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_datetime_group_count_with_timezone",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_mixed_types",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_mixed_type_variant",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_too_many_fields",
+            "passed": false,
+            "status": "skipped",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_letters",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_strftime_strptime_roundtrip",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_parser_format",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_hyphen_inside_field_name",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_hyphen_inside_field_name_collision_handling",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_flexible_time_preserves_timezone[+0530]",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_flexible_time_preserves_timezone[-0430]",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_flexible_time_preserves_timezone[+00:00]",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_flexible_time_preserves_timezone[+0000]",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_strftime_timezone_rejects_what_strptime_rejects[10:30|0200]",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_strftime_timezone_rejects_what_strptime_rejects[10:30+02]",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_strftime_timezone_rejects_what_strptime_rejects[10:30z]",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_strftime_timezone_zulu",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parse::test_flexible_time_without_timezone_stays_naive",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parsetype::test_pattern_should_be_used",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parsetype::test_pattern_should_be_used2",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parsetype::test_with_pattern",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parsetype::test_with_pattern_and_regex_group_count",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parsetype::test_with_pattern_and_wrong_regex_group_count_raises_error",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parsetype::test_with_pattern_and_regex_group_count_is_none",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parsetype::test_case_sensitivity",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parsetype::test_decimal_value",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parsetype::test_width_str",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parsetype::test_width_constraints",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parsetype::test_width_multi_int",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parsetype::test_width_empty_input",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_parsetype::test_int_convert_stateless_base",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_pattern::test_braces",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_pattern::test_fixed",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_pattern::test_named",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_pattern::test_named_typed",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_pattern::test_numbered",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_pattern::test_bird",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_pattern::test_format_variety",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_pattern::test_dot_separated_fields",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_pattern::test_dict_style_fields",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_pattern::test_dot_separated_fields_name_collisions",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_pattern::test_invalid_groupnames_are_handled_gracefully",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_result::test_fixed_access",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_result::test_slice_access",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_result::test_named_access",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_result::test_contains",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_search::test_basic",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_search::test_multiline",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_search::test_pos",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          },
+          {
+            "id": "tests.test_search::test_no_evaluate_result",
+            "passed": true,
+            "status": "passed",
+            "detail": ""
+          }
+        ],
+        "profile": "python-pytest",
+        "network": "none",
+        "passed": true,
+        "checks": {
+          "candidate_tests": true,
+          "regression_proven": true,
+          "same_acceptance_tests": true,
+          "all_required_cases_passed": true,
+          "no_new_skips": true,
+          "nonempty_patch": true
+        },
+        "acceptance": {
+          "collected_test_identities_preserved": true,
+          "baseline_collection_failure": false,
+          "baseline_cases": 118,
+          "candidate_cases": 118,
+          "passed_cases": 117
+        },
+        "original_commit": "89f423f75783d02b0396f57db22a26468f4140f8",
+        "tests_immutable": true
+      }
+    },
+    {
+      "id": 118,
+      "incident_id": "4480cb07-9fc6-432e-9fa2-9bb477e9dc7f",
+      "timestamp": 1793414635.986315,
+      "stage": "record",
+      "payload": {
+        "resolved": true,
+        "artifact": "patch",
+        "profile": "python-pytest"
+      }
+    }
+  ],
+  "success": true,
+  "reasoning_provider": "CrewAI / NVIDIA NIM",
+  "model": "nvidia/nemotron-3.5-lightning-30b-a3b",
+  "replay_supported": false,
+  "integrity": {
+    "algorithm": "sha256",
+    "snapshot_digest": "4a0433ae71630f6ff715018e6163354cd0ead14774aa43d0b889982396b8c6fa",
+    "scope": "Checksum of this JSON snapshot excluding integrity; not a digital signature"
+  }
+}

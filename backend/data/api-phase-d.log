@@ -1,0 +1,74 @@
+INFO:     Loading environment from '../.env'
+INFO:     Started server process [61951]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+INFO:     127.0.0.1:53222 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53222 - "GET /openapi.json HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53222 - "GET /repositories/intelligence?repository=invalid HTTP/1.1" 422 Unprocessable Entity
+INFO:     127.0.0.1:53222 - "GET /overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54604 - "GET /overview HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:54605 - "GET /incidents HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:54606 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54607 - "GET /demo/runs HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:54641 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54640 - "GET /incidents HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54642 - "GET /demo/runs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54639 - "GET /overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54645 - "GET /events?after=0 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54656 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54655 - "GET /incidents HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54657 - "GET /demo/runs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54654 - "GET /overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54670 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54669 - "GET /incidents HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54671 - "GET /demo/runs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54668 - "GET /overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54686 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54685 - "GET /incidents HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54687 - "GET /demo/runs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54684 - "GET /overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54700 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54699 - "GET /incidents HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54701 - "GET /demo/runs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54698 - "GET /overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54716 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54715 - "GET /incidents HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54717 - "GET /demo/runs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54714 - "GET /overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54732 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54731 - "GET /incidents HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54733 - "GET /demo/runs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54730 - "GET /overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54746 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54745 - "GET /incidents HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54747 - "GET /demo/runs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54744 - "GET /overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54762 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54761 - "GET /incidents HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54763 - "GET /demo/runs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54760 - "GET /overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54776 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54775 - "GET /incidents HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54777 - "GET /demo/runs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54774 - "GET /overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54792 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54791 - "GET /incidents HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54793 - "GET /demo/runs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54790 - "GET /overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54809 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54808 - "GET /incidents HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54810 - "GET /demo/runs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54807 - "GET /overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54822 - "GET /incidents HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54823 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54824 - "GET /demo/runs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54821 - "GET /overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54839 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54838 - "GET /incidents HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54840 - "GET /demo/runs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54837 - "GET /overview HTTP/1.1" 200 OK
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [61951]

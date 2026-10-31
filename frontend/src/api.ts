@@ -1,0 +1,253 @@
+export type Act = (
+  fn: () => Promise<unknown>,
+  message?: string,
+) => Promise<boolean>;
+export const API = import.meta.env.VITE_API_URL || "/api";
+export type Action = {
+  operation: string;
+  order_id?: string | null;
+  parameters?: Record<string, string | number | boolean>;
+};
+export type Candidate = {
+  id: string;
+  rationale: string;
+  actions: Action[];
+  risks: string[];
+};
+export type Evaluation = {
+  candidate_id: string;
+  eligible: boolean;
+  approval_required: boolean;
+  checks: { passed: boolean; reason: string; operation?: string }[];
+};
+export type Verification = {
+  passed: boolean;
+  checks: Record<string, boolean>;
+  evidence?: unknown;
+};
+export type Incident = {
+  id: string;
+  project_id: string;
+  kind: string;
+  resource: string;
+  status: string;
+  created: number;
+  updated: number;
+  error?: string;
+  injected_regression?: {
+    disclosed: boolean;
+    proven?: boolean;
+    file?: string;
+    kind?: string;
+    original_repository: string;
+  };
+  diagnosis?: string;
+  requirement_assessment?: {requirement: string; status: string; evidence_paths: string[]; explanation: string}[];
+  continuation_plan?: string[];
+  model?: string;
+  approval_hash?: string;
+  selected?: Candidate;
+  plan?: { diagnosis: string; candidates: Candidate[] };
+  tournament?: Evaluation[];
+  verification?: Verification;
+  remaining_risks?: string[];
+  patch?: string;
+  selected_code_strategy?: string;
+  suspect_commit?: {
+    snapshot_commit: string;
+    upstream_commit?: string | null;
+  } | null;
+  code_tournament?: {
+    id: string;
+    eligible: boolean;
+    sandbox_runs: number;
+    diff_lines: number;
+    reason: string;
+  }[];
+};
+export type Project = {
+  id: string;
+  name: string;
+  base_url: string;
+  enabled: boolean;
+  demo_enabled: boolean;
+  adapter?: string;
+  integration?: Record<string, unknown>;
+  token_env?: string;
+  timeout_seconds?: number;
+  latency_ms?: number;
+  contract: {
+    allowed: string[];
+    approval_required: string[];
+    max_actions?: number;
+    invariants?: string[];
+  };
+};
+export type FlightEvent = {
+  id: number;
+  incident_id: string;
+  timestamp: number;
+  stage: string;
+  payload: Record<string, any>;
+};
+export type Receipt = {
+  schema_version: number;
+  replay_supported?: boolean;
+  incident: Incident;
+  events: FlightEvent[];
+  success: boolean;
+  reasoning_provider: string;
+  model?: string;
+  integrity: { algorithm: string; snapshot_digest: string; scope: string };
+};
+export type ProbeResult = {
+  ok: boolean;
+  accepted?: boolean;
+  configured?: boolean;
+  status?: number;
+  latency_ms: number;
+  body: Record<string, any>;
+  error?: string;
+};
+export type ProjectSignal = {
+  project: Project;
+  state: string;
+  latest: null | {
+    timestamp: number;
+    health: ProbeResult;
+    workflows: ProbeResult;
+  };
+  history: { timestamp: number; latency_ms: number; ok: boolean }[];
+};
+export type Overview = {
+  generated_at: number;
+  summary: {
+    verified_recoveries: number;
+    open_incidents: number;
+    approvals_waiting: number;
+    rejected_evaluations: number;
+    tool_executions: number;
+    verified_workflows: number;
+    median_recovery_seconds: number | null;
+    measured_recoveries: number;
+  };
+  projects: ProjectSignal[];
+};
+export type DemoRun = {
+  id: string;
+  project_id: string;
+  scenario: string;
+  created: number;
+  status: string;
+  message?: string;
+  order_id?: string;
+  incident_id?: string;
+  incident_status?: string;
+};
+export type Runtime = {
+  nim_configured: boolean;
+  provider: string;
+  model?: string;
+  demo_controls_enabled: boolean;
+};
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    public status: number,
+  ) {
+    super(message);
+  }
+}
+export async function api<T>(
+  path: string,
+  token: string,
+  body?: unknown,
+  signal?: AbortSignal,
+): Promise<T> {
+  const response = await fetch(API + path, {
+    method: body === undefined ? "GET" : "POST",
+    headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+    body: body === undefined ? undefined : JSON.stringify(body),
+    signal,
+  });
+  if (!response.ok) {
+    const data = await response
+      .json()
+      .catch(() => ({ detail: response.statusText }));
+    throw new ApiError(
+      typeof data.detail === "string"
+        ? data.detail
+        : JSON.stringify(data.detail),
+      response.status,
+    );
+  }
+  return response.json();
+}
+export function saveFile(
+  name: string,
+  content: string,
+  type = "application/json",
+) {
+  const url = URL.createObjectURL(new Blob([content], { type }));
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = name;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+export async function downloadBrief(id: string, token: string) {
+  const response = await fetch(API + "/incidents/" + id + "/brief", {
+    headers: { Authorization: "Bearer " + token },
+  });
+  if (!response.ok) throw new Error("Could not download the recovery brief");
+  saveFile("ctrlz-" + id + ".md", await response.text(), "text/markdown");
+}
+export function parseFrame(frame: string): FlightEvent | null {
+  const data = frame
+    .split("\n")
+    .filter((l) => l.startsWith("data:"))
+    .map((l) => l.slice(5).trim())
+    .join("\n");
+  return data ? JSON.parse(data) : null;
+}
+export async function stream(
+  token: string,
+  signal: AbortSignal,
+  onEvent: (event: FlightEvent) => void,
+  cursor: { current: number },
+  onOpen?: () => void,
+) {
+  const response = await fetch(API + "/events?after=" + cursor.current, {
+    headers: { Authorization: "Bearer " + token },
+    signal,
+  });
+  if (!response.ok || !response.body)
+    throw new Error("Live stream unavailable");
+  onOpen?.();
+  const reader = response.body.getReader(),
+    decoder = new TextDecoder();
+  let buffer = "";
+  try {
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      let at;
+      while (
+        (at = buffer.indexOf("\n\n")) >= 0 ||
+        (at = buffer.indexOf("\r\n\r\n")) >= 0
+      ) {
+        const cr = buffer.slice(at, at + 4) === "\r\n\r\n";
+        const frame = buffer.slice(0, at).replaceAll("\r\n", "\n");
+        buffer = buffer.slice(at + (cr ? 4 : 2));
+        const event = parseFrame(frame);
+        if (event && event.id > cursor.current) {
+          cursor.current = event.id;
+          onEvent(event);
+        }
+      }
+    }
+  } finally {
+    reader.releaseLock();
+  }
+}

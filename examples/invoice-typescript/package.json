@@ -1,0 +1,1 @@
+{"name":"ctrlz-typescript-repair-proof","version":"1.0.0","private":true,"type":"module","scripts":{"test":"vitest run"},"devDependencies":{"vitest":"5.0.5"}}

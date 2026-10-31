@@ -1,0 +1,11 @@
+{
+  "id":"dispatch-queue", "name":"Dispatch Queue", "base_url":"http://127.0.0.1:18002",
+  "adapter":"generic-http-v1", "token_env":"DISPATCH_RECOVERY_TOKEN",
+  "contract":{"allowed":["resume_dispatch"],"approval_required":["resume_dispatch"]},
+  "integration":{
+    "health_path":"/health", "diagnostics_path":"/internal/state",
+    "health_checks":[{"pointer":"/ready","value":true,"label":"Dispatcher accepting work"}],
+    "service_checks":[{"pointer":"/paused","value":false,"label":"Dispatcher running"},{"pointer":"/pending_jobs","value":0,"label":"No stranded jobs"},{"pointer":"/completed_jobs","value":3,"label":"All three fixture jobs completed"}],
+    "operations":[{"name":"resume_dispatch","description":"Resume a paused dispatch queue while retaining all pending jobs","path":"/internal/resume","effect":"resume","risk":"high","preconditions":[{"pointer":"/paused","value":true,"label":"Dispatcher is paused"}]}]
+  }
+}

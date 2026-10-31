@@ -1,0 +1,45 @@
+# Host deployment: Caddy serves the built frontends and proxies only /api.
+# Supply CTRLZ_DOMAIN, CAMPUSPASS_DOMAIN and ACME_EMAIL in Caddy's environment.
+{
+	email {$ACME_EMAIL}
+}
+{$CTRLZ_DOMAIN} {
+	encode zstd gzip
+	header {
+		X-Content-Type-Options nosniff
+		Referrer-Policy strict-origin-when-cross-origin
+		X-Frame-Options DENY
+		-Server
+	}
+	@api path /api/*
+	handle @api {
+		uri strip_prefix /api
+		reverse_proxy 127.0.0.1:8000 {
+			flush_interval -1
+		}
+	}
+	handle {
+		root * /srv/agentathon/ctrlz/frontend/dist
+		try_files {path} /index.html
+		file_server
+	}
+}
+{$CAMPUSPASS_DOMAIN} {
+	encode zstd gzip
+	header {
+		X-Content-Type-Options nosniff
+		Referrer-Policy strict-origin-when-cross-origin
+		X-Frame-Options DENY
+		-Server
+	}
+	@api path /api/*
+	handle @api {
+		uri strip_prefix /api
+		reverse_proxy 127.0.0.1:8001
+	}
+	handle {
+		root * /srv/agentathon/campuspass/frontend/dist
+		try_files {path} /index.html
+		file_server
+	}
+}

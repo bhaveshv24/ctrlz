@@ -1,0 +1,24 @@
+[Unit]
+Description=CtrlZ recovery API and single-process monitor
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ctrlz
+Group=ctrlz
+WorkingDirectory=/srv/agentathon/ctrlz/backend
+EnvironmentFile=/srv/agentathon/ctrlz/.env
+Environment=TMPDIR=/srv/agentathon/ctrlz/backend/data/sandbox-tmp
+ExecStart=/srv/agentathon/ctrlz/backend/.venv/bin/uvicorn ctrlz.main:create_app --factory --host 127.0.0.1 --port 8000
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=30
+UMask=0077
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/srv/agentathon/ctrlz/backend/data /srv/agentathon/ctrlz/imports
+
+[Install]
+WantedBy=multi-user.target

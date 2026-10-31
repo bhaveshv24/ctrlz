@@ -1,0 +1,52 @@
+# Import this blueprint from the CtrlZ repository root. No remote resources were created.
+services:
+  - type: web
+    name: ctrlz-api
+    runtime: docker
+    plan: standard
+    dockerfilePath: ./deploy/Dockerfile.render
+    dockerContext: .
+    healthCheckPath: /health
+    disk:
+      name: ctrlz-state
+      mountPath: /var/data/ctrlz
+      sizeGB: 10
+    envVars:
+      - key: DATA_DIR
+        value: /var/data/ctrlz
+      - key: DATABASE_URL
+        value: sqlite:////var/data/ctrlz/ctrlz.db
+      - key: IMPORT_ROOT
+        value: /var/data/ctrlz/imports
+      - key: RUNBOOK_DIR
+        value: /app/runbooks
+      - key: CREWAI_STORAGE_DIR
+        value: /var/data/ctrlz/crewai
+      - key: CREWAI_TELEMETRY_ENABLED
+        value: 'false'
+      - key: OTEL_SDK_DISABLED
+        value: 'true'
+      - key: CTRLZ_ALLOW_REGISTRATION
+        value: 'false'
+      - key: CTRLZ_ALLOW_OPERATOR_TOKEN
+        value: 'false'
+      - key: CTRLZ_CODE_EXECUTION_ENABLED
+        value: 'false'
+      - key: CTRLZ_CORS_ORIGINS
+        sync: false
+      - key: NVIDIA_API_KEY
+        sync: false
+      - key: NVIDIA_MODEL
+        value: nvidia/nemotron-3.5-lightning-30b-a3b
+      - key: CTRLZ_ADMIN_1_EMAIL
+        sync: false
+      - key: CTRLZ_ADMIN_1_PASSWORD
+        sync: false
+      - key: CTRLZ_ADMIN_2_EMAIL
+        sync: false
+      - key: CTRLZ_ADMIN_2_PASSWORD
+        sync: false
+      - key: CTRLZ_USER_EMAIL
+        sync: false
+      - key: CTRLZ_USER_PASSWORD
+        sync: false

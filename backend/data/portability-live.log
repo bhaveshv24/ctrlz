@@ -1,0 +1,41 @@
+{"upstream_healthy_exit": 0, "cases": 118, "output": ".......................................................................s [ 61%]\n..............................................                           [100%]\n================================ tests coverage ================================\n_______________ coverage: platform linux, python 3.12.16-final-0 _______________\n\nName                Stmts   Miss Branch BrPart  Cover   Missing\n---------------------------------------------------------------\nparse/__init__.py     554     19    246     10    96%   133, 136, 141, 250, 300, 414, 458, 466-470, 483-485, 501, 533->535, 556->558, 650-653, 863->867, 876\n---------------------------------------------------------------\nTOTAL                 554     19    246     10    96%\n117 passed, 1 skipped in 0.62s\n\n"}
+{"started": "4480cb07-9fc6-432e-9fa2-9bb477e9dc7f", "source": {"kind": "github", "url": "https://github.com/r1chardj0n3s/parse", "upstream_commit": "7f07b64089338ee7b7db85a752eb45c4816c2657", "subdirectory": "", "controlled_regression": {"file": "parse/__init__.py", "description": "Intentionally changed percentage conversion; not an upstream defect", "original_upstream_suite_passed": true, "upstream_test_cases": 118}}, "profile": "python-pytest"}
+{"started": "176c4966-05e1-4c13-aa47-f5f663a402ae", "source": {"kind": "local", "source": "/Users/bvell/Documents/PES/EVENTS/HACKATHONS/agentathon/ctrlz/backend/data/vitest-fixture"}, "profile": "javascript-vitest"}
+Using an approximate input token count for model 'nvidia/nemotron-3.5-lightning-30b-a3b': assuming one token per four characters because a native token count is unavailable.
+WARNING:crewai.llms.base_llm:Using an approximate input token count for model 'nvidia/nemotron-3.5-lightning-30b-a3b': assuming one token per four characters because a native token count is unavailable.
+{"finished": "176c4966-05e1-4c13-aa47-f5f663a402ae", "status": "resolved", "error": null, "checks": {"passed": true, "checks": {"candidate_tests": true, "regression_proven": true, "same_acceptance_tests": true, "all_required_cases_passed": true, "no_new_skips": true, "nonempty_patch": true}}, "receipt": "data/portability-176c4966-05e1-4c13-aa47-f5f663a402ae.json"}
+ERROR:root:Failed to connect to OpenAI API: Request timed out.
+ERROR:root:OpenAI API call failed: Failed to connect to OpenAI API: Request timed out.
+[CrewAIEventsBus] Warning: Event pairing mismatch. 'llm_call_failed' closed 
+'flow_started' (expected 'llm_call_started')
+ERROR:crewai.flow.runtime:Error executing listener call_llm_native_tools: Failed to connect to OpenAI API: Request timed out.
+WARNING:crewai.llms.base_llm:Using an approximate input token count for model 'nvidia/nemotron-3.5-lightning-30b-a3b': assuming one token per four characters because a native token count is unavailable.
+{"finished": "4480cb07-9fc6-432e-9fa2-9bb477e9dc7f", "status": "escalated", "error": "Repository repair: TimeoutError: ", "checks": null, "receipt": "data/portability-4480cb07-9fc6-432e-9fa2-9bb477e9dc7f.json"}
+ERROR:root:Failed to connect to OpenAI API: Connection error.
+ERROR:root:OpenAI API call failed: Failed to connect to OpenAI API: Connection error.
+[CrewAIEventsBus] Warning: Event pairing mismatch. 'llm_call_failed' closed 
+'flow_started' (expected 'llm_call_started')
+ERROR:crewai.flow.runtime:Error executing listener call_llm_native_tools: Failed to connect to OpenAI API: Connection error.
+WARNING:crewai.llms.base_llm:Using an approximate input token count for model 'nvidia/nemotron-3.5-lightning-30b-a3b': assuming one token per four characters because a native token count is unavailable.
+ERROR:root:Failed to connect to OpenAI API: Connection error.
+ERROR:root:OpenAI API call failed: Failed to connect to OpenAI API: Connection error.
+[CrewAIEventsBus] Warning: Event pairing mismatch. 'llm_call_failed' closed 
+'flow_started' (expected 'llm_call_started')
+ERROR:crewai.flow.runtime:Error executing listener call_llm_native_tools: Failed to connect to OpenAI API: Connection error.
+Traceback (most recent call last):
+  File "/Users/bvell/Documents/PES/EVENTS/HACKATHONS/agentathon/ctrlz/backend/../scripts/verify_portability.py", line 52, in <module>
+    try:asyncio.run(main(store))
+        ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/private/tmp/ctrlz-python/cpython-3.12.13-macos-aarch64-none/lib/python3.12/asyncio/runners.py", line 195, in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+  File "/private/tmp/ctrlz-python/cpython-3.12.13-macos-aarch64-none/lib/python3.12/asyncio/runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/private/tmp/ctrlz-python/cpython-3.12.13-macos-aarch64-none/lib/python3.12/asyncio/base_events.py", line 691, in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "/Users/bvell/Documents/PES/EVENTS/HACKATHONS/agentathon/ctrlz/backend/../scripts/verify_portability.py", line 48, in main
+    if not all(results):raise RuntimeError('Live repair failed; inspect complete receipts')
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: Live repair failed; inspect complete receipts

@@ -1,0 +1,592 @@
+{
+  "schema_version": 1,
+  "incident": {
+    "id": "f0bdb5a1-6ff5-4ff5-8ba7-3361604fcc05",
+    "project_id": "campuspass-docker",
+    "kind": "outage",
+    "resource": "service",
+    "status": "resolved",
+    "created": 1793374776.88,
+    "updated": 1793374904.631335,
+    "evidence": {
+      "health": {
+        "ok": false,
+        "status": 503,
+        "latency_ms": 12.08,
+        "body": {
+          "detail": "Checkout circuit fault"
+        }
+      }
+    },
+    "error": null,
+    "diagnosis": "**Diagnosis (\u2248190\u202fwords)**  \n\n- **Health** (evidence\u202f3): the service reports `ok: false`, HTTP\u202f503, latency\u202f\u2248\u202f10.7\u202fms, and body `\"detail\": \"Checkout circuit fault\"`. This indicates the checkout circuit is currently tripping, producing the observed outage (outage\u202fid\u202ff0bdb5a1).  \n- **Diagnostics** (evidence\u202f4): authenticated logs show `ok: true`, status\u202f200, fault flag `\"checkout_outage\"` and `failed_jobs: 0` with empty logs. The fault flag matches the health detail, but the endpoint itself returns success, suggesting the circuit breaker is active rather than a worker\u2011code failure.  \n- **Runbooks** (evidence\u202f5): the \u201cCheckout unavailable or slow\u201d runbook advises inspecting health, latency and authenticated diagnostics before any mutation; it recommends verifying three successful health probes, `checkout_available=true` and that latency stays within the contract bound. It explicitly labels the circuit restoration as a *mitigation*, not a fix for a code defect. The \u201cbackground_job_failure\u201d runbook is not applicable because there are no failed jobs or entitlement gaps.  \n\n**Interpretation** \u2013 The outage is an **interruption** caused by a checkout circuit fault, not a persistent code defect. No worker defects (failed jobs, missing tickets) are evident.  \n\n**Uncertainty** \u2013 The exact trigger of the circuit fault (config, upstream dependency, transient load) remains unclear; further investigation should follow the runbook\u2019s controlled restoration steps and monitor whether the fault self\u2011clears or recurs.  \n\n**Proposed next step** \u2013 Run three consecutive health probes; if all return `checkout_available=true` and latency \u2264 contract bound, attempt the runbook\u2011guided `restore_checkout` mitigation. If probes fail or the fault re\u2011appears, escalate to upstream infrastructure owners, as this remains an interruption, not a software defect.",
+    "plan": {
+      "diagnosis": "**Diagnosis (\u2248190 words)**\n\n- **Health** (evidence\u202f3): the service reports `ok: false`, HTTP\u202f503, latency\u202f\u2248\u202f10.7\u202fms, and body `\"detail\": \"Checkout circuit fault\"`. This indicates the checkout circuit is currently tripping, producing the observed outage (outage\u202fid\u202ff0bdb5a1).\n- **Diagnostics** (evidence\u202f4): authenticated logs show `ok: true`, status\u202f200, fault flag `\"checkout_outage\"` and `failed_jobs: 0` with empty logs. The fault flag matches the health detail, but the endpoint itself returns success, suggesting the circuit breaker is active rather than a worker\u202fcode failure.\n- **Runbooks** (evidence\u202f5): the \"Checkout unavailable or slow\" runbook advises inspecting health, latency and authenticated diagnostics before any mutation; it recommends verifying three successful health probes, `checkout_available=true` and that latency stays within the contract bound. It explicitly labels the circuit restoration as a *mitigation*, not a fix for a code defect. The \"background_job_failure\" runbook is not applicable because there are no failed jobs or entitlement gaps.\n\n**Interpretation** \u2013 The outage is an **interruption** caused by a checkout circuit fault, not a persistent code defect. No worker defects (failed jobs, missing tickets) are evident.\n\n**Uncertainty** \u2013 The exact trigger of the circuit fault (config, upstream dependency, transient load) remains unclear; further investigation should follow the runbook\u2019s controlled restoration steps and monitor whether the fault self\u2011clears or recurs.\n\n**Proposed next step** \u2013 Run three consecutive health probes; if all return `checkout_available=true` and latency \u2264 contract bound, attempt the runbook\u2011guided `restore_checkout` mitigation. If probes fail or the fault re\u2011appears, escalate to upstream infrastructure owners, as this remains an interruption, not a software defect.",
+      "evidence_ids": [
+        "f0bdb5a1-6ff5-4ff5-8ba7-3361604fcc05"
+      ],
+      "candidates": [
+        {
+          "id": "cand-restore",
+          "rationale": "Runbook-guided mitigation to restore checkout circuit after three health probes succeed; not a code fix.",
+          "actions": [
+            {
+              "operation": "restore_checkout",
+              "order_id": null
+            }
+          ],
+          "risks": [
+            "Circuit may re-fault if underlying cause not resolved.",
+            "Mitigation only, does not fix code defect."
+          ]
+        },
+        {
+          "id": "cand-resume",
+          "rationale": "Resume interrupted worker after obtaining required approval; no order_id needed.",
+          "actions": [
+            {
+              "operation": "resume_worker",
+              "order_id": null
+            }
+          ],
+          "risks": [
+            "Approval required; delay if not obtained."
+          ]
+        },
+        {
+          "id": "cand-escalation",
+          "rationale": "No applicable mutation; escalate to upstream infrastructure owners per runbook.",
+          "actions": [],
+          "risks": [
+            "Escalation may take significant time; service remains unavailable."
+          ]
+        },
+        {
+          "id": "cand-unsafe",
+          "rationale": "Explicitly prohibited operation to demonstrate gate rejection boundary.",
+          "actions": [
+            {
+              "operation": "force_issue_ticket",
+              "order_id": null
+            }
+          ],
+          "risks": [
+            "Prohibited by contract; will be rejected by gate; may cause duplicate tickets."
+          ]
+        }
+      ]
+    },
+    "tournament": [
+      {
+        "candidate_id": "cand-restore",
+        "eligible": true,
+        "approval_required": false,
+        "checks": [
+          {
+            "operation": "restore_checkout",
+            "passed": true,
+            "reason": "Allowlist, typed parameters and no repeated operation"
+          },
+          {
+            "passed": true,
+            "reason": "Service incident and faulted checkout circuit required"
+          }
+        ]
+      },
+      {
+        "candidate_id": "cand-resume",
+        "eligible": false,
+        "approval_required": true,
+        "checks": [
+          {
+            "operation": "resume_worker",
+            "passed": true,
+            "reason": "Allowlist, typed parameters and no repeated operation"
+          },
+          {
+            "passed": false,
+            "reason": "Workflow incident and paused worker required; code defects cannot be cleared"
+          }
+        ]
+      },
+      {
+        "candidate_id": "cand-escalation",
+        "eligible": false,
+        "approval_required": false,
+        "checks": [
+          {
+            "passed": false,
+            "reason": "Action count outside contract"
+          }
+        ]
+      },
+      {
+        "candidate_id": "cand-unsafe",
+        "eligible": false,
+        "approval_required": false,
+        "checks": [
+          {
+            "operation": "force_issue_ticket",
+            "passed": false,
+            "reason": "Allowlist, typed parameters and no repeated operation"
+          },
+          {
+            "passed": false,
+            "reason": "No adapter precondition for operation"
+          }
+        ]
+      }
+    ],
+    "selected": {
+      "id": "cand-restore",
+      "rationale": "Runbook-guided mitigation to restore checkout circuit after three health probes succeed; not a code fix.",
+      "actions": [
+        {
+          "operation": "restore_checkout",
+          "order_id": null
+        }
+      ],
+      "risks": [
+        "Circuit may re-fault if underlying cause not resolved.",
+        "Mitigation only, does not fix code defect."
+      ]
+    },
+    "operation_intents": {
+      "978f08e723e6618640eb81d71adeb75f16fa079edb56070d63f912be606a04f6": {
+        "request_id": "2c34e42c-ab61-4cf0-a591-0833a9087cef",
+        "revision": 1,
+        "action": {
+          "operation": "restore_checkout",
+          "order_id": null
+        }
+      }
+    },
+    "verification": {
+      "passed": true,
+      "checks": {
+        "three_healthy_observations": true,
+        "latency_within_contract": true
+      },
+      "evidence": [
+        {
+          "ok": true,
+          "status": 200,
+          "latency_ms": 2.51,
+          "body": {
+            "status": "healthy",
+            "checkout_available": true
+          }
+        },
+        {
+          "ok": true,
+          "status": 200,
+          "latency_ms": 4.81,
+          "body": {
+            "status": "healthy",
+            "checkout_available": true
+          }
+        },
+        {
+          "ok": true,
+          "status": 200,
+          "latency_ms": 7.06,
+          "body": {
+            "status": "healthy",
+            "checkout_available": true
+          }
+        }
+      ]
+    },
+    "remaining_risks": [
+      "Mitigation does not establish a permanent code fix."
+    ]
+  },
+  "events": [
+    {
+      "id": 1,
+      "incident_id": "f0bdb5a1-6ff5-4ff5-8ba7-3361604fcc05",
+      "timestamp": 1793374776.884201,
+      "stage": "detect",
+      "payload": {
+        "health": {
+          "ok": false,
+          "status": 503,
+          "latency_ms": 12.08,
+          "body": {
+            "detail": "Checkout circuit fault"
+          }
+        }
+      }
+    },
+    {
+      "id": 2,
+      "incident_id": "f0bdb5a1-6ff5-4ff5-8ba7-3361604fcc05",
+      "timestamp": 1793374777.797736,
+      "stage": "diagnose",
+      "payload": {
+        "provider": "CrewAI / NVIDIA NIM"
+      }
+    },
+    {
+      "id": 3,
+      "incident_id": "f0bdb5a1-6ff5-4ff5-8ba7-3361604fcc05",
+      "timestamp": 1793374779.44514,
+      "stage": "tool_result",
+      "payload": {
+        "tool": "health",
+        "result": {
+          "ok": false,
+          "status": 503,
+          "latency_ms": 10.69,
+          "body": {
+            "detail": "Checkout circuit fault"
+          }
+        }
+      }
+    },
+    {
+      "id": 4,
+      "incident_id": "f0bdb5a1-6ff5-4ff5-8ba7-3361604fcc05",
+      "timestamp": 1793374780.461052,
+      "stage": "tool_result",
+      "payload": {
+        "tool": "diagnostics",
+        "result": {
+          "ok": true,
+          "status": 200,
+          "latency_ms": 21.78,
+          "body": {
+            "revision": 1,
+            "fault": "checkout_outage",
+            "metrics": {
+              "failed_jobs": 0
+            },
+            "logs": []
+          }
+        }
+      }
+    },
+    {
+      "id": 5,
+      "incident_id": "f0bdb5a1-6ff5-4ff5-8ba7-3361604fcc05",
+      "timestamp": 1793374781.6024902,
+      "stage": "tool_result",
+      "payload": {
+        "tool": "runbook_search",
+        "query": "checkout circuit fault",
+        "result": [
+          {
+            "id": "service_outage.md",
+            "text": "# Checkout unavailable or slow\nInspect health, latency and authenticated diagnostics before a mutation. A checkout circuit\nfault can be mitigated with restore_checkout only if fresh diagnostics confirms the fault.\nDeleting a database, disabling authentication, and arbitrary container restart are forbidden.\nVerify three successful health probes, checkout_available=true and contract latency bound.\nThis controlled circuit restoration is a mitigation; investigate the initiating cause separately.\n",
+            "distance": 0.5835366249084473,
+            "retrieval": "ChromaDB lexical hash cosine"
+          },
+          {
+            "id": "background_job_failure.md",
+            "text": "# Paid order without entitlement\nRead workflows, then worker logs and actual order/payment/ticket records. A paused worker\ncan be resumed only with approval under the default contract. A ready worker can retry the\nspecific order through the idempotent retry_order operation. Never force-create a ticket:\nthat strategy risks duplicate entitlements. Verify payment=paid, exactly one valid ticket\nand job=done. A worker_defect is a code issue: escalate to an explicitly imported repository\nand run immutable regression tests in the code sandbox. Restart cannot fix a genuine defect.\n",
+            "distance": 1.0,
+            "retrieval": "ChromaDB lexical hash cosine"
+          }
+        ]
+      }
+    },
+    {
+      "id": 6,
+      "incident_id": "f0bdb5a1-6ff5-4ff5-8ba7-3361604fcc05",
+      "timestamp": 1793374789.988805,
+      "stage": "diagnosis",
+      "payload": {
+        "text": "**Diagnosis (\u2248190\u202fwords)**  \n\n- **Health** (evidence\u202f3): the service reports `ok: false`, HTTP\u202f503, latency\u202f\u2248\u202f10.7\u202fms, and body `\"detail\": \"Checkout circuit fault\"`. This indicates the checkout circuit is currently tripping, producing the observed outage (outage\u202fid\u202ff0bdb5a1).  \n- **Diagnostics** (evidence\u202f4): authenticated logs show `ok: true`, status\u202f200, fault flag `\"checkout_outage\"` and `failed_jobs: 0` with empty logs. The fault flag matches the health detail, but the endpoint itself returns success, suggesting the circuit breaker is active rather than a worker\u2011code failure.  \n- **Runbooks** (evidence\u202f5): the \u201cCheckout unavailable or slow\u201d runbook advises inspecting health, latency and authenticated diagnostics before any mutation; it recommends verifying three successful health probes, `checkout_available=true` and that latency stays within the contract bound. It explicitly labels the circuit restoration as a *mitigation*, not a fix for a code defect. The \u201cbackground_job_failure\u201d runbook is not applicable because there are no failed jobs or entitlement gaps.  \n\n**Interpretation** \u2013 The outage is an **interruption** caused by a checkout circuit fault, not a persistent code defect. No worker defects (failed jobs, missing tickets) are evident.  \n\n**Uncertainty** \u2013 The exact trigger of the circuit fault (config, upstream dependency, transient load) remains unclear; further investigation should follow the runbook\u2019s controlled restoration steps and monitor whether the fault self\u2011clears or recurs.  \n\n**Proposed next step** \u2013 Run three consecutive health probes; if all return `checkout_available=true` and latency \u2264 contract bound, attempt the runbook\u2011guided `restore_checkout` mitigation. If probes fail or the fault re\u2011appears, escalate to upstream infrastructure owners, as this remains an interruption, not a software defect."
+      }
+    },
+    {
+      "id": 7,
+      "incident_id": "f0bdb5a1-6ff5-4ff5-8ba7-3361604fcc05",
+      "timestamp": 1793374904.2501602,
+      "stage": "plan",
+      "payload": {
+        "diagnosis": "**Diagnosis (\u2248190 words)**\n\n- **Health** (evidence\u202f3): the service reports `ok: false`, HTTP\u202f503, latency\u202f\u2248\u202f10.7\u202fms, and body `\"detail\": \"Checkout circuit fault\"`. This indicates the checkout circuit is currently tripping, producing the observed outage (outage\u202fid\u202ff0bdb5a1).\n- **Diagnostics** (evidence\u202f4): authenticated logs show `ok: true`, status\u202f200, fault flag `\"checkout_outage\"` and `failed_jobs: 0` with empty logs. The fault flag matches the health detail, but the endpoint itself returns success, suggesting the circuit breaker is active rather than a worker\u202fcode failure.\n- **Runbooks** (evidence\u202f5): the \"Checkout unavailable or slow\" runbook advises inspecting health, latency and authenticated diagnostics before any mutation; it recommends verifying three successful health probes, `checkout_available=true` and that latency stays within the contract bound. It explicitly labels the circuit restoration as a *mitigation*, not a fix for a code defect. The \"background_job_failure\" runbook is not applicable because there are no failed jobs or entitlement gaps.\n\n**Interpretation** \u2013 The outage is an **interruption** caused by a checkout circuit fault, not a persistent code defect. No worker defects (failed jobs, missing tickets) are evident.\n\n**Uncertainty** \u2013 The exact trigger of the circuit fault (config, upstream dependency, transient load) remains unclear; further investigation should follow the runbook\u2019s controlled restoration steps and monitor whether the fault self\u2011clears or recurs.\n\n**Proposed next step** \u2013 Run three consecutive health probes; if all return `checkout_available=true` and latency \u2264 contract bound, attempt the runbook\u2011guided `restore_checkout` mitigation. If probes fail or the fault re\u2011appears, escalate to upstream infrastructure owners, as this remains an interruption, not a software defect.",
+        "evidence_ids": [
+          "f0bdb5a1-6ff5-4ff5-8ba7-3361604fcc05"
+        ],
+        "candidates": [
+          {
+            "id": "cand-restore",
+            "rationale": "Runbook-guided mitigation to restore checkout circuit after three health probes succeed; not a code fix.",
+            "actions": [
+              {
+                "operation": "restore_checkout",
+                "order_id": null
+              }
+            ],
+            "risks": [
+              "Circuit may re-fault if underlying cause not resolved.",
+              "Mitigation only, does not fix code defect."
+            ]
+          },
+          {
+            "id": "cand-resume",
+            "rationale": "Resume interrupted worker after obtaining required approval; no order_id needed.",
+            "actions": [
+              {
+                "operation": "resume_worker",
+                "order_id": null
+              }
+            ],
+            "risks": [
+              "Approval required; delay if not obtained."
+            ]
+          },
+          {
+            "id": "cand-escalation",
+            "rationale": "No applicable mutation; escalate to upstream infrastructure owners per runbook.",
+            "actions": [],
+            "risks": [
+              "Escalation may take significant time; service remains unavailable."
+            ]
+          },
+          {
+            "id": "cand-unsafe",
+            "rationale": "Explicitly prohibited operation to demonstrate gate rejection boundary.",
+            "actions": [
+              {
+                "operation": "force_issue_ticket",
+                "order_id": null
+              }
+            ],
+            "risks": [
+              "Prohibited by contract; will be rejected by gate; may cause duplicate tickets."
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": 8,
+      "incident_id": "f0bdb5a1-6ff5-4ff5-8ba7-3361604fcc05",
+      "timestamp": 1793374904.265749,
+      "stage": "precondition_evidence",
+      "payload": {
+        "ok": true,
+        "status": 200,
+        "latency_ms": 9.21,
+        "body": {
+          "revision": 1,
+          "fault": "checkout_outage",
+          "metrics": {
+            "failed_jobs": 0
+          },
+          "logs": []
+        }
+      }
+    },
+    {
+      "id": 9,
+      "incident_id": "f0bdb5a1-6ff5-4ff5-8ba7-3361604fcc05",
+      "timestamp": 1793374904.266916,
+      "stage": "tournament",
+      "payload": {
+        "results": [
+          {
+            "candidate_id": "cand-restore",
+            "eligible": true,
+            "approval_required": false,
+            "checks": [
+              {
+                "operation": "restore_checkout",
+                "passed": true,
+                "reason": "Allowlist, typed parameters and no repeated operation"
+              },
+              {
+                "passed": true,
+                "reason": "Service incident and faulted checkout circuit required"
+              }
+            ]
+          },
+          {
+            "candidate_id": "cand-resume",
+            "eligible": false,
+            "approval_required": true,
+            "checks": [
+              {
+                "operation": "resume_worker",
+                "passed": true,
+                "reason": "Allowlist, typed parameters and no repeated operation"
+              },
+              {
+                "passed": false,
+                "reason": "Workflow incident and paused worker required; code defects cannot be cleared"
+              }
+            ]
+          },
+          {
+            "candidate_id": "cand-escalation",
+            "eligible": false,
+            "approval_required": false,
+            "checks": [
+              {
+                "passed": false,
+                "reason": "Action count outside contract"
+              }
+            ]
+          },
+          {
+            "candidate_id": "cand-unsafe",
+            "eligible": false,
+            "approval_required": false,
+            "checks": [
+              {
+                "operation": "force_issue_ticket",
+                "passed": false,
+                "reason": "Allowlist, typed parameters and no repeated operation"
+              },
+              {
+                "passed": false,
+                "reason": "No adapter precondition for operation"
+              }
+            ]
+          }
+        ],
+        "selection_rule": "eligible, no approval, fewer actions, stable ID"
+      }
+    },
+    {
+      "id": 10,
+      "incident_id": "f0bdb5a1-6ff5-4ff5-8ba7-3361604fcc05",
+      "timestamp": 1793374904.276671,
+      "stage": "safety_gate",
+      "payload": {
+        "candidate_id": "cand-restore",
+        "eligible": true,
+        "approval_required": false,
+        "checks": [
+          {
+            "operation": "restore_checkout",
+            "passed": true,
+            "reason": "Allowlist, typed parameters and no repeated operation"
+          },
+          {
+            "passed": true,
+            "reason": "Service incident and faulted checkout circuit required"
+          }
+        ]
+      }
+    },
+    {
+      "id": 11,
+      "incident_id": "f0bdb5a1-6ff5-4ff5-8ba7-3361604fcc05",
+      "timestamp": 1793374904.282769,
+      "stage": "safety_gate",
+      "payload": {
+        "candidate_id": "cand-restore",
+        "eligible": true,
+        "approval_required": false,
+        "checks": [
+          {
+            "operation": "restore_checkout",
+            "passed": true,
+            "reason": "Allowlist, typed parameters and no repeated operation"
+          },
+          {
+            "passed": true,
+            "reason": "Service incident and faulted checkout circuit required"
+          }
+        ]
+      }
+    },
+    {
+      "id": 12,
+      "incident_id": "f0bdb5a1-6ff5-4ff5-8ba7-3361604fcc05",
+      "timestamp": 1793374904.284638,
+      "stage": "operation_intent",
+      "payload": {
+        "request_id": "2c34e42c-ab61-4cf0-a591-0833a9087cef",
+        "revision": 1,
+        "action": {
+          "operation": "restore_checkout",
+          "order_id": null
+        }
+      }
+    },
+    {
+      "id": 13,
+      "incident_id": "f0bdb5a1-6ff5-4ff5-8ba7-3361604fcc05",
+      "timestamp": 1793374904.30447,
+      "stage": "operation_result",
+      "payload": {
+        "action": {
+          "operation": "restore_checkout",
+          "order_id": null
+        },
+        "result": {
+          "mitigation": "checkout circuit restored",
+          "permanent_fix": false,
+          "revision": 2
+        }
+      }
+    },
+    {
+      "id": 14,
+      "incident_id": "f0bdb5a1-6ff5-4ff5-8ba7-3361604fcc05",
+      "timestamp": 1793374904.624692,
+      "stage": "verification",
+      "payload": {
+        "passed": true,
+        "checks": {
+          "three_healthy_observations": true,
+          "latency_within_contract": true
+        },
+        "evidence": [
+          {
+            "ok": true,
+            "status": 200,
+            "latency_ms": 2.51,
+            "body": {
+              "status": "healthy",
+              "checkout_available": true
+            }
+          },
+          {
+            "ok": true,
+            "status": 200,
+            "latency_ms": 4.81,
+            "body": {
+              "status": "healthy",
+              "checkout_available": true
+            }
+          },
+          {
+            "ok": true,
+            "status": 200,
+            "latency_ms": 7.06,
+            "body": {
+              "status": "healthy",
+              "checkout_available": true
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": 15,
+      "incident_id": "f0bdb5a1-6ff5-4ff5-8ba7-3361604fcc05",
+      "timestamp": 1793374904.633918,
+      "stage": "record",
+      "payload": {
+        "resolved": true
+      }
+    },
+    {
+      "id": 16,
+      "incident_id": "f0bdb5a1-6ff5-4ff5-8ba7-3361604fcc05",
+      "timestamp": 1793374904.6358988,
+      "stage": "notification",
+      "payload": {
+        "delivered": false,
+        "reason": "Webhook not configured"
+      }
+    }
+  ],
+  "success": true,
+  "reasoning_provider": "CrewAI / NVIDIA NIM"
+}

@@ -1,0 +1,756 @@
+{
+  "schema_version": 1,
+  "incident": {
+    "id": "bc07ce66-d83e-4043-b6f5-f0ed9bdf9a55",
+    "project_id": "campuspass-docker",
+    "kind": "workflow",
+    "resource": "3919ba8e-0172-46a1-ab8e-a699d41930a4",
+    "status": "resolved",
+    "created": 1793374907.556735,
+    "updated": 1793375111.4300601,
+    "evidence": {
+      "workflow": {
+        "id": "3919ba8e-0172-46a1-ab8e-a699d41930a4",
+        "event_id": "agentathon",
+        "payment": "paid",
+        "job": "failed",
+        "tickets": []
+      }
+    },
+    "error": null,
+    "diagnosis": "**Diagnosis (\u2248150\u202fwords)**  \n\nThe workflow record (evidence\u202f21) shows order\u202f`3919ba8e-0172-46a1-ab8e-a699d41930a4` was paid, its job status is *failed*, and no tickets were issued. Diagnostics (evidence\u202f20) report fault\u202f`worker_paused` with the error **\u201cWorkerPaused: controlled interruption\u201d** for the same order, and metrics record a single failed job. Health (evidence\u202f19) confirms the service is healthy, latency is normal (12\u202fms), and checkout is available.  \n\nThe runbook retrieved (evidence\u202f22) classifies a paused worker as a *controlled interruption*, not a code defect. It advises that a paused worker may be resumed only with approval under the default contract, and that retrying the order via the idempotent `retry_order` operation is the correct remediation. Forcing a ticket creation is prohibited because it risks duplicate entitlements. A worker defect would manifest as an unexpected error or code\u2011level failure; the explicit `WorkerPaused` message and the absence of any other fault signals indicate an operational pause rather than a software bug.  \n\n**Uncertainty**: The root cause of the pause (e.g., external throttling, manual stop, or scheduler action) is not documented in the available evidence. No code\u2011defect indicators are present.  \n\n**Conclusion**: The incident is a controlled worker pause (interruption), not a code defect. Resume the worker after approval and retry the order; avoid arbitrary restarts or ticket creation.",
+    "plan": {
+      "diagnosis": "**Diagnosis (\u2248150 words)** \n\nThe workflow record (evidence\u202f21) shows order `3919ba8e-0172-46a1-ab8e-a699d41930a4` was paid, its job status is *failed*, and no tickets were issued. Diagnostics (evidence\u202f20) report fault `worker_paused` with the error **\"WorkerPaused: controlled interruption\"** for the same order, and metrics record a single failed job. Health (evidence\u202f19) confirms the service is healthy, latency is normal (12\u202fms), and checkout is available. \n\nThe runbook retrieved (evidence\u202f22) classifies a paused worker as a *controlled interruption*, not a code defect. It advises that a paused worker may be resumed only with approval under the default contract, and that retrying the order via the idempotent `retry_order` operation is the correct remediation. Forcing a ticket creation is prohibited because it risks duplicate entitlements. A worker defect would manifest as an unexpected error or code\u2011level failure; the explicit `WorkerPaused` message and the absence of any other fault signals indicate an operational pause rather than a software bug. \n\n**Uncertainty**: The root cause of the pause (e.g., external throttling, manual stop, or scheduler action) is not documented in the available evidence. No code\u2011defect indicators are present. \n\n**Conclusion**: The incident is a controlled worker pause (interruption), not a code defect. Resume the worker after approval and retry the order; avoid arbitrary restarts or ticket creation.",
+      "evidence_ids": [
+        "bc07ce66-d83e-4043-b6f5-f0ed9bdf9a55"
+      ],
+      "candidates": [
+        {
+          "id": "c1",
+          "rationale": "Resume worker then retry order per contract; approval required for resume_worker.",
+          "actions": [
+            {
+              "operation": "resume_worker",
+              "order_id": null
+            },
+            {
+              "operation": "retry_order",
+              "order_id": "3919ba8e-0172-46a1-ab8e-a699d41930a4"
+            }
+          ],
+          "risks": [
+            "Without approval resume_worker cannot execute and recovery stalls.",
+            "retry_order assumes the worker is runnable; if the pause persists, the retry may fail or be rejected by the system."
+          ]
+        },
+        {
+          "id": "c2",
+          "rationale": "Restore checkout circuit then resume worker; restore_checkout addresses possible injected fault.",
+          "actions": [
+            {
+              "operation": "restore_checkout",
+              "order_id": null
+            },
+            {
+              "operation": "resume_worker",
+              "order_id": null
+            }
+          ],
+          "risks": [
+            "restore_checkout may be unnecessary as evidence only shows WorkerPaused; applying it may mutate state misaligned with the actual issue.",
+            "approval gate for worker resume remains independent and required."
+          ]
+        },
+        {
+          "id": "c3",
+          "rationale": "Worker defect escalation via empty actions; no remediation performed.",
+          "actions": [],
+          "risks": [
+            "No remediation performed; requires escalation or further investigation."
+          ]
+        },
+        {
+          "id": "c4",
+          "rationale": "Explicitly unsafe alternative: force_issue_ticket operation (prohibited).",
+          "actions": [
+            {
+              "operation": "force_issue_ticket",
+              "order_id": "3919ba8e-0172-46a1-ab8e-a699d41930a4"
+            }
+          ],
+          "risks": [
+            "May create duplicate entitlements",
+            "Prohibited by contract; gate will reject."
+          ]
+        }
+      ]
+    },
+    "tournament": [
+      {
+        "candidate_id": "c1",
+        "eligible": true,
+        "approval_required": true,
+        "checks": [
+          {
+            "operation": "resume_worker",
+            "passed": true,
+            "reason": "Allowlist, typed parameters and no repeated operation"
+          },
+          {
+            "operation": "retry_order",
+            "passed": true,
+            "reason": "Allowlist, typed parameters and no repeated operation"
+          },
+          {
+            "passed": true,
+            "reason": "Workflow incident and paused worker required; code defects cannot be cleared"
+          }
+        ]
+      },
+      {
+        "candidate_id": "c2",
+        "eligible": false,
+        "approval_required": true,
+        "checks": [
+          {
+            "operation": "restore_checkout",
+            "passed": true,
+            "reason": "Allowlist, typed parameters and no repeated operation"
+          },
+          {
+            "operation": "resume_worker",
+            "passed": true,
+            "reason": "Allowlist, typed parameters and no repeated operation"
+          },
+          {
+            "passed": false,
+            "reason": "Service incident and faulted checkout circuit required"
+          }
+        ]
+      },
+      {
+        "candidate_id": "c3",
+        "eligible": false,
+        "approval_required": false,
+        "checks": [
+          {
+            "passed": false,
+            "reason": "Action count outside contract"
+          }
+        ]
+      },
+      {
+        "candidate_id": "c4",
+        "eligible": false,
+        "approval_required": false,
+        "checks": [
+          {
+            "operation": "force_issue_ticket",
+            "passed": false,
+            "reason": "Allowlist, typed parameters and no repeated operation"
+          },
+          {
+            "passed": false,
+            "reason": "No adapter precondition for operation"
+          }
+        ]
+      }
+    ],
+    "selected": {
+      "id": "c1",
+      "rationale": "Resume worker then retry order per contract; approval required for resume_worker.",
+      "actions": [
+        {
+          "operation": "resume_worker",
+          "order_id": null
+        },
+        {
+          "operation": "retry_order",
+          "order_id": "3919ba8e-0172-46a1-ab8e-a699d41930a4"
+        }
+      ],
+      "risks": [
+        "Without approval resume_worker cannot execute and recovery stalls.",
+        "retry_order assumes the worker is runnable; if the pause persists, the retry may fail or be rejected by the system."
+      ]
+    },
+    "approval_hash": "1526646d7d0637e5047a7cef2be9d03bc1c091b419dc0a13602c4db2690c51a0",
+    "operation_intents": {
+      "fe65276d129f42cd103b70894a1ebf82d9a89f65c33cc56ba6c976a0bfa70212": {
+        "request_id": "1db29825-a73b-42ba-8886-e3a49dc4bac0",
+        "revision": 3,
+        "action": {
+          "operation": "resume_worker",
+          "order_id": null
+        }
+      },
+      "a04b73e6e7fe190fcfb9b428995eb20e11b9a389b7d4e03510ee7475cf9338be": {
+        "request_id": "86b5d002-f8b5-4f98-af32-23ff60b408a6",
+        "revision": 4,
+        "action": {
+          "operation": "retry_order",
+          "order_id": "3919ba8e-0172-46a1-ab8e-a699d41930a4"
+        }
+      }
+    },
+    "verification": {
+      "passed": true,
+      "checks": {
+        "order_read": true,
+        "payment_paid": true,
+        "exactly_one_ticket": true,
+        "valid_entitlement": true,
+        "job_completed": true
+      },
+      "evidence": {
+        "ok": true,
+        "status": 200,
+        "latency_ms": 5.06,
+        "body": {
+          "id": "3919ba8e-0172-46a1-ab8e-a699d41930a4",
+          "event_id": "agentathon",
+          "payment": "paid",
+          "job": "done",
+          "tickets": [
+            {
+              "id": "1877c2e0-18e4-4f34-a719-af356635b123",
+              "valid": true
+            }
+          ]
+        }
+      }
+    },
+    "remaining_risks": [
+      "Mitigation does not establish a permanent code fix."
+    ]
+  },
+  "events": [
+    {
+      "id": 17,
+      "incident_id": "bc07ce66-d83e-4043-b6f5-f0ed9bdf9a55",
+      "timestamp": 1793374907.557732,
+      "stage": "detect",
+      "payload": {
+        "workflow": {
+          "id": "3919ba8e-0172-46a1-ab8e-a699d41930a4",
+          "event_id": "agentathon",
+          "payment": "paid",
+          "job": "failed",
+          "tickets": []
+        }
+      }
+    },
+    {
+      "id": 18,
+      "incident_id": "bc07ce66-d83e-4043-b6f5-f0ed9bdf9a55",
+      "timestamp": 1793374907.635808,
+      "stage": "diagnose",
+      "payload": {
+        "provider": "CrewAI / NVIDIA NIM"
+      }
+    },
+    {
+      "id": 19,
+      "incident_id": "bc07ce66-d83e-4043-b6f5-f0ed9bdf9a55",
+      "timestamp": 1793374910.013932,
+      "stage": "tool_result",
+      "payload": {
+        "tool": "health",
+        "result": {
+          "ok": true,
+          "status": 200,
+          "latency_ms": 12.16,
+          "body": {
+            "status": "healthy",
+            "checkout_available": true
+          }
+        }
+      }
+    },
+    {
+      "id": 20,
+      "incident_id": "bc07ce66-d83e-4043-b6f5-f0ed9bdf9a55",
+      "timestamp": 1793374910.6188219,
+      "stage": "tool_result",
+      "payload": {
+        "tool": "diagnostics",
+        "result": {
+          "ok": true,
+          "status": 200,
+          "latency_ms": 8.69,
+          "body": {
+            "revision": 3,
+            "fault": "worker_paused",
+            "metrics": {
+              "failed_jobs": 1
+            },
+            "logs": [
+              {
+                "job_id": "4c48d8c5-1cf3-4a86-a040-9fdfa909017d",
+                "order_id": "3919ba8e-0172-46a1-ab8e-a699d41930a4",
+                "status": "failed",
+                "attempts": 1,
+                "error": "WorkerPaused: controlled interruption"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 21,
+      "incident_id": "bc07ce66-d83e-4043-b6f5-f0ed9bdf9a55",
+      "timestamp": 1793374912.649379,
+      "stage": "tool_result",
+      "payload": {
+        "tool": "workflows",
+        "result": {
+          "ok": true,
+          "status": 200,
+          "latency_ms": 12.64,
+          "body": {
+            "revision": 3,
+            "discrepancies": [
+              {
+                "id": "3919ba8e-0172-46a1-ab8e-a699d41930a4",
+                "event_id": "agentathon",
+                "payment": "paid",
+                "job": "failed",
+                "tickets": []
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 22,
+      "incident_id": "bc07ce66-d83e-4043-b6f5-f0ed9bdf9a55",
+      "timestamp": 1793374916.240044,
+      "stage": "tool_result",
+      "payload": {
+        "tool": "runbook_search",
+        "query": "worker_paused controlled interruption",
+        "result": [
+          {
+            "id": "background_job_failure.md",
+            "text": "# Paid order without entitlement\nRead workflows, then worker logs and actual order/payment/ticket records. A paused worker\ncan be resumed only with approval under the default contract. A ready worker can retry the\nspecific order through the idempotent retry_order operation. Never force-create a ticket:\nthat strategy risks duplicate entitlements. Verify payment=paid, exactly one valid ticket\nand job=done. A worker_defect is a code issue: escalate to an explicitly imported repository\nand run immutable regression tests in the code sandbox. Restart cannot fix a genuine defect.\n",
+            "distance": 0.8071526885032654,
+            "retrieval": "ChromaDB lexical hash cosine"
+          },
+          {
+            "id": "service_outage.md",
+            "text": "# Checkout unavailable or slow\nInspect health, latency and authenticated diagnostics before a mutation. A checkout circuit\nfault can be mitigated with restore_checkout only if fresh diagnostics confirms the fault.\nDeleting a database, disabling authentication, and arbitrary container restart are forbidden.\nVerify three successful health probes, checkout_available=true and contract latency bound.\nThis controlled circuit restoration is a mitigation; investigate the initiating cause separately.\n",
+            "distance": 0.864749550819397,
+            "retrieval": "ChromaDB lexical hash cosine"
+          }
+        ]
+      }
+    },
+    {
+      "id": 23,
+      "incident_id": "bc07ce66-d83e-4043-b6f5-f0ed9bdf9a55",
+      "timestamp": 1793374924.670706,
+      "stage": "diagnosis",
+      "payload": {
+        "text": "**Diagnosis (\u2248150\u202fwords)**  \n\nThe workflow record (evidence\u202f21) shows order\u202f`3919ba8e-0172-46a1-ab8e-a699d41930a4` was paid, its job status is *failed*, and no tickets were issued. Diagnostics (evidence\u202f20) report fault\u202f`worker_paused` with the error **\u201cWorkerPaused: controlled interruption\u201d** for the same order, and metrics record a single failed job. Health (evidence\u202f19) confirms the service is healthy, latency is normal (12\u202fms), and checkout is available.  \n\nThe runbook retrieved (evidence\u202f22) classifies a paused worker as a *controlled interruption*, not a code defect. It advises that a paused worker may be resumed only with approval under the default contract, and that retrying the order via the idempotent `retry_order` operation is the correct remediation. Forcing a ticket creation is prohibited because it risks duplicate entitlements. A worker defect would manifest as an unexpected error or code\u2011level failure; the explicit `WorkerPaused` message and the absence of any other fault signals indicate an operational pause rather than a software bug.  \n\n**Uncertainty**: The root cause of the pause (e.g., external throttling, manual stop, or scheduler action) is not documented in the available evidence. No code\u2011defect indicators are present.  \n\n**Conclusion**: The incident is a controlled worker pause (interruption), not a code defect. Resume the worker after approval and retry the order; avoid arbitrary restarts or ticket creation."
+      }
+    },
+    {
+      "id": 24,
+      "incident_id": "bc07ce66-d83e-4043-b6f5-f0ed9bdf9a55",
+      "timestamp": 1793375111.250525,
+      "stage": "plan",
+      "payload": {
+        "diagnosis": "**Diagnosis (\u2248150 words)** \n\nThe workflow record (evidence\u202f21) shows order `3919ba8e-0172-46a1-ab8e-a699d41930a4` was paid, its job status is *failed*, and no tickets were issued. Diagnostics (evidence\u202f20) report fault `worker_paused` with the error **\"WorkerPaused: controlled interruption\"** for the same order, and metrics record a single failed job. Health (evidence\u202f19) confirms the service is healthy, latency is normal (12\u202fms), and checkout is available. \n\nThe runbook retrieved (evidence\u202f22) classifies a paused worker as a *controlled interruption*, not a code defect. It advises that a paused worker may be resumed only with approval under the default contract, and that retrying the order via the idempotent `retry_order` operation is the correct remediation. Forcing a ticket creation is prohibited because it risks duplicate entitlements. A worker defect would manifest as an unexpected error or code\u2011level failure; the explicit `WorkerPaused` message and the absence of any other fault signals indicate an operational pause rather than a software bug. \n\n**Uncertainty**: The root cause of the pause (e.g., external throttling, manual stop, or scheduler action) is not documented in the available evidence. No code\u2011defect indicators are present. \n\n**Conclusion**: The incident is a controlled worker pause (interruption), not a code defect. Resume the worker after approval and retry the order; avoid arbitrary restarts or ticket creation.",
+        "evidence_ids": [
+          "bc07ce66-d83e-4043-b6f5-f0ed9bdf9a55"
+        ],
+        "candidates": [
+          {
+            "id": "c1",
+            "rationale": "Resume worker then retry order per contract; approval required for resume_worker.",
+            "actions": [
+              {
+                "operation": "resume_worker",
+                "order_id": null
+              },
+              {
+                "operation": "retry_order",
+                "order_id": "3919ba8e-0172-46a1-ab8e-a699d41930a4"
+              }
+            ],
+            "risks": [
+              "Without approval resume_worker cannot execute and recovery stalls.",
+              "retry_order assumes the worker is runnable; if the pause persists, the retry may fail or be rejected by the system."
+            ]
+          },
+          {
+            "id": "c2",
+            "rationale": "Restore checkout circuit then resume worker; restore_checkout addresses possible injected fault.",
+            "actions": [
+              {
+                "operation": "restore_checkout",
+                "order_id": null
+              },
+              {
+                "operation": "resume_worker",
+                "order_id": null
+              }
+            ],
+            "risks": [
+              "restore_checkout may be unnecessary as evidence only shows WorkerPaused; applying it may mutate state misaligned with the actual issue.",
+              "approval gate for worker resume remains independent and required."
+            ]
+          },
+          {
+            "id": "c3",
+            "rationale": "Worker defect escalation via empty actions; no remediation performed.",
+            "actions": [],
+            "risks": [
+              "No remediation performed; requires escalation or further investigation."
+            ]
+          },
+          {
+            "id": "c4",
+            "rationale": "Explicitly unsafe alternative: force_issue_ticket operation (prohibited).",
+            "actions": [
+              {
+                "operation": "force_issue_ticket",
+                "order_id": "3919ba8e-0172-46a1-ab8e-a699d41930a4"
+              }
+            ],
+            "risks": [
+              "May create duplicate entitlements",
+              "Prohibited by contract; gate will reject."
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": 25,
+      "incident_id": "bc07ce66-d83e-4043-b6f5-f0ed9bdf9a55",
+      "timestamp": 1793375111.283299,
+      "stage": "precondition_evidence",
+      "payload": {
+        "ok": true,
+        "status": 200,
+        "latency_ms": 17.87,
+        "body": {
+          "revision": 3,
+          "fault": "worker_paused",
+          "metrics": {
+            "failed_jobs": 1
+          },
+          "logs": [
+            {
+              "job_id": "4c48d8c5-1cf3-4a86-a040-9fdfa909017d",
+              "order_id": "3919ba8e-0172-46a1-ab8e-a699d41930a4",
+              "status": "failed",
+              "attempts": 1,
+              "error": "WorkerPaused: controlled interruption"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": 26,
+      "incident_id": "bc07ce66-d83e-4043-b6f5-f0ed9bdf9a55",
+      "timestamp": 1793375111.284626,
+      "stage": "tournament",
+      "payload": {
+        "results": [
+          {
+            "candidate_id": "c1",
+            "eligible": true,
+            "approval_required": true,
+            "checks": [
+              {
+                "operation": "resume_worker",
+                "passed": true,
+                "reason": "Allowlist, typed parameters and no repeated operation"
+              },
+              {
+                "operation": "retry_order",
+                "passed": true,
+                "reason": "Allowlist, typed parameters and no repeated operation"
+              },
+              {
+                "passed": true,
+                "reason": "Workflow incident and paused worker required; code defects cannot be cleared"
+              }
+            ]
+          },
+          {
+            "candidate_id": "c2",
+            "eligible": false,
+            "approval_required": true,
+            "checks": [
+              {
+                "operation": "restore_checkout",
+                "passed": true,
+                "reason": "Allowlist, typed parameters and no repeated operation"
+              },
+              {
+                "operation": "resume_worker",
+                "passed": true,
+                "reason": "Allowlist, typed parameters and no repeated operation"
+              },
+              {
+                "passed": false,
+                "reason": "Service incident and faulted checkout circuit required"
+              }
+            ]
+          },
+          {
+            "candidate_id": "c3",
+            "eligible": false,
+            "approval_required": false,
+            "checks": [
+              {
+                "passed": false,
+                "reason": "Action count outside contract"
+              }
+            ]
+          },
+          {
+            "candidate_id": "c4",
+            "eligible": false,
+            "approval_required": false,
+            "checks": [
+              {
+                "operation": "force_issue_ticket",
+                "passed": false,
+                "reason": "Allowlist, typed parameters and no repeated operation"
+              },
+              {
+                "passed": false,
+                "reason": "No adapter precondition for operation"
+              }
+            ]
+          }
+        ],
+        "selection_rule": "eligible, no approval, fewer actions, stable ID"
+      }
+    },
+    {
+      "id": 27,
+      "incident_id": "bc07ce66-d83e-4043-b6f5-f0ed9bdf9a55",
+      "timestamp": 1793375111.290059,
+      "stage": "approval_required",
+      "payload": {
+        "candidate": "c1",
+        "approval_hash": "1526646d7d0637e5047a7cef2be9d03bc1c091b419dc0a13602c4db2690c51a0"
+      }
+    },
+    {
+      "id": 28,
+      "incident_id": "bc07ce66-d83e-4043-b6f5-f0ed9bdf9a55",
+      "timestamp": 1793375111.2917042,
+      "stage": "test_operator_approval",
+      "payload": {
+        "physical_human_click": false,
+        "scope": "local demo fixture"
+      }
+    },
+    {
+      "id": 29,
+      "incident_id": "bc07ce66-d83e-4043-b6f5-f0ed9bdf9a55",
+      "timestamp": 1793375111.301358,
+      "stage": "authorized",
+      "payload": {
+        "candidate": "c1",
+        "approval_hash": "1526646d7d0637e5047a7cef2be9d03bc1c091b419dc0a13602c4db2690c51a0"
+      }
+    },
+    {
+      "id": 30,
+      "incident_id": "bc07ce66-d83e-4043-b6f5-f0ed9bdf9a55",
+      "timestamp": 1793375111.310965,
+      "stage": "safety_gate",
+      "payload": {
+        "candidate_id": "c1",
+        "eligible": true,
+        "approval_required": false,
+        "checks": [
+          {
+            "operation": "resume_worker",
+            "passed": true,
+            "reason": "Allowlist, typed parameters and no repeated operation"
+          },
+          {
+            "operation": "retry_order",
+            "passed": true,
+            "reason": "Allowlist, typed parameters and no repeated operation"
+          },
+          {
+            "passed": true,
+            "reason": "Workflow incident and paused worker required; code defects cannot be cleared"
+          }
+        ]
+      }
+    },
+    {
+      "id": 31,
+      "incident_id": "bc07ce66-d83e-4043-b6f5-f0ed9bdf9a55",
+      "timestamp": 1793375111.315137,
+      "stage": "safety_gate",
+      "payload": {
+        "candidate_id": "c1",
+        "eligible": true,
+        "approval_required": false,
+        "checks": [
+          {
+            "operation": "resume_worker",
+            "passed": true,
+            "reason": "Allowlist, typed parameters and no repeated operation"
+          },
+          {
+            "passed": true,
+            "reason": "Workflow incident and paused worker required; code defects cannot be cleared"
+          }
+        ]
+      }
+    },
+    {
+      "id": 32,
+      "incident_id": "bc07ce66-d83e-4043-b6f5-f0ed9bdf9a55",
+      "timestamp": 1793375111.319096,
+      "stage": "operation_intent",
+      "payload": {
+        "request_id": "1db29825-a73b-42ba-8886-e3a49dc4bac0",
+        "revision": 3,
+        "action": {
+          "operation": "resume_worker",
+          "order_id": null
+        }
+      }
+    },
+    {
+      "id": 33,
+      "incident_id": "bc07ce66-d83e-4043-b6f5-f0ed9bdf9a55",
+      "timestamp": 1793375111.410937,
+      "stage": "operation_result",
+      "payload": {
+        "action": {
+          "operation": "resume_worker",
+          "order_id": null
+        },
+        "result": {
+          "mitigation": "worker resumed",
+          "permanent_fix": false,
+          "revision": 4
+        }
+      }
+    },
+    {
+      "id": 34,
+      "incident_id": "bc07ce66-d83e-4043-b6f5-f0ed9bdf9a55",
+      "timestamp": 1793375111.415744,
+      "stage": "safety_gate",
+      "payload": {
+        "candidate_id": "c1",
+        "eligible": true,
+        "approval_required": false,
+        "checks": [
+          {
+            "operation": "retry_order",
+            "passed": true,
+            "reason": "Allowlist, typed parameters and no repeated operation"
+          },
+          {
+            "passed": true,
+            "reason": "Worker must be ready and order must match incident"
+          }
+        ]
+      }
+    },
+    {
+      "id": 35,
+      "incident_id": "bc07ce66-d83e-4043-b6f5-f0ed9bdf9a55",
+      "timestamp": 1793375111.4172668,
+      "stage": "operation_intent",
+      "payload": {
+        "request_id": "86b5d002-f8b5-4f98-af32-23ff60b408a6",
+        "revision": 4,
+        "action": {
+          "operation": "retry_order",
+          "order_id": "3919ba8e-0172-46a1-ab8e-a699d41930a4"
+        }
+      }
+    },
+    {
+      "id": 36,
+      "incident_id": "bc07ce66-d83e-4043-b6f5-f0ed9bdf9a55",
+      "timestamp": 1793375111.4223738,
+      "stage": "operation_result",
+      "payload": {
+        "action": {
+          "operation": "retry_order",
+          "order_id": "3919ba8e-0172-46a1-ab8e-a699d41930a4"
+        },
+        "result": {
+          "ticket_id": "1877c2e0-18e4-4f34-a719-af356635b123",
+          "created": false,
+          "revision": 5
+        }
+      }
+    },
+    {
+      "id": 37,
+      "incident_id": "bc07ce66-d83e-4043-b6f5-f0ed9bdf9a55",
+      "timestamp": 1793375111.42892,
+      "stage": "verification",
+      "payload": {
+        "passed": true,
+        "checks": {
+          "order_read": true,
+          "payment_paid": true,
+          "exactly_one_ticket": true,
+          "valid_entitlement": true,
+          "job_completed": true
+        },
+        "evidence": {
+          "ok": true,
+          "status": 200,
+          "latency_ms": 5.06,
+          "body": {
+            "id": "3919ba8e-0172-46a1-ab8e-a699d41930a4",
+            "event_id": "agentathon",
+            "payment": "paid",
+            "job": "done",
+            "tickets": [
+              {
+                "id": "1877c2e0-18e4-4f34-a719-af356635b123",
+                "valid": true
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 38,
+      "incident_id": "bc07ce66-d83e-4043-b6f5-f0ed9bdf9a55",
+      "timestamp": 1793375111.430936,
+      "stage": "record",
+      "payload": {
+        "resolved": true
+      }
+    },
+    {
+      "id": 39,
+      "incident_id": "bc07ce66-d83e-4043-b6f5-f0ed9bdf9a55",
+      "timestamp": 1793375111.4314392,
+      "stage": "notification",
+      "payload": {
+        "delivered": false,
+        "reason": "Webhook not configured"
+      }
+    }
+  ],
+  "success": true,
+  "reasoning_provider": "CrewAI / NVIDIA NIM"
+}

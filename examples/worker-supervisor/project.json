@@ -1,0 +1,18 @@
+{
+  "id": "checkout-worker",
+  "name": "Independent Docker worker",
+  "base_url": "http://127.0.0.1:18003",
+  "token_env": "SUPERVISOR_RECOVERY_TOKEN",
+  "contract": {"allowed": ["restart_worker"], "approval_required": ["restart_worker"]},
+  "integration": {
+    "health_path": "/health",
+    "diagnostics_path": "/internal/state",
+    "health_checks": [{"pointer": "/ready", "value": true}],
+    "service_checks": [{"pointer": "/worker/running", "value": true}],
+    "operations": [{
+      "name": "restart_worker", "description": "Restart the fixed stopped worker after checking its current container state",
+      "path": "/internal/restart", "effect": "restart", "risk": "high",
+      "preconditions": [{"pointer": "/worker/running", "value": false}]
+    }]
+  }
+}

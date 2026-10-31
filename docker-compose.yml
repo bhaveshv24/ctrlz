@@ -1,0 +1,26 @@
+services:
+  api:
+    build: ./backend
+    env_file: .env
+    environment:
+      DATABASE_URL: sqlite:////data/ctrlz.db
+      DATA_DIR: /data
+      RUNBOOK_DIR: /runbooks
+      CREWAI_STORAGE_DIR: /data/crewai
+      IMPORT_ROOT: /imports
+    ports: ["127.0.0.1:8000:8000"]
+    volumes: ["ctrlz-data:/data", "./runbooks:/runbooks:ro"]
+    networks:
+      agentathon:
+        aliases: [ctrlz-api]
+  web:
+    build: ./frontend
+    ports: ["127.0.0.1:5173:80"]
+    depends_on: [api]
+    networks: [agentathon]
+volumes:
+  ctrlz-data:
+networks:
+  agentathon:
+    name: agentathon-demo
+    external: true

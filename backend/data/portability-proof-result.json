@@ -1,0 +1,23 @@
+{
+  "passed": false,
+  "results": [
+    false,
+    true
+  ],
+  "upstream": {
+    "kind": "github",
+    "url": "https://github.com/r1chardj0n3s/parse",
+    "upstream_commit": "7f07b64089338ee7b7db85a752eb45c4816c2657",
+    "subdirectory": "",
+    "controlled_regression": {
+      "file": "parse/__init__.py",
+      "description": "Intentionally changed percentage conversion; not an upstream defect",
+      "original_upstream_suite_passed": true,
+      "upstream_test_cases": 118
+    }
+  },
+  "typescript_fixture": {
+    "kind": "local",
+    "source": "/Users/bvell/Documents/PES/EVENTS/HACKATHONS/agentathon/ctrlz/backend/data/vitest-fixture"
+  }
+}

@@ -1,0 +1,22 @@
+[Unit]
+Description=CampusPass independent demo API and worker
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=campuspass
+Group=campuspass
+WorkingDirectory=/srv/agentathon/campuspass/backend
+EnvironmentFile=/srv/agentathon/campuspass/.env
+ExecStart=/srv/agentathon/campuspass/backend/.venv/bin/uvicorn campuspass.main:create_app --factory --host 127.0.0.1 --port 8001
+Restart=on-failure
+RestartSec=5
+UMask=0077
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/srv/agentathon/campuspass/backend/data
+
+[Install]
+WantedBy=multi-user.target
