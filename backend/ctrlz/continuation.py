@@ -86,8 +86,7 @@ class Continuation:
         return Sandbox(worktree, 'python-pytest').run()
 
     async def run(self, incident_id, request: ImportRequest):
-        from .reasoning import NIMReasoner
-        reasoner = NIMReasoner(request.model) if request.model and isinstance(self.reasoner, NIMReasoner) else self.reasoner
+        reasoner = self.reasoner
         worktree = None; repo = None; added = False; sandbox = None
         try:
             self.store.update(incident_id, status='diagnosing', error=None, reasoning_provider=getattr(reasoner, 'provider', 'test fixture'), model=getattr(reasoner, 'selected_model', None))
@@ -141,7 +140,9 @@ class Continuation:
             initial = {}
             failed_ids = ' '.join(c['id'] for c in baseline['cases'] if not c['passed'])
             relevant_tests = [p for p in inspection['tests'] if Path(p).stem in failed_ids]
-            selected = [p for p in paths if p in {'pyproject.toml', 'package.json', 'requirements.txt'}]+inspection['editable_files'][:3]+relevant_tests+inspection['tests'][:2]
+            failure_output = baseline.get('output', '')
+            implicated_sources = [name for name in inspection['editable_files'] if name in failure_output]
+            selected = implicated_sources+[p for p in paths if p in {'pyproject.toml', 'package.json', 'requirements.txt'}]+inspection['editable_files'][:3]+relevant_tests+inspection['tests'][:2]
             budget = 20000
             for name in dict.fromkeys(selected):
                 text = (worktree/name).read_text(errors='replace')

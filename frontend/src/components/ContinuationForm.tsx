@@ -46,7 +46,6 @@ export default function ContinuationForm({
     [snapshot, setSnapshot] = useState<Assessment | null>(null),
     [requirements, setRequirements] = useState(""),
     [context, setContext] = useState(""),
-    [model, setModel] = useState(""),
     [approve, setApprove] = useState(false);
   const [executionEnabled, setExecutionEnabled] = useState(true);
   useEffect(() => {
@@ -97,7 +96,6 @@ export default function ContinuationForm({
               repository: snapshot.repository,
               requirements,
               context,
-              model: model.trim() || null,
               acceptance_profile: snapshot.profile,
               install_dependencies: approve,
             });
@@ -119,10 +117,6 @@ export default function ContinuationForm({
         Import a snapshot, reproduce the failure, and review a patch backed by
         the same tests.
       </p>
-      <label>Alternative NVIDIA NIM model (optional)
-        <input value={model} onChange={e => setModel(e.target.value)} placeholder="Use the configured default, or enter provider/model" pattern="[a-zA-Z0-9_./\-]+" maxLength={150} />
-        <small>The selected model uses the server’s NVIDIA credentials. Provider availability is checked when reasoning runs.</small>
-      </label>
       <RepoIntelligence
         token={token}
         repository={

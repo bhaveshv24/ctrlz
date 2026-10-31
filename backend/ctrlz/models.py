@@ -76,7 +76,13 @@ class RecoveryPlan(Strict):
 
 
 class ImportRequest(Strict):
-    model: str | None = Field(default=None, pattern=r"^[a-zA-Z0-9_./-]{1,150}$")
+    @model_validator(mode="before")
+    @classmethod
+    def discard_legacy_model_override(cls, value):
+        if isinstance(value, dict):
+            return {key: item for key, item in value.items() if key != "model"}
+        return value
+
     repository: str
     requirements: str = Field(min_length=10, max_length=20000)
     context: str = Field(default="", max_length=20000)

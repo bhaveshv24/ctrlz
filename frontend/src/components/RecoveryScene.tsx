@@ -44,7 +44,7 @@ export default function RecoveryScene({
 }: {
   children: React.ReactNode;
 }) {
-  const [opening, setOpening] = useState(() => new URLSearchParams(window.location.search).get("intro") === "1");
+  const [opening, setOpening] = useState(true);
   const [departing, setDeparting] = useState(false);
   const departure = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => () => { if (departure.current) clearTimeout(departure.current); }, []);

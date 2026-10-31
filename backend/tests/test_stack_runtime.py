@@ -106,3 +106,20 @@ async def test_blocked_repository_repair_also_notifies(tmp_path):
     assert len(notified) == 1
     assert notified[0]["status"] in {"blocked", "escalated"}
     store.engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_legacy_model_override_cannot_change_repair_reasoner(tmp_path):
+    request = ImportRequest.model_validate({
+        "repository": "missing-repository",
+        "requirements": "Repair the reproduced failure",
+        "model": "other-provider/other-model",
+    })
+    assert "model" not in request.model_dump()
+    assert "model" not in ImportRequest.model_json_schema()["properties"]
+    store = Store(f"sqlite:///{tmp_path / 'model-check.db'}")
+    incident, _ = store.create("code-import", "code", "missing-repository", {})
+    continuation = Continuation(store, Reasoner(), tmp_path / "imports", tmp_path / "patches")
+    await continuation.run(incident["id"], request)
+    assert store.get(incident["id"])["model"] == "fixture-model"
+    store.engine.dispose()

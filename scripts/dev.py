@@ -7,6 +7,9 @@ import socket
 import subprocess
 import sys
 import time
+import json
+from urllib.error import URLError
+from urllib.request import Request, build_opener, ProxyHandler
 from pathlib import Path
 
 
@@ -37,6 +40,25 @@ def stop_services(processes):
             else:
                 process.kill()
             process.wait()
+
+
+def wait_for_api(process, port, timeout=90):
+    deadline = time.monotonic() + timeout
+    opener = build_opener(ProxyHandler({}))
+    while time.monotonic() < deadline:
+        result = process.poll()
+        if result is not None:
+            raise SystemExit(f"API exited during startup ({result}). See its error above.")
+        try:
+            with opener.open(Request(f"http://127.0.0.1:{port}/health"), timeout=1) as response:
+                body = json.load(response)
+                if response.status == 200 and body.get("status") == "healthy":
+                    print(f"API ready on port {port}. Starting frontend...", flush=True)
+                    return
+        except (URLError, TimeoutError, OSError, ValueError):
+            pass
+        time.sleep(0.2)
+    raise SystemExit(f"API did not become ready on port {port} within {timeout}s.")
 
 
 def main():
@@ -92,7 +114,7 @@ def main():
                   "--strictPort"], root / "frontend"),
             ]
             environment = {**os.environ, "CTRLZ_PROXY_TARGET": f"http://127.0.0.1:{api_port}"}
-            for command, directory in commands:
+            for index, (command, directory) in enumerate(commands):
                 processes.append(subprocess.Popen(
                     command,
                     cwd=directory,
@@ -100,6 +122,9 @@ def main():
                     start_new_session=os.name != "nt",
                     creationflags=subprocess.CREATE_NEW_PROCESS_GROUP if os.name == "nt" else 0,
                 ))
+                if index == 0:
+                    print("Waiting for API startup...", flush=True)
+                    wait_for_api(processes[-1], api_port)
             print(
                 f"Starting {package}: http://localhost:{web_port} "
                 f"| API: http://127.0.0.1:{api_port}/docs",

@@ -42,7 +42,6 @@ export default function IntroJourney({
   enter: () => void;
 }) {
   const host = useRef<HTMLDivElement>(null);
-  const jump = useRef<(chapter: number) => void>(() => {});
   useLayoutEffect(() => {
     const el = host.current!,
       panels = Array.from(el.querySelectorAll<HTMLElement>(".journey-chapter"));
@@ -62,9 +61,6 @@ export default function IntroJourney({
         enter();
         return;
       }
-      el.querySelectorAll(".journey-stops button").forEach((button, index) => {
-        button.setAttribute("aria-current", String(index === active));
-      });
       panels.forEach((panel, index) => {
         const distance = position - index,
           opacity = Math.max(
@@ -135,11 +131,6 @@ export default function IntroJourney({
       );
       if (!frame) frame = requestAnimationFrame(settle);
     };
-    jump.current = (chapter) => {
-      target = Math.max(0, Math.min(4, chapter)) / 4.25 * (el.scrollHeight - el.clientHeight);
-      if (reduced.matches) { el.scrollTop = target; update(); }
-      else if (!frame) frame = requestAnimationFrame(settle);
-    };
     const key = (event: KeyboardEvent) => {
       if (
         [
@@ -159,6 +150,8 @@ export default function IntroJourney({
     el.addEventListener("pointerdown", stop);
     el.addEventListener("keydown", key);
     reduced.addEventListener("change", stop);
+    el.scrollTop = 0;
+    target = 0;
     update();
     el.focus({ preventScroll: true });
     el.addEventListener("scroll", update, { passive: true });
@@ -216,18 +209,6 @@ export default function IntroJourney({
           </div>
           <footer className="journey-footer">
             <span>SCROLL TO EXPLORE</span>
-            <nav className="journey-stops" aria-label="Introduction chapters">
-              {chapters.map((chapter, index) => (
-                <button key={chapter.eyebrow} type="button"
-                  aria-label={`Go to ${chapter.eyebrow}`}
-                  onClick={() => jump.current(index)}>
-                  {String(index + 1).padStart(2, "0")}
-                </button>
-              ))}
-            </nav>
-            <button className="journey-skip" type="button" onClick={enter}>
-              Enter workspace <span aria-hidden="true">↗</span>
-            </button>
           </footer>
         </div>
       </div>

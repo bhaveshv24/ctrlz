@@ -1,5 +1,6 @@
 """Create local configuration once; never print secret values."""
 import argparse
+import os
 import secrets
 from pathlib import Path
 
@@ -23,4 +24,13 @@ if args.campuspass:
     settings = dict(line.split('=',1) for line in campus_env.read_text().splitlines() if '=' in line and not line.startswith('#'))
     content = ctrlz_env.read_text().replace('must-match-campuspass-recovery-token', settings.get('RECOVERY_TOKEN',''))
     ctrlz_env.write_text(content)
-print('Local configuration ready. Set NVIDIA_API_KEY and NVIDIA_MODEL locally, then restart the API. No secret values were printed.')
+values = {}
+for line in ctrlz_env.read_text().splitlines():
+    if "=" in line and not line.lstrip().startswith("#"):
+        key, value = line.split("=", 1)
+        values[key.strip()] = value.strip().strip("\"").strip("'")
+key_configured = bool(os.environ.get("NVIDIA_API_KEY") or values.get("NVIDIA_API_KEY"))
+if key_configured:
+    print("Local configuration ready. NVIDIA credentials already configured.")
+else:
+    print("Local configuration ready. Live AI recovery needs NVIDIA_API_KEY in .env.")

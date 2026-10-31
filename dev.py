@@ -11,8 +11,16 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent
 
 
+def project_environment():
+    environment = dict(os.environ)
+    environment.pop("VIRTUAL_ENV", None)
+    environment.pop("UV_PROJECT_ENVIRONMENT", None)
+    return environment
+
+
 def run(arguments):
-    subprocess.run([str(argument) for argument in arguments], cwd=ROOT, check=True)
+    subprocess.run([str(argument) for argument in arguments], cwd=ROOT,
+                   env=project_environment(), check=True)
 
 
 def main():
@@ -57,7 +65,7 @@ def main():
     signal.signal(signal.SIGTERM, interrupted)
     process = subprocess.Popen(
         [uv, "run", "--project", "backend", "--frozen", "--extra", "test",
-         "python", "scripts/dev.py", *sys.argv[1:]], cwd=ROOT,
+         "python", "scripts/dev.py", *sys.argv[1:]], cwd=ROOT, env=project_environment(),
         start_new_session=os.name != "nt",
         creationflags=subprocess.CREATE_NEW_PROCESS_GROUP if os.name == "nt" else 0,
     )
