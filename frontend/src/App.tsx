@@ -26,9 +26,9 @@ import {
 } from "lucide-react";
 import { api, API, ApiError, type Act, type Project } from "./api";
 import { useControlCenter } from "./hooks/useControlCenter";
-import { Badge, Empty, IncidentList, Metric } from "./components/ui";
+import { Empty, IncidentList, Metric } from "./components/ui";
 import IncidentWorkspace from "./components/IncidentWorkspace";
-import { duration, title, words } from "./presentation";
+import { duration, title } from "./presentation";
 import { navigate } from "./navigation";
 import { useRouteMotion } from "./hooks/useRouteMotion";
 import PageTitle from "./components/PageTitle";
@@ -37,7 +37,6 @@ import ProjectDialog from "./components/ProjectDialog";
 import ContinuationForm from "./components/ContinuationForm";
 import DemoLab from "./pages/DemoLab";
 import { OverviewPlate } from "./components/OverviewPlate";
-import { QualitySetting } from "./components/RecoveryScene";
 import { useRecoveryMotion } from "./hooks/useRecoveryMotion";
 
 const NAV = [
@@ -848,95 +847,6 @@ export default function App() {
                   />
                   <RuntimeStatus token={token} />
                   <AccountSettings token={token} admin={account?.role === "admin"} signedOut={disconnect} />
-                  <div className="settings-grid">
-                    <section className="card">
-                      <h2>Reasoning and access</h2>
-                      <dl className="settings-list">
-                        <div>
-                          <dt>Provider</dt>
-                          <dd>{data.runtime?.provider || "Temporarily unavailable"}</dd>
-                        </div>
-                        <div>
-                          <dt>Selected model</dt>
-                          <dd>
-                            <code>
-                              {data.runtime ? data.runtime.model || "Not configured" : "Temporarily unavailable"}
-                            </code>
-                          </dd>
-                        </div>
-                        <div>
-                          <dt>NVIDIA key</dt>
-                          <dd>
-                            <Badge
-                              state={
-                                !data.runtime ? "unknown" : data.runtime.nim_configured
-                                  ? "healthy"
-                                  : "blocked"
-                              }
-                            >
-                              {!data.runtime ? "Unknown" : data.runtime.nim_configured
-                                ? "Present"
-                                : "Missing"}
-                            </Badge>
-                          </dd>
-                        </div>
-                        <div>
-                          <dt>Updates</dt>
-                          <dd>{words(data.connection)}</dd>
-                        </div>
-                        <div>
-                          <dt>Rehearsal controls</dt>
-                          <dd>
-                            {!data.runtime ? "Temporarily unavailable" : data.runtime.demo_controls_enabled
-                              ? "Enabled; project opt-in required"
-                              : "Disabled"}
-                          </dd>
-                        </div>
-                      </dl>
-                      <p className="subtle">
-                        Key presence is not a provider authentication check.
-                        Credentials remain in backend configuration.
-                      </p>
-                      <QualitySetting />
-                      <button className="button secondary" onClick={disconnect}>
-                        <LogOut size={15} />
-                        Disconnect session
-                      </button>
-                    </section>
-                    <section className="card deployment-card">
-                      <span className="eyebrow">DEPLOYMENT PREPARATION</span>
-                      <h2>Ready for the next step.</h2>
-                      <p>
-                        The deployment checklist lives with the source so the
-                        release is reviewable and repeatable.
-                      </p>
-                      <ul>
-                        <li>
-                          <Check size={15} />
-                          Independent repositories and Docker images
-                        </li>
-                        <li>
-                          <Check size={15} />
-                          Persistent databases and same-origin API proxy
-                        </li>
-                        <li>
-                          <Check size={15} />
-                          Server-side credentials and explicit approvals
-                        </li>
-                        <li>
-                          <span className="pending-dot" />
-                          Hosting, domains and public URLs still to verify
-                        </li>
-                      </ul>
-                      <div className="guide-note">
-                        Current connection: {window.location.host}
-                      </div>
-                      <small>
-                        A public demo deployment does not make this a
-                        multi-tenant production service.
-                      </small>
-                    </section>
-                  </div>
                 </>
               )}
             </>
