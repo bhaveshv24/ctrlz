@@ -9,15 +9,15 @@ export default function RuntimeIncident({receipt,token,onBack,onChange}: {receip
   const [tab,setTab]=useState('Evidence'),[busy,setBusy]=useState(false),[error,setError]=useState('');
   const i=receipt.incident, sample=i.runtime_samples?.[0], source=i.source_evidence;
   const act=async(fn:()=>Promise<unknown>)=>{setBusy(true);setError('');try{await fn();await onChange();}catch(e){setError((e as Error).message);}finally{setBusy(false);}};
-  return <>
+  return <div className="runtime-incident-detail">
     <button className="back-button" onClick={onBack}>All incidents</button>
-    <div className="page-title"><div><span className="eyebrow">RUNTIME INCIDENT / {i.id.slice(0,8)}</span><h1>Observed failure. Reviewable response.</h1><p>{i.project_id} · {sample?.deployment_id || 'Deployment unknown'} · {sample?.environment || 'Environment unknown'}</p></div><Badge state={i.status}/></div>
+    <div className="page-title incident-title"><div><span className="eyebrow">RUNTIME INCIDENT / {i.id.slice(0,8)}</span><h1>Observed failure. Reviewable response.</h1><p>{i.project_id} · {sample?.deployment_id || 'Deployment unknown'} · {sample?.environment || 'Environment unknown'}</p></div><Badge state={i.status}/></div>
     <div className="alert information"><strong>Read-only investigation.</strong> Recommendations have not executed. Production recovery and regression tests are not verified.</div>
     {i.error && <p className="alert warning">{i.error}</p>}{error && <p role="alert">{error}</p>}
     <div className="workspace-tabs" role="tablist" aria-label="Runtime incident views">{['Evidence','Recommendations','Flight recorder','Receipt'].map(t=><button role="tab" aria-selected={tab===t} key={t} onClick={()=>setTab(t)}>{t}</button>)}</div>
-    <section role="tabpanel">
+    <section className={"runtime-view runtime-view-"+tab.toLowerCase().replaceAll(" ","-")} role="tabpanel">
       {tab==='Evidence' && <>
-        {i.workflow_evidence&&<section className="card"><h2>Approved workflow · affected operation</h2><p>Workflow: {String(i.workflow_evidence.approved_rule.name)}</p><p>Instance: {i.workflow_evidence.instance_id} · Resource: {i.workflow_evidence.resource_id||'Unknown'}</p><p>User association: {i.workflow_evidence.user_id||'Unknown'} · {i.workflow_evidence.identity}</p><p>Observed: {i.workflow_evidence.observation}</p><p>Deployed revision: {i.workflow_evidence.revision}</p><p>Audited source: {i.workflow_evidence.source_revision} · {i.workflow_evidence.source_provenance}</p><p>Expected completion: {String(i.workflow_evidence.approved_rule.completion_condition)}</p><pre>{JSON.stringify(i.workflow_evidence.last_evidence,null,2)}</pre></section>}
+        {i.workflow_evidence&&<section className="card"><h2>Approved workflow · affected operation</h2><button className="button secondary" disabled={busy} onClick={()=>act(async()=>{const projects=await api<{id:string;adapter?:string;enabled:boolean;base_url:string|null}[]>('/projects',token);const target=projects.find(p=>p.adapter==='campuspass-v1'&&p.enabled&&p.base_url===String(i.runtime_samples?.[0]?.application_url||''));const id=target?.id||window.prompt('Existing recovery project ID for this same CampusPass deployment');if(!id)return;const r=await api<{incident_id:string}>('/incidents/'+i.id+'/workflow-recovery',token,{project_id:id});window.location.hash='#incident/'+r.incident_id;})}>Investigate affected order recovery · approval still required</button><p>Workflow: {String(i.workflow_evidence.approved_rule.name)}</p><p>Instance: {i.workflow_evidence.instance_id} · Resource: {i.workflow_evidence.resource_id||'Unknown'}</p><p>User association: {i.workflow_evidence.user_id||'Unknown'} · {i.workflow_evidence.identity}</p><p>Observed: {i.workflow_evidence.observation}</p><p>Deployed revision: {i.workflow_evidence.revision}</p><p>Audited source: {i.workflow_evidence.source_revision} · {i.workflow_evidence.source_provenance}</p><p>Expected completion: {String(i.workflow_evidence.approved_rule.completion_condition)}</p><pre>{JSON.stringify(i.workflow_evidence.last_evidence,null,2)}</pre></section>}
         <section className="card"><h2>Observed runtime evidence</h2><p>{i.runtime_summary?.events || 0} events · Affected users: {i.runtime_summary?.affected_users ?? 'Unknown; no reliable user IDs'}</p><p>{i.runtime_summary?.identity_coverage}</p>
           {i.runtime_samples?.map((e,n)=><details key={n} open={n===0}><summary>{String(e.severity)} · {String(e.error_type || 'Runtime failure')} · {String(e.route || 'Route unknown')}</summary><pre>{JSON.stringify(e,null,2)}</pre></details>)}
         </section>
@@ -25,7 +25,7 @@ export default function RuntimeIncident({receipt,token,onBack,onChange}: {receip
           {source?.uncertainties?.map((u,n)=><p key={n}>{u}</p>)}
           {source?.files?.map(f=><details key={f.path} open><summary>{f.path}:{f.line ?? 'failing line unknown'}</summary><p>{f.provenance} · {f.location_evidence}</p><a href={f.source} target="_blank" rel="noreferrer">Source reference at this revision</a><pre>{f.context}</pre></details>)}
         </section>
-        <section className="card"><h2>AI hypothesis</h2><p>Hypothesis based on recorded evidence; no test reproduction has been run.</p><Markdown remarkPlugins={[remarkGfm]} skipHtml>{i.diagnosis || 'Diagnosis pending; unavailable providers are reported honestly.'}</Markdown>
+        <section className="card"><h2>AI hypothesis</h2><p>Hypothesis based on recorded evidence; no test reproduction has been run.</p><div className="markdown"><Markdown remarkPlugins={[remarkGfm]} skipHtml>{i.diagnosis || 'Diagnosis pending; unavailable providers are reported honestly.'}</Markdown></div>
           {i.runtime_assessment?.uncertainties.map((u,n)=><p key={n}>{u}</p>)}
         </section>
       </>}
@@ -46,5 +46,5 @@ export default function RuntimeIncident({receipt,token,onBack,onChange}: {receip
       {tab==='Receipt' && <section className="card receipt-card"><h2>Runtime investigation receipt</h2><p>Incident: {i.id}</p><p>Provider: {receipt.reasoning_provider} · {receipt.model || 'Model not recorded'}</p><p>State: {i.status}. Recovery verified: No. A reviewed recommendation is not an executed recovery.</p><p>{receipt.integrity?.snapshot_digest}</p><button className="button primary" onClick={()=>saveFile('ctrlz-'+i.id+'.json',JSON.stringify(receipt,null,2))}>Download JSON</button><button className="button secondary" onClick={()=>act(()=>downloadBrief(i.id,token))}>Download readable brief</button></section>}
     </section>
     {['blocked','escalated','awaiting_review','recommendation_reviewed'].includes(i.status) && <button className="button secondary" disabled={busy} onClick={()=>act(()=>api('/incidents/'+i.id+'/retry',token,{}))}>Reinvestigate with current evidence</button>}
-  </>;
+  </div>;
 }

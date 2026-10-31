@@ -98,7 +98,7 @@ def run_fixture(c,p):
         '--mount',f'type=bind,src={source.resolve()},dst=/workspace,readonly','--mount',f'type=bind,src={durable.resolve()},dst=/records','--workdir','/workspace','--env-file',str(env_file.resolve()),'ctrlz-sandbox:local','python','app.py']
     subprocess.run(command,check=True,capture_output=True)
     save('run.json',{'container':name,'owner_label':run_id,'proposal_id':p['id'],'revision':revision})
-    activate={'approval_hash':p['approval']['hash'],'revision':revision,'artifact_digest':p['patch']['instrumentation_digest'],'reconciliation_source_id':'state'}
+    activate={'approval_hash':p['approval']['hash'],'revision':revision,'artifact_digest':p['patch']['instrumentation_digest'],'reconciliation_source_id':'state','check_mode':'deadline_targeted'}
     call(c,'POST','/workflow-proposals/'+p['id']+'/activate',json=activate)
     result=subprocess.run(['docker','exec',name,'python','-c',DRIVE],check=True,capture_output=True,text=True,timeout=120)
     results=json.loads(result.stdout);save('operations.json',results);print(json.dumps(results),flush=True)
@@ -124,15 +124,12 @@ def run_fixture(c,p):
             r.raise_for_status();break
         else:raise RuntimeError('Collector rate budget exhausted')
     save('lifecycle.json',{'emitted_events':len(events),'started':sum(e['workflow']['kind']=='workflow.started' for e in events),'completed':sum(e['workflow']['kind']=='workflow.completed' for e in events),'explicit_error_events':0})
-    args=[sys.executable,str(ROOT/'scripts/workflow_sqlite_collector.py'),'--database',str(durable/'jobs.db'),'--receiver',API+setup['state']['receiver_path'],'--token-file',setup['state']['credential_file'],
-        '--proposal',p['id'],'--workflow',p['rule']['id'],'--revision',revision,'--artifact-digest',p['patch']['instrumentation_digest'],'--table','jobs','--id-column','id','--resource-column','resource_id','--state-column','status','--created-column','created']
-    subprocess.run(args,check=True)
-    print('1,000 real HTTP submissions; 999 completed, one pending. Independent read-only collector delivered durable evidence. No recovery operation or global restart was performed.',flush=True)
+    print('Lifecycle evidence delivered. Run `workflow_demo.py watch` for deadline-triggered checks only; no full database snapshot is sent.',flush=True)
 
 def watch(p):
-    setup=load('sources.json');run=load('run.json')
-    args=[sys.executable,str(ROOT/'scripts/workflow_sqlite_collector.py'),'--database',str(DATA/'application-data/jobs.db'),'--receiver',API+setup['state']['receiver_path'],'--token-file',setup['state']['credential_file'],
-        '--proposal',p['id'],'--workflow',p['rule']['id'],'--revision',run['revision'],'--artifact-digest',p['patch']['instrumentation_digest'],'--table','jobs','--id-column','id','--resource-column','resource_id','--state-column','status','--created-column','created','--interval','15']
+    setup=load('sources.json')
+    args=[sys.executable,str(ROOT/'scripts/workflow_deadline_checker.py'),'--database',str(DATA/'application-data/jobs.db'),'--receiver',API+setup['state']['receiver_path'],'--token-file',setup['state']['credential_file'],
+        '--table','jobs','--id-column','id','--resource-column','resource_id','--state-column','status','--created-column','created','--metrics-file',str(DATA/'deadline-metrics.json')]
     subprocess.run(args,check=True)
 
 def main():

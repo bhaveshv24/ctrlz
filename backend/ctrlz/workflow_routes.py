@@ -58,6 +58,28 @@ def install_workflow_routes(app,auth,workflows,spawn,code_execution):
         except KeyError:raise HTTPException(404,'Workflow proposal not found')
         except ValueError as exc:raise HTTPException(409,str(exc))
 
+    @app.post('/incidents/{incident_id}/workflow-recovery',dependencies=[Depends(auth)])
+    async def recovery(incident_id:str,request:Request):
+        incident=guarded(lambda:workflows.store.get(incident_id));evidence=incident.get('workflow_evidence')
+        if not evidence:raise HTTPException(409,'A correlated workflow incident is required')
+        body=await request.json()
+        if set(body)!={'project_id'}:raise HTTPException(422,'Choose one existing CampusPass recovery project')
+        project=guarded(lambda:workflows.store.project(body['project_id']))
+        proposal=guarded(lambda:workflows.proposal(evidence['proposal_id']))
+        _,deployment,_=workflows.runtime.target(proposal['project_id'],proposal['deployment_id'])
+        if project.get('adapter')!='campuspass-v1' or project.get('base_url')!=deployment.application_url or not project.get('enabled'):raise HTTPException(403,'Recovery target must be the same enabled CampusPass deployment')
+        from uuid import UUID
+        resource=evidence.get('resource_id')
+        try:UUID(resource)
+        except (ValueError,TypeError):raise HTTPException(409,'Valid correlated order ID required')
+        # Use the existing engine/adapter and exact approval gate; no execution here.
+        target,created=workflows.store.create(project['id'],'workflow',resource,{'workflow_handoff':{'incident_id':incident_id,'proposal_id':proposal['id'],'evidence':evidence}})
+        if created:
+            workflows.store.record(target['id'],'detect',{'mode':'explicit_correlated_workflow_handoff','source_incident':incident_id,'resource':resource})
+            spawn(app.state.engine.run(target['id']))
+        workflows.store.record(incident_id,'workflow_recovery_handoff',{'recovery_incident':target['id'],'execution_authorized':False})
+        return {'incident_id':target['id'],'execution_authorized':False}
+
     @app.get('/workflow-proposals/{proposal_id}/artifacts/{artifact}',dependencies=[Depends(auth)])
     def artifact(proposal_id:str,artifact:str):
         p=guarded(lambda:workflows.proposal(proposal_id))

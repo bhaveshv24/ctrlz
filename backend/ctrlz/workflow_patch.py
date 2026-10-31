@@ -15,6 +15,7 @@ def compile_patch(files,rule,plan,audit_id,approval_hash):
     if [h.model_dump() for h in plan.hooks]!=[h.model_dump() for h in rule.hooks]:
         raise ValueError('AI hook plan exceeds or differs from the exact approved scope')
     result=dict(files)
+    if rule.instrumentation_driver=='campuspass_committed_session':return compile_session(files,rule,plan,audit_id,approval_hash)
     tag=digest({'approval':approval_hash,'hooks':[h.model_dump() for h in plan.hooks]})
     helper=Path(__file__).with_name('workflow_probe.py').read_text()
     helpers=set()
@@ -52,6 +53,29 @@ def compile_patch(files,rule,plan,audit_id,approval_hash):
     for path in helpers:result[path]=helper
     diff=''.join(''.join(difflib.unified_diff(files.get(p,'').splitlines(True),result[p].splitlines(True),fromfile='a/'+p if p in files else '/dev/null',tofile='b/'+p)) for p in sorted(result) if result[p]!=files.get(p))
     return result,{'instrumentation_digest':tag,'source_digest':tree_digest(result),'changed_files':[p for p in result if result[p]!=files.get(p)],'diff':diff,'rationale':plan.rationale}
+
+
+def compile_session(files,rule,plan,proposal_id,approval_hash):
+    path='backend/campuspass/main.py';helper='backend/campuspass/_ctrlz_session_observer.py'
+    if helper in files:raise ValueError('Generated session helper already exists')
+    original=files[path];tree=ast.parse(original)
+    factory=next((n for n in tree.body if isinstance(n,ast.FunctionDef) and n.name=='create_app'),None)
+    if factory is None:raise ValueError('Expected application factory missing')
+    returns=[n for n in factory.body if isinstance(n,ast.Return) and isinstance(n.value,ast.Name) and n.value.id=='app']
+    if len(returns)!=1:raise ValueError('Ambiguous application return')
+    tag=digest({'approval':approval_hash,'driver':'campuspass_committed_session','rule':rule.model_dump()})
+    contract={'proposal_id':proposal_id,'workflow_id':rule.id,'artifact_digest':tag,'allowed_fields':rule.allowed_fields}
+    lines=original.splitlines(True)
+    lines.insert(returns[0].lineno-1,'    _ctrlz_session_attach(app, sessions, engine, '+repr(contract)+')\n')
+    lines.insert(0,'from ._ctrlz_session_observer import attach as _ctrlz_session_attach\n')
+    candidate=''.join(lines);check=ast.parse(candidate)
+    check.body=check.body[1:]
+    cf=next(n for n in check.body if isinstance(n,ast.FunctionDef) and n.name=='create_app')
+    cf.body=[n for n in cf.body if not(isinstance(n,ast.Expr) and isinstance(n.value,ast.Call) and isinstance(n.value.func,ast.Name) and n.value.func.id=='_ctrlz_session_attach')]
+    if ast.dump(tree,include_attributes=False)!=ast.dump(check,include_attributes=False):raise ValueError('Business AST changed')
+    result={**files,path:candidate,helper:Path(__file__).with_name('campuspass_observer_template.py').read_text()}
+    diff=''.join(''.join(difflib.unified_diff(files.get(p,'').splitlines(True),result[p].splitlines(True),fromfile='a/'+p if p in files else '/dev/null',tofile='b/'+p)) for p in [path,helper])
+    return result,{'instrumentation_digest':tag,'source_digest':tree_digest(result),'changed_files':[path,helper],'diff':diff,'rationale':plan.rationale,'driver':'campuspass_committed_session'}
 
 
 def validate_business_ast(before,after):
@@ -118,10 +142,12 @@ def verify(files,candidate,directory,install_dependencies=False):
         for p in root.rglob('*'):p.chmod(0o755 if p.is_dir() else 0o644)
         root.chmod(0o755)
     directory.chmod(0o755)
-    inspection=inspect_repository(original)
+    base_root=original/'backend' if (original/'backend/pyproject.toml').is_file() and not (original/'pyproject.toml').exists() else original
+    candidate_root=changed/'backend' if base_root!=original else changed
+    inspection=inspect_repository(base_root)
     if inspection['profile']!='python-pytest' or not inspection['tests']:raise ValueError('Instrumentation verification currently requires original Python/pytest acceptance tests')
-    baseline=Sandbox(original,'python-pytest',install_dependencies)
-    instrumented=Sandbox(changed,'python-pytest',install_dependencies)
+    baseline=Sandbox(base_root,'python-pytest',install_dependencies)
+    instrumented=Sandbox(candidate_root,'python-pytest',install_dependencies)
     before_digest=tree_digest(files)
     try:
         setup=baseline.prepare(inspection)
@@ -135,8 +161,11 @@ def verify(files,candidate,directory,install_dependencies=False):
                 'candidate_original_tests_pass':after['exit_code']==0 and bool(after['cases']),
                 'original_snapshot_unchanged':tree_digest({p:(original/p).read_text() for p in files})==before_digest,
                 'original_tests_immutable':all(candidate.get(p)==v for p,v in files.items() if test_file(p))}
-        (changed/'test_ctrlz_instrumentation.py').write_text(PROBE_TEST)
-        (changed/'test_ctrlz_instrumentation.py').chmod(0o644)
+        probe=SESSION_PROBE_TEST if any(p.endswith('_ctrlz_session_observer.py') for p in candidate) else PROBE_TEST
+        dedicated_path=candidate_root/'tests/test_ctrlz_instrumentation.py' if (candidate_root/'tests').is_dir() else candidate_root/'test_ctrlz_instrumentation.py'
+        if dedicated_path.exists():raise ValueError('Dedicated verification test would overwrite existing source')
+        dedicated_path.write_text(probe)
+        dedicated_path.chmod(0o644)
         dedicated=instrumented.run()
         checks['dedicated_instrumentation_tests_pass']=dedicated['exit_code']==0 and len(dedicated['cases'])>=len(after['cases'])+4 and all(c['status']=='passed' for c in dedicated['cases'])
         return {'passed':all(checks.values()),'checks':checks,'baseline':before,'candidate':after,'instrumentation':dedicated,'dependency_setup':setup,'network':'none','limitations':['Functional equivalence is supported by original tests and unchanged business AST, not mathematically guaranteed.','Nonblocking stdout is best-effort; lifecycle delivery alone cannot confirm a missing business outcome.']}
@@ -149,3 +178,52 @@ def export(directory,candidate,patch):
     (directory/'instrumentation.patch').write_text(patch['diff'])
     with zipfile.ZipFile(directory/'instrumented-source.zip','w',zipfile.ZIP_DEFLATED) as archive:
         for path,content in sorted(candidate.items()):archive.writestr(path,content)
+
+SESSION_PROBE_TEST = '''import uuid
+import pytest
+from campuspass.main import create_app
+from campuspass.db import Order,Job,Payment
+
+@pytest.fixture
+def observed(tmp_path,monkeypatch):
+    for key,value in {'CTRLZ_WORKFLOW_ENABLED':'true','CTRLZ_APP_RECEIVER':'http://127.0.0.1:19998/app','CTRLZ_STATE_RECEIVER':'http://127.0.0.1:19998/state','CTRLZ_APP_SOURCE_TOKEN':'app-test','CTRLZ_STATE_SOURCE_TOKEN':'state-test','CTRLZ_DEPLOYED_REVISION':'b'*40}.items():monkeypatch.setenv(key,value)
+    app=create_app('sqlite:///'+str(tmp_path/'orders.db'),worker=False)
+    yield app,app.state.workflow_observer
+    app.state.workflow_observer.close()
+
+def purchase(app):
+    with app.state.sessions.begin() as s:
+        o=Order(request_id=uuid.uuid4().hex,event_id='agentathon',email='fixture@example.com');s.add(o);s.flush();identifier=o.id
+        s.add_all([Payment(order_id=identifier,amount=499),Job(order_id=identifier)]);s.flush()
+    return identifier
+
+def test_committed_start_and_completed_event(observed):
+    app,observer=observed;oid=purchase(app)
+    start=observer.queue.get_nowait();assert start['workflow']['kind']=='workflow.started'
+    assert start['workflow']['instance_id']==oid and 'fixture@example.com' not in str(start)
+    from campuspass.worker import issue
+    with app.state.sessions.begin() as s:issue(s,oid)
+    assert observer.queue.get_nowait()['workflow']['kind']=='workflow.completed'
+
+def test_targeted_read_verifies_entitlement(observed):
+    app,observer=observed;oid=purchase(app)
+    assert observer.lookup(oid)['state']=='pending'
+    from campuspass.worker import issue
+    with app.state.sessions.begin() as s:issue(s,oid)
+    assert observer.lookup(oid)['state']=='completed'
+    assert observer.lookup(str(uuid.uuid4())) is None
+
+def test_rollback_emits_no_start(observed):
+    app,observer=observed
+    with pytest.raises(ValueError):
+        with app.state.sessions.begin() as s:
+            o=Order(request_id=uuid.uuid4().hex,event_id='agentathon',email='fixture@example.com');s.add(o);s.flush();s.add(Job(order_id=o.id));s.flush();raise ValueError('rollback')
+    assert observer.queue.empty()
+
+def test_observation_failure_does_not_break_business_commit(observed,monkeypatch):
+    app,observer=observed
+    def fail(value):raise RuntimeError('export down')
+    monkeypatch.setattr(observer.queue,'put_nowait',fail)
+    oid=purchase(app)
+    assert observer.lookup(oid)['state']=='pending' and observer.metrics['events_dropped']==1
+'''

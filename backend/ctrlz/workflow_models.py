@@ -66,6 +66,7 @@ class WorkflowRule(Strict):
     deadline_seconds: int = Field(default=60,ge=1,le=86400)
     allowed_fields: list[Literal['instance_id','resource_id','request_id','trace_id','user_id','parent_id']] = Field(min_length=1,max_length=6)
     hooks: list[Hook] = Field(default_factory=list,max_length=4)
+    instrumentation_driver: Literal['function_hooks','campuspass_committed_session'] = 'function_hooks'
     uncertainties: list[str] = Field(min_length=1,max_length=10)
     privacy: str = Field(min_length=1,max_length=2000)
     overhead: str = Field(min_length=1,max_length=1000)
@@ -80,6 +81,9 @@ class WorkflowRule(Strict):
         if not isinstance(value,dict):return value
         import copy
         value=copy.deepcopy(value);allowed=set(value.get('allowed_fields',[]));removed=set()
+        if value.get('instrumentation_driver')=='campuspass_committed_session' and value.get('hooks'):
+            value['hooks']=[]
+            value['coverage_limits']=list(value.get('coverage_limits',[]))[:9]+['Committed-session strategy uses only its fixed reviewed model-event hooks; redundant AI function hooks were discarded before review.']
         for hook in value.get('hooks',[]):
             if not isinstance(hook,dict) or not isinstance(hook.get('fields'),dict):continue
             removed.update(set(hook['fields'])-allowed)
@@ -99,11 +103,12 @@ class WorkflowRule(Strict):
             raise ValueError('Unique fields must include instance_id')
         if any(not set(h.fields)<=set(self.allowed_fields) for h in self.hooks):
             raise ValueError('Hook fields exceed the proposed privacy scope')
-        if self.technique=='instrumentation' and (not self.hooks or not any(h.role=='start' for h in self.hooks)):
+        if self.technique=='instrumentation' and self.instrumentation_driver=='function_hooks' and (not self.hooks or not any(h.role=='start' for h in self.hooks)):
             raise ValueError('Instrumentation needs an explicit start anchor')
         if self.technique=='instrumentation' and (self.classification not in {'confirmed_gap','suspected_gap','possible_gap'} or not self.missing_signals):
             raise ValueError('Do not generate instrumentation when no actual observability gap is proposed')
         if len({(h.path,h.function) for h in self.hooks})!=len(self.hooks):raise ValueError('Duplicate function hooks are unsupported')
+        if self.instrumentation_driver=='campuspass_committed_session' and not {'instance_id','resource_id'}<=set(self.allowed_fields):raise ValueError('Ticket reconciliation requires approved order instance/resource IDs')
         return self
 
 
@@ -143,6 +148,7 @@ class Activation(Strict):
     revision: str = Field(pattern=r'^(?:[a-f0-9]{40}|sha256:[a-f0-9]{64})$')
     artifact_digest: str = Field(pattern=r'^[a-f0-9]{64}$')
     reconciliation_source_id: str | None = Field(default=None,pattern=ID)
+    check_mode: Literal['snapshot','deadline_targeted'] = 'snapshot'
 
 
 class WorkflowSignal(Strict):
@@ -157,3 +163,5 @@ class WorkflowSignal(Strict):
     started_at: float | None = Field(default=None,ge=0,allow_inf_nan=False)
     state: Literal['pending','running','completed','failed','cancelled','unknown'] | None = None
     error_class: str | None = Field(default=None,max_length=100,pattern=ID)
+    check_id: str | None = Field(default=None,pattern=ID)
+    check_lease: str | None = Field(default=None,pattern=r'^[a-f0-9]{48}$')

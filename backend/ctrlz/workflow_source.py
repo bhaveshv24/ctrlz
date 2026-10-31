@@ -124,6 +124,10 @@ def validate_rule(rule,files,context):
     for loc in rule.evidence:
         if loc.path not in files or loc.line>len(files[loc.path].splitlines()):raise ValueError('Unknown source evidence location')
     anchors={(a['path'],a['function']):a for a in context['anchors']}
+    if rule.instrumentation_driver=='campuspass_committed_session':
+        needed=['backend/campuspass/main.py','backend/campuspass/db.py','backend/campuspass/worker.py']
+        if not all(p in files for p in needed) or ('backend/campuspass/main.py','create_app') not in anchors:raise ValueError('Committed-session driver requires the verified CampusPass source layout')
+        if rule.hooks:raise ValueError('Session driver uses fixed audited model events, not arbitrary function hooks')
     for hook in rule.hooks:
         anchor=anchors.get((hook.path,hook.function))
         if not anchor or anchor['generator'] or not hook.path.endswith('.py'):raise ValueError('Unsupported instrumentation anchor')

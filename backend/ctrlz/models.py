@@ -36,6 +36,7 @@ class Project(Strict):
     timeout_seconds: float = Field(default=2, ge=0.1, le=30)
     latency_ms: int = Field(default=1500, ge=50, le=30000)
     enabled: bool = True
+    automatic_detection: bool = True
     demo_enabled: bool = False
 
     @model_validator(mode="after")

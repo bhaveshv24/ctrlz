@@ -1,5 +1,8 @@
 """Authenticated project/review APIs and source-authenticated bounded ingestion."""
 import json
+import asyncio
+import hmac
+from fastapi.responses import StreamingResponse
 from fastapi import Depends, HTTPException, Request
 from pydantic import ValidationError, Field
 from typing import Literal
@@ -22,6 +25,29 @@ def install_runtime_routes(app, auth, runtime, spawn, scope_key):
     async def queue_pending(ids):
         for incident_id in ids:
             if runtime.store.get(incident_id)['status']=='detected':spawn(runtime.investigate(incident_id))
+
+    @app.get('/telemetry/{project_id}/{deployment_id}/{source_id}')
+    async def deadline_stream(project_id:str,deployment_id:str,source_id:str,request:Request):
+        project,_,source=runtime.target(project_id,deployment_id,source_id)
+        secret=runtime.secrets.get(project_id,deployment_id,source_id)
+        if not secret or not hmac.compare_digest(request.headers.get('authorization',''),'Bearer '+secret):raise HTTPException(401,'Source credential required')
+        if source.connector!='generic-events' or not project.enabled:raise HTTPException(409,'Enabled structured-event source required')
+        if request.query_params.get('transport')=='long_poll':
+            for _ in range(25):
+                if await request.is_disconnected():return {'check':None}
+                item=runtime.workflows.deadlines.claim(project_id,deployment_id,source_id)
+                if item:return {'check':item}
+                await asyncio.sleep(1)
+            return {'check':None}
+        async def stream():
+            while not await request.is_disconnected():
+                # Only local queue state is inspected; never the application DB.
+                item=runtime.workflows.deadlines.claim(project_id,deployment_id,source_id)
+                if item:yield 'event: deadline\ndata: '+json.dumps(item)+'\n\n'
+                else:
+                    yield ': control-plane keepalive\n\n'
+                    await asyncio.sleep(1)
+        return StreamingResponse(stream(),media_type='text/event-stream',headers={'Cache-Control':'no-store','X-Accel-Buffering':'no'})
 
     @app.post('/runtime-projects/test',dependencies=[Depends(auth)])
     async def test_connection(body: Project):

@@ -1,3 +1,10 @@
+> Deadline-driven update: new activations with an independent source use the
+> `deadline_targeted` mode. Start events create durable checks inside CtrlZ;
+> completion/cancellation cancels them. A connected checker receives only overdue
+> operation IDs and performs one indexed read per dispatched operation. The
+> snapshot collector documented below remains a compatibility option, not the
+> default new demo path. See `DEADLINE_DRIVEN_MONITORING.md` for exact behavior.
+
 # AI Workflow Observability
 
 CtrlZ can audit a connected repository for asynchronous completion gaps, persist

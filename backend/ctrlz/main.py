@@ -92,7 +92,7 @@ def create_workspace_app(store=None, client=None, reasoner=None, runbooks=None, 
     async def scan():
         for config in store.projects():
             project = Project.model_validate(config)
-            if not project.enabled:
+            if not project.enabled or not project.automatic_detection:
                 continue
             if project.project_type == "repository-deployment":
                 for incident_id in list(dict.fromkeys(await runtime_monitor.detect(project.id) + await workflow_observability.reconcile(project.id))):

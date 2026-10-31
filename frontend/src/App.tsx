@@ -354,6 +354,7 @@ export default function App() {
             </div>
           )}
           {selected ? (
+            <div className="incident-detail-page">
             <IncidentWorkspace
               key={selected.id}
               incident={selected}
@@ -363,6 +364,7 @@ export default function App() {
               onChange={data.refresh}
               notify={notify}
             />
+            </div>
           ) : page === "incident" ? (
             <Empty title="Incident not found">
               This incident is not in the connected workspace.
@@ -541,7 +543,7 @@ export default function App() {
                     heading="Every incident has a story."
                     copy="Follow the evidence from the first signal to the last independent check."
                   />
-                  <section className="card">
+                  <section className="card incidents-panel">
                     <div className="list-toolbar">
                       <div className="segmented" aria-label="Filter incidents">
                         {[

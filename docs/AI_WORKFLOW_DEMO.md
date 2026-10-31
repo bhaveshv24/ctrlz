@@ -61,7 +61,7 @@ return 202, 999 jobs complete, and the disclosed `resource-0001` branch remains
 pending without throwing an exception. Rate-limit backpressure can pause event
 delivery; do not disable the limit to speed up the presentation.
 
-Keep the independent state source fresh in another terminal:
+Connect the independent deadline checker in another terminal:
 
 ```bash
 backend/.venv/bin/python scripts/workflow_demo.py watch
@@ -87,3 +87,8 @@ Exports are below `backend/data/workflow-demo/`. Stop `watch` and `serve` with
 Ctrl+C. History and source artifacts remain. For a fresh rehearsal, preserve the
 old directory and use a new `CTRLZ_WORKFLOW_DEMO_DIR` under `backend/data` in each
 terminal. See [the complete guide](AI_WORKFLOW_OBSERVABILITY.md).
+
+The new `watch` connects to CtrlZ and reads only dispatched overdue operation IDs.
+It does not poll or scan the application database. Run it after lifecycle evidence
+is delivered for a deterministic replay-style demonstration; a production forwarder
+should stream events promptly, otherwise delivery lag may cause additional checks.

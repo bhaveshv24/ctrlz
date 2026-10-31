@@ -23,6 +23,7 @@ async def audit(reasoner,context):
     if hasattr(reasoner,'workflow_audit'):return AuditAssessment.model_validate(await reasoner.workflow_audit(context))
     return await task(reasoner,context,AuditAssessment,
         'Inspect the bounded source and tests. Discover asynchronous workflows, durable state and silent gaps. Never claim exhaustive coverage. '
+        'For a CampusPass SQLAlchemy application with Order, Payment, Job and Ticket models and create_app factory, prefer instrumentation_driver=campuspass_committed_session, technique=instrumentation, hooks=[]. This trusted driver observes committed Job creation as start and committed Ticket creation as completion; instance_id/resource_id are Order.id and optional pseudonymous user_id is Order.customer_id. It adds a bounded independent paid-order/job/ticket checker. It needs developer-approved application dependencies in isolated tests. Do not instrument decorated routes or invented function names. For other applications use function_hooks. '
         'Use exact supplied path/line evidence and function anchors. Propose a small number of precise rules. Prefer existing telemetry, zero_code or read_only_reconciliation when sufficient. '
         'If additional lifecycle signals are required, choose instrumentation; only Python undecorated non-generator named functions can be patched. '
         'A start hook observes a returned dictionary after the existing operation completes; a complete hook requires a returned dictionary state predicate. '
@@ -38,6 +39,10 @@ async def audit(reasoner,context):
 
 async def patch_plan(reasoner,context):
     if hasattr(reasoner,'workflow_patch'):return PatchPlan.model_validate(await reasoner.workflow_patch(context))
+    if context['rule'].get('instrumentation_driver')=='campuspass_committed_session':
+        selection=await task(reasoner,context,PatchSelection,'Select hook index [0] to authorize the exact approved trusted CampusPass committed-session driver. Explain committed job start/ticket completion events, rollback isolation and independent targeted reconciliation. Do not invent source code or business changes.')
+        if selection.hook_indices!=[0]:raise ValueError('Committed-session driver selection invalid')
+        return PatchPlan.model_construct(hooks=[],rationale=selection.rationale)
     selection=await task(reasoner,context,PatchSelection,
         'Select every approved hook by its zero-based index, in order, for this approved observability-only patch. Do not return hook objects or source code. '
         'You cannot alter correlation mappings, source anchors, business code, tests, dependencies, transactions, retries or response behavior. '

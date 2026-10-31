@@ -21,6 +21,8 @@ class WorkflowObservability:
         self.root=Path(directory)/'workflow-observability';self.root.mkdir(parents=True,exist_ok=True,mode=0o700);self.root.chmod(0o700)
         self.clock=clock;self.lock=asyncio.Lock();self.jobs=asyncio.Semaphore(2)
         self.limits=WorkflowLimits()
+        from .workflow_deadlines import Deadlines
+        self.deadlines=Deadlines(self)
 
     def file(self,audit_id,name):
         if not __import__('re').fullmatch(r'wf-[a-f0-9]{24}',audit_id):raise ValueError('Invalid artifact ID')
@@ -138,7 +140,7 @@ class WorkflowObservability:
                 output=self.file(key,'artifact').parent
                 workflow_patch.export(output,candidate,patch)
                 p['patch']=patch;self.save_proposal(p)
-                verification=await asyncio.to_thread(workflow_patch.verify,files,candidate,output/'verification',install_dependencies)
+                verification=await asyncio.to_thread(workflow_patch.verify,files,candidate,output/'verification'/uuid.uuid4().hex,install_dependencies)
                 self.approved(self.proposal(key),approval_hash)
                 p.update(status='awaiting_deployment' if verification['passed'] else 'tests_failed',verification=Redactor().tree(verification))
                 self.store.record('workflow:'+key,'instrumentation_verification',{'passed':verification['passed'],'checks':verification['checks'],'deployed':False})
@@ -150,7 +152,7 @@ class WorkflowObservability:
     async def queue_generation(self,key,approval_hash):
         async with self.lock:
             p=self.proposal(key);self.approved(p,approval_hash)
-            if p['status']!='approved' or p['rule']['technique']!='instrumentation':raise ValueError('An approved instrumentation proposal is required')
+            if p['status'] not in {'approved','tests_failed'} or p['rule']['technique']!='instrumentation':raise ValueError('An approved instrumentation proposal is required')
             with self.store.sessions() as db:
                 active=db.scalar(select(func.count()).select_from(ProposalRow).where(ProposalRow.payload['status'].as_string().in_(['generation_queued','generating'])))
             if active>=2:raise ValueError('Two instrumentation generations are already in progress')
@@ -168,6 +170,7 @@ class WorkflowObservability:
                 if binding.artifact_digest!=p['proposal_hash']:raise ValueError('Existing-source monitoring must bind the exact approved rule hash')
                 if p['rule']['technique']=='read_only_reconciliation' and not binding.reconciliation_source_id:raise ValueError('Independent durable-state source required')
             project,deployment,_=self.runtime.target(p['project_id'],p['deployment_id'])
+            if binding.check_mode=='deadline_targeted' and not binding.reconciliation_source_id:raise ValueError('Deadline checks require an independent source')
             if binding.reconciliation_source_id:
                 _,_,source=self.runtime.target(p['project_id'],p['deployment_id'],binding.reconciliation_source_id)
                 if source.connector!='generic-events' or source.id==p['source_id']:raise ValueError('Independent reconciliation requires its own authenticated source')
@@ -185,10 +188,13 @@ class WorkflowObservability:
                 repo=normalize_github(p['repository']);base='/repos/'+repo['full_name']
                 commit,error=await self.runtime.source.get('api.github.com',base+'/commits/'+binding.revision,self.runtime.source.github_token)
                 if error or not isinstance(commit,dict) or commit.get('sha')!=binding.revision:raise ValueError('Deployed Git revision could not be independently checked')
-                if [x['sha'] for x in commit.get('parents',[])]!=[p['revision']] or {x['filename'] for x in commit.get('files',[])}!=set(p['patch']['changed_files']):
+                snapshot_audit=p['revision'].startswith('sha256:')
+                if not snapshot_audit and ([x['sha'] for x in commit.get('parents',[])]!=[p['revision']] or {x['filename'] for x in commit.get('files',[])}!=set(p['patch']['changed_files'])):
                     raise ValueError('Deployed revision includes changes beyond the exact reviewed instrumentation patch')
                 with __import__('zipfile').ZipFile(self.file(key,'instrumented-source.zip')) as z:
-                    for path in p['patch']['changed_files']:
+                    paths=z.namelist() if snapshot_audit else p['patch']['changed_files']
+                    if len(paths)>40:raise ValueError('Snapshot-to-Git activation exceeds bounded source verification')
+                    for path in paths:
                         data,error=await self.runtime.source.get('api.github.com',base+'/contents/'+quote(path,safe='/')+'?ref='+binding.revision,self.runtime.source.github_token)
                         if error or not isinstance(data,dict) or data.get('encoding')!='base64' or base64.b64decode(data.get('content',''))!=z.read(path):
                             raise ValueError('Deployed instrumentation does not match reviewed artifact')
@@ -210,6 +216,9 @@ class WorkflowObservability:
         if source.id not in {p['source_id'],a.get('reconciliation_source_id')}:raise HTTPException(403,'Source not approved for workflow')
         authoritative=signal['kind']=='workflow.reconciled'
         if authoritative and source.id!=a.get('reconciliation_source_id'):raise HTTPException(403,'Authoritative state requires independent reconciler source')
+        if authoritative and a.get('check_mode')=='deadline_targeted':
+            try:self.deadlines.validate(p,{**event,'source_id':source.id})
+            except ValueError as exc:raise HTTPException(409,str(exc))
         used={k for k in ['instance_id','resource_id','parent_id'] if signal.get(k)}|{k for k in ['request_id','trace_id','user_id'] if event.get(k)}
         if not used<=set(p['rule']['allowed_fields']):raise HTTPException(422,'Telemetry fields exceed approved privacy scope')
         if event.get('session_id'):raise HTTPException(422,'Session identifiers are not approved workflow fields')
@@ -255,6 +264,9 @@ class WorkflowObservability:
                     row.deadline=signal['started_at']+p['rule']['deadline_seconds']
                 if state=='failed':row.deadline=min(row.deadline,event['timestamp'])
                 row.payload=payload;row.updated=self.clock();row.state=state or 'unknown'
+                if authoritative and signal.get('check_id'):
+                    self.deadlines.finish(db,event)
+                self.deadlines.schedule(db,row,p)
                 # Terminal records expire; unresolved records are never silently dropped.
                 db.execute(delete(InstanceRow).where(InstanceRow.proposal_id==p['id'],InstanceRow.state.in_(['completed','cancelled']),InstanceRow.updated<self.clock()-self.limits.retention_days*86400))
 
