@@ -140,7 +140,7 @@ class Continuation:
             workspace = Path(directory)/'repository'
             git(['clone', '--no-hardlinks', '--no-local', str(repo), str(workspace)], repo)
             patch = Path(directory)/'verified.patch'
-            patch.write_text(incident['patch'])
+            patch.write_bytes(incident['patch'].encode('utf-8'))
             git(['apply', '--check', str(patch)], workspace)
             git(['apply', '--index', str(patch)], workspace)
             for name in git(['diff', '--cached', '--name-only'], workspace).splitlines():

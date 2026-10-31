@@ -66,7 +66,7 @@ def test_repaired_archive_requires_verification_and_keeps_original_tests(tmp_pat
 def test_repaired_archive_includes_new_source_files(tmp_path):
     runner, snapshot = imported(tmp_path)
     repo = Path(snapshot['repository'])
-    (repo/'helper.py').write_text('VALUE = 2\n')
+    (repo/'helper.py').write_bytes(b'VALUE = 2\n')
     git(['add', '--intent-to-add', 'helper.py'], repo)
     patch = git(['diff'], repo)
     git(['reset', '--', 'helper.py'], repo)
@@ -202,3 +202,23 @@ def test_advisory_metadata_cannot_discard_an_otherwise_valid_source_edit():
     assert proposal.requirements[0].status == 'incomplete'
     assert proposal.edits[0].after == 'x != 2'
     assert 'is_edit' not in proposal.edits[0].model_dump()
+
+
+@pytest.mark.parametrize('newline', [b'\n', b'\r\n'])
+def test_archive_preserves_source_bytes_with_windows_git_settings(tmp_path, newline):
+    from ctrlz.repository import git
+    source = b'def allowed(value):' + newline + b'    return value != 2' + newline
+    runner, snapshot = imported(tmp_path, source)
+    repo = Path(snapshot['repository'])
+    git(['config', 'core.autocrlf', 'true'], repo)
+    git(['config', 'core.safecrlf', 'true'], repo)
+    original_test = (repo/'test_logic.py').read_bytes()
+    (repo/'logic.py').write_bytes(source.replace(b'!=', b'=='))
+    patch = git(['diff'], repo)
+    git(['checkout', '--', 'logic.py'], repo)
+    assert (repo/'logic.py').read_bytes() == source
+    incident = {'import_request': {'repository': str(repo)}, 'patch': patch, 'verification': {'passed': True}}
+    with zipfile.ZipFile(io.BytesIO(runner.repaired_archive(incident))) as archive:
+        assert archive.read('repaired-repository/logic.py') == source.replace(b'!=', b'==')
+        assert archive.read('repaired-repository/test_logic.py') == original_test
+    assert git(['status', '--porcelain'], repo) == ''

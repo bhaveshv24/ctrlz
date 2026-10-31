@@ -79,7 +79,12 @@ def test_integration_paths_cannot_escape_registered_origin(path):
 def zip_bytes(files):
     data=io.BytesIO()
     with zipfile.ZipFile(data,'w') as archive:
-        for path,content in files.items():archive.writestr(path,content)
+        for path,content in files.items():
+            # ZipInfo's constructor normalizes backslashes on Windows. Assign after
+            # construction so malicious archive fixtures keep their actual bytes.
+            entry = zipfile.ZipInfo()
+            entry.filename = path
+            archive.writestr(entry, content)
     return data.getvalue()
 
 
