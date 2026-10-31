@@ -47,6 +47,10 @@ class RuntimeMonitoring:
         secret=self.secrets.get(project.id,deployment.id,source.id)
         r=Redactor([secret])
         data=event.model_dump()
+        if data.get('workflow') is None:data.pop('workflow',None) # Preserve pre-feature delivery digests for ordinary events.
+        if data.get('workflow'):
+            if not hasattr(self,'workflows'):raise HTTPException(409,'Workflow observability is unavailable')
+            self.workflows.validate_signal(project,deployment,source,data)
         if deployment.deployment_ref and data['deployment_ref'] and data['deployment_ref'] != deployment.deployment_ref:
             raise HTTPException(403,'Event deployment reference does not match configured target')
         if not time.time()-7*86400 <= data['timestamp'] <= time.time()+300:
@@ -62,6 +66,7 @@ class RuntimeMonitoring:
         data['deployment_ref']=data['deployment_ref'] or deployment.deployment_ref
         data['commit_sha']=data['commit_sha'] or deployment.commit_sha
         data['signal']=data['severity'] in {'error','fatal'} or (data['http_status'] is not None and data['http_status']>=500)
+        if data.get('workflow'):data['signal']=False # Evaluated by the approved workflow reconciler, not duplicate runtime detection.
         data['fingerprint']=event_fingerprint(data)
         return data
 
@@ -70,7 +75,12 @@ class RuntimeMonitoring:
         if batch is None:return {'accepted':0,'duplicates':0,'incident_ids':[]}
         normalized=[self.normalize(project,deployment,source,e) for e in batch.events]
         ids,duplicates=self.storage.ingest('/'.join([project.id,deployment.id,source.id]),normalized)
+        if hasattr(self,'workflows'):
+            pending=[e for e in self.storage.rows(project_id=project.id,unprocessed=True,limit=1000) if e.get('workflow')]
+            self.workflows.ingest(reversed(pending))
+            for e in pending:self.storage.link(e['id'],None)
         incidents=await self.detect(project.id)
+        if hasattr(self,'workflows'):incidents+=await self.workflows.reconcile(project.id)
         return {'accepted':len(ids),'duplicates':duplicates,'incident_ids':incidents}
 
     async def detect(self, project_id):
@@ -79,6 +89,7 @@ class RuntimeMonitoring:
             all_rows=self.storage.rows(project_id=project_id,limit=10000)
             ids=[]
             for event in reversed(rows):
+                if event.get('workflow'):continue # Only the approved processor may acknowledge workflow delivery.
                 if not event['signal']:
                     self.storage.link(event['id'],None)
                     continue
@@ -132,6 +143,9 @@ class RuntimeMonitoring:
                 book_id=self.store.record(incident_id,'tool_result',{'tool':'runbook_search','result':books})
                 current=self.store.get(incident_id)
                 context={'incident_id':incident_id,'runtime_evidence':current.get('runtime_samples',[event]),'affected':current.get('runtime_summary'),'deployment':deployment.model_dump(),'repository':project.repository_monitoring.github_url,'source_evidence':mapping,'runbooks':books,'evidence_ids':[str(source_id),str(book_id)]+['runtime:'+str(e['id']) for e in current.get('runtime_samples',[event])],'execution_permissions':[],'verification':'Not performed; recommendation only. No reproduction or test run has occurred.'}
+                if current.get('workflow_evidence'):
+                    context['approved_workflow_evidence']=current['workflow_evidence']
+                    context['workflow_guidance']='One affected operation does not justify a global restart. Missing lifecycle delivery alone is not a confirmed failure. Recommend resource-scoped investigation; retry requires separately authorized application semantics.'
                 context=Redactor([self.secrets.get(project.id,deployment.id,s.id) for s in deployment.sources]).tree(context)
                 if not hasattr(self.reasoner,'runtime_assess'):
                     from .reasoning import ReasoningUnavailable
@@ -191,7 +205,7 @@ class RuntimeMonitoring:
         if incident['kind']!='runtime':raise ValueError('Runtime incident required')
         event=incident['evidence']['runtime_event']
         project,deployment,_=self.target(incident['project_id'],event['deployment_id'])
-        return {'schema_version':1,'incident_id':incident_id,'repository':project.repository_monitoring.github_url,'deployed_revision':incident.get('source_evidence',{}).get('commit_sha'),'deployment':deployment.model_dump(),'source_mapping':incident.get('source_evidence'),'error_evidence':incident.get('runtime_samples'),'diagnosis':incident.get('diagnosis'),'recommendations':incident.get('runtime_recommendations',[]),'expected_behavior':'Operator must confirm expected behavior and supply a reproduction before repair.','suggested_tests':['Reproduce this exact observed failure at the deployed revision.','Verify expected success and error handling with immutable regression tests.'],'boundary':'Context only. Import a matching managed snapshot in Repository repair. No import, sandbox execution, patch or deployment has been performed.'}
+        return {'schema_version':1,'incident_id':incident_id,'repository':project.repository_monitoring.github_url,'deployed_revision':incident.get('source_evidence',{}).get('commit_sha'),'deployment':deployment.model_dump(),'source_mapping':incident.get('source_evidence'),'error_evidence':incident.get('runtime_samples'),'workflow_evidence':incident.get('workflow_evidence'),'diagnosis':incident.get('diagnosis'),'recommendations':incident.get('runtime_recommendations',[]),'expected_behavior':'Operator must confirm expected behavior and supply a reproduction before repair.','suggested_tests':['Reproduce this exact observed failure at the deployed revision.','Verify expected success and error handling with immutable regression tests.'],'boundary':'Context only. Import a matching managed snapshot in Repository repair. No import, sandbox execution, patch or deployment has been performed.'}
 
     def coverage(self, project):
         project=Project.model_validate(project)
@@ -202,5 +216,6 @@ class RuntimeMonitoring:
             age=time.time()-(summary['last_event_at'] or 0)
             state='paused' if not project.enabled else 'incomplete_configuration' if not credentials else 'no_recent_events' if summary['last_event_at'] is None or age>300 else 'error_detected' if summary['error_count'] else 'observing'
             open_incidents=sum(i['project_id']==project.id and i['kind']=='runtime' and i['status']!='resolved' and i.get('evidence',{}).get('runtime_event',{}).get('deployment_id')==deployment.id for i in self.store.incidents())
+            if project.enabled and open_incidents:state='error_detected'
             result.append({'deployment':deployment.model_dump(),'state':state,'credentials_configured':credentials,**summary,'open_incidents':open_incidents,'capabilities':['read_only_diagnosis','recommendation_review','source_correlation','repair_context_export'],'execution_permitted':False})
         return result

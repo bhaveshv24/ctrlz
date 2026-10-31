@@ -40,6 +40,8 @@ export default function RuntimeProjectForm({project, token, busy, onClose, onBac
           <details><summary>Advanced source hints</summary><label>Repository-relative source files (one per line, optional)<textarea rows={3} value={(d.source_paths || []).join('\n')} onChange={e=>update(n,{source_paths:e.target.value.split('\n').map(v=>v.trim()).filter(Boolean)})}/><small>Used only when telemetry lacks stack frames. These are operator hints, never claimed as observed failing lines.</small></label></details>
           <label>Application URL (optional)<input type="url" value={d.application_url || ''} onChange={e=>update(n,{application_url:e.target.value || null})}/><small>Informational only. No custom health endpoint is required.</small></label>
           {d.platform==='vercel' && <label>Vercel team ID (optional)<input value={d.vercel_team_id || ''} onChange={e=>update(n,{vercel_team_id:e.target.value || null})}/></label>}
+          {d.sources.slice(1).map((s,index)=><label key={index}>Independent reconciliation source ID<input value={s.id} onChange={e=>update(n,{sources:d.sources.map((old,i)=>i===index+1?{...old,id:e.target.value}:old)})}/></label>)}
+          {d.sources.length<2&&<button type="button" className="button secondary" onClick={()=>update(n,{sources:[...d.sources,{id:'reconciliation',connector:'generic-events'}]})}>Add independent workflow reconciliation source</button>}
           {deployments.length>1 && <button type="button" className="inline-link" onClick={()=>setDeployments(old=>old.filter((_,i)=>i!==n))}>Remove this deployment</button>}
         </fieldset>)}
         <button className="button secondary" type="button" disabled={deployments.length>=12} onClick={()=>setDeployments(old=>[...old,emptyDeployment(old.length+1)])}>Add deployment / environment</button>
@@ -51,6 +53,7 @@ export default function RuntimeProjectForm({project, token, busy, onClose, onBac
         {test!=null && <pre>{JSON.stringify(test,null,2)}</pre>}
         <p className="dialog-copy">After saving, provision each telemetry source on its project card. Credentials stay on the server. No data means unknown health, even after this connection test.</p>
         <label className="checkbox-label"><input type="checkbox" checked={enabled} onChange={e=>setEnabled(e.target.checked)}/>Enable monitoring and authenticated event ingestion</label>
+        <details><summary>Optional next step: AI Workflow Audit</summary><p>After saving, choose “AI Workflow Audit · optional” on this project card to analyze silent failures, review completion rules, and generate a verified instrumentation patch. Existing runtime monitoring does not require this audit.</p></details>
       </>}
       {error && <p role="alert">{error}</p>}
       <div className="dialog-actions"><button className="button secondary" type="button" onClick={()=>step?setStep(step-1):onBack()}>Back</button><button className="button primary" disabled={busy || testing}>{step<2?'Next':'Save monitoring project'}</button></div>

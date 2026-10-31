@@ -98,6 +98,11 @@ class RuntimeStorage:
             if row:
                 row.incident_id,row.processed=incident_id,True
 
+    def by_ids(self,ids):
+        if not ids:return []
+        with self.store.sessions() as db:
+            return [self.view(row) for row in db.scalars(select(RuntimeRow).where(RuntimeRow.id.in_(ids)).order_by(RuntimeRow.id))]
+
     def summary(self, project_id, deployment_id=None):
         with self.store.sessions() as db:
             q=select(RuntimeRow).where(RuntimeRow.project_id==project_id)

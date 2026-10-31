@@ -107,6 +107,7 @@ class RuntimeEvent(Strict):
     deployment_ref: str | None = Field(default=None, pattern=ID)
     commit_sha: str | None = Field(default=None, pattern=SHA)
     evidence_ref: str | None = Field(default=None, max_length=300)
+    workflow: 'WorkflowSignal | None' = None
 
 
 class EventBatch(Strict):
@@ -128,3 +129,8 @@ class RuntimeAssessment(Strict):
     diagnosis: str = Field(min_length=1, max_length=10000)
     uncertainties: list[str] = Field(min_length=1, max_length=10)
     recommendations: list[Recommendation] = Field(min_length=1, max_length=6)
+
+
+# Imported after the common Strict/ID definitions to keep the additive schema acyclic.
+from .workflow_models import WorkflowSignal
+RuntimeEvent.model_rebuild()

@@ -3,8 +3,10 @@ import { api, type ProjectSignal, type Project } from '../api';
 import { coverageLabel } from '../runtime-projects';
 import { Badge } from './ui';
 import { stamp } from '../presentation';
+import WorkflowAudit from './WorkflowAudit';
 export default function RuntimeProjectCard({signal,token,onManage,onIncidents}: {signal:ProjectSignal;token:string;onManage:(p:Project)=>void;onIncidents:()=>void}) {
   const [message,setMessage]=useState(''),[busy,setBusy]=useState(false);
+  const [workflowAudit,setWorkflowAudit]=useState(false);
   return <section className="card project-panel"><span className="eyebrow">REPOSITORY + DEPLOYMENT MONITORING</span><h2>{signal.project.name}</h2><p>{signal.project.repository_monitoring?.github_url}</p>
     <Badge state={signal.state}>{coverageLabel(signal.state)}</Badge>
     {(signal.runtime_coverage || []).map(c=><section className="card" key={c.deployment.id}>
@@ -15,6 +17,8 @@ export default function RuntimeProjectCard({signal,token,onManage,onIncidents}: 
       {c.deployment.sources.map(s=><div key={s.id}><p>Source: {s.id} · {s.connector}</p><button className="button secondary" disabled={busy} onClick={async()=>{setBusy(true);try{const result=await api<{credential_file:string;receiver_path:string}>('/projects/'+signal.project.id+'/runtime/sources/provision',token,{deployment_id:c.deployment.id,source_id:s.id});setMessage('Receiver: '+result.receiver_path+'\nServer-side credential file: '+result.credential_file+'\nConfigure the collector on the server. No secret was returned to this browser.');}catch(e){setMessage((e as Error).message);}finally{setBusy(false);}}}>Provision source credential</button></div>)}
     </section>)}
     {message && <pre role="status">{message}</pre>}
+    <button className="button secondary" onClick={()=>setWorkflowAudit(true)}>AI Workflow Audit · optional</button>
+    {workflowAudit&&<WorkflowAudit project={signal.project} token={token} onClose={()=>setWorkflowAudit(false)}/>}
     <div className="project-actions"><button className="button secondary" onClick={()=>onManage(signal.project)}>Project settings</button><button className="inline-link" onClick={onIncidents}>View runtime incidents</button></div>
   </section>;
 }

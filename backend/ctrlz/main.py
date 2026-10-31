@@ -29,6 +29,8 @@ from .runbooks import Runbooks
 from .store import Store
 from .runtime_monitoring import RuntimeMonitoring
 from .runtime_routes import install_runtime_routes
+from .workflow_service import WorkflowObservability
+from .workflow_routes import install_workflow_routes
 
 
 class Approval(BaseModel):
@@ -75,6 +77,8 @@ def create_workspace_app(store=None, client=None, reasoner=None, runbooks=None, 
         vercel_token=os.getenv("CTRLZ_USER_"+Path(workspace_root).name.upper()+"_VERCEL_TOKEN", "") if workspace_root else None,
         local_repositories={} if workspace_root else None)
     engine.runtime_monitor = runtime_monitor
+    workflow_observability = WorkflowObservability(runtime_monitor, data_dir)
+    runtime_monitor.workflows = workflow_observability
 
     def require_code_execution():
         if not settings.CTRLZ_CODE_EXECUTION_ENABLED:
@@ -91,7 +95,7 @@ def create_workspace_app(store=None, client=None, reasoner=None, runbooks=None, 
             if not project.enabled:
                 continue
             if project.project_type == "repository-deployment":
-                for incident_id in await runtime_monitor.detect(project.id):
+                for incident_id in list(dict.fromkeys(await runtime_monitor.detect(project.id) + await workflow_observability.reconcile(project.id))):
                     if store.get(incident_id)["status"] == "detected":
                         spawn(engine.run(incident_id))
                 continue
@@ -150,6 +154,8 @@ def create_workspace_app(store=None, client=None, reasoner=None, runbooks=None, 
             raise HTTPException(404, "Incident not found")
 
     install_runtime_routes(app, auth, runtime_monitor, spawn, Path(workspace_root).name if workspace_root else "operator")
+    install_workflow_routes(app, auth, workflow_observability, spawn, require_code_execution)
+    app.state.workflows = workflow_observability
 
     @app.get("/health")
     def health():

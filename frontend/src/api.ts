@@ -54,6 +54,7 @@ export type Incident = {
   patch?: string;
   runtime_summary?: { events: number; affected_users: number | null; last_received: number; identity_coverage: string };
   runtime_samples?: Record<string, any>[];
+  workflow_evidence?: {proposal_id:string;approved_rule:Record<string,any>;instance_id:string;resource_id:string|null;user_id:string|null;identity:string;observation:string;revision:string;source_revision:string;source_provenance:string;last_evidence:unknown};
   source_evidence?: { state: string; commit_sha?: string; files?: {path: string; line: number | null; context: string; source: string; provenance: string; location_evidence?: string}[]; uncertainties?: string[] };
   runtime_assessment?: { diagnosis: string; uncertainties: string[] };
   runtime_recommendations?: RuntimeRecommendation[];
