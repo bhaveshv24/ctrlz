@@ -25,7 +25,7 @@ import {
   TriangleAlert,
   X,
 } from "lucide-react";
-import { api, API, type Act, type Project } from "./api";
+import { api, API, ApiError, type Act, type Project } from "./api";
 import { useControlCenter } from "./hooks/useControlCenter";
 import { Badge, Empty, IncidentList, Metric } from "./components/ui";
 import IncidentWorkspace from "./components/IncidentWorkspace";
@@ -101,9 +101,25 @@ export default function App() {
     fetch(API + "/auth/config").then(r => r.json()).then(c => setRegistrationEnabled(c.registration_enabled)).catch(() => {});
   }, []);
   useEffect(() => {
-    if (token) api<{email: string; role: string}>("/auth/me", token).then(setAccount).catch(() => {
-      sessionStorage.removeItem("ctrlz-token"); setToken(""); setAccount(null);
-    });
+    if (!token) return;
+    let disposed = false;
+    let retry: ReturnType<typeof setTimeout>;
+    const identify = async () => {
+      try {
+        const user = await api<{email: string; role: string}>("/auth/me", token);
+        if (!disposed) setAccount(user);
+      } catch (e) {
+        if (disposed) return;
+        if (e instanceof ApiError && e.status === 401) {
+          sessionStorage.removeItem("ctrlz-token"); setToken(""); setAccount(null);
+        } else {
+          // A transport error does not prove that a persisted session is invalid.
+          retry = setTimeout(identify, 3000);
+        }
+      }
+    };
+    void identify();
+    return () => { disposed = true; clearTimeout(retry); };
   }, [token]);
   const connect = async (e: FormEvent) => {
     e.preventDefault(); setBusy(true); setError("");
@@ -171,7 +187,12 @@ export default function App() {
               Connect to your recovery workspace. Your systems, decisions and
               evidence are waiting.
             </p>
-            <form onSubmit={connect}>
+            {token ? <div role="status" aria-live="polite">
+              <p>Signed in. Connecting to your workspace…</p>
+              <p>Your session is saved. If the connection drops, we’ll retry automatically.</p>
+              <button className="button secondary full" onClick={() => data.refresh().catch(() => {})}>Retry workspace connection</button>
+              <button className="button secondary full" onClick={disconnect}>Sign out</button>
+            </div> : <form onSubmit={connect}>
               <label htmlFor="email">Email address</label>
               <input id="email" type="email" autoComplete="email" value={email}
                 onChange={e => setEmail(e.target.value)} placeholder="you@company.com" required />
@@ -186,7 +207,7 @@ export default function App() {
               {registrationEnabled && <button type="button" className="button secondary full" onClick={() => {setRegister(!register);setError("");}}>
                 {register ? "Already have an account? Sign in" : "New to CtrlZ? Create an account"}
               </button>}
-            </form>
+            </form>}
             {(error || data.error) && (
               <div className="alert danger" role="alert">
                 {error || data.error}
@@ -840,13 +861,13 @@ export default function App() {
                       <dl className="settings-list">
                         <div>
                           <dt>Provider</dt>
-                          <dd>{data.runtime?.provider}</dd>
+                          <dd>{data.runtime?.provider || "Temporarily unavailable"}</dd>
                         </div>
                         <div>
                           <dt>Selected model</dt>
                           <dd>
                             <code>
-                              {data.runtime?.model || "Not configured"}
+                              {data.runtime ? data.runtime.model || "Not configured" : "Temporarily unavailable"}
                             </code>
                           </dd>
                         </div>
@@ -855,12 +876,12 @@ export default function App() {
                           <dd>
                             <Badge
                               state={
-                                data.runtime?.nim_configured
+                                !data.runtime ? "unknown" : data.runtime.nim_configured
                                   ? "healthy"
                                   : "blocked"
                               }
                             >
-                              {data.runtime?.nim_configured
+                              {!data.runtime ? "Unknown" : data.runtime.nim_configured
                                 ? "Present"
                                 : "Missing"}
                             </Badge>
@@ -873,7 +894,7 @@ export default function App() {
                         <div>
                           <dt>Rehearsal controls</dt>
                           <dd>
-                            {data.runtime?.demo_controls_enabled
+                            {!data.runtime ? "Temporarily unavailable" : data.runtime.demo_controls_enabled
                               ? "Enabled; project opt-in required"
                               : "Disabled"}
                           </dd>

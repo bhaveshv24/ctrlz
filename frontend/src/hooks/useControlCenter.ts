@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  api,
   ApiError,
   stream,
   type DemoRun,
@@ -9,6 +8,7 @@ import {
   type Overview,
   type Runtime,
 } from "../api";
+import { loadWorkspace, loadWorkspaceMetadata } from "../control-center-data";
 export function useControlCenter(token: string) {
   const [overview, setOverview] = useState<Overview | null>(null),
     [incidents, setIncidents] = useState<Incident[]>([]),
@@ -21,24 +21,24 @@ export function useControlCenter(token: string) {
     [connection, setConnection] = useState("connecting");
   const cursor = useRef({ current: 0 }),
     activeToken = useRef(token),
-    inflight = useRef<Promise<void> | null>(null);
+    inflight = useRef<{token: string; promise: Promise<void>} | null>(null);
   activeToken.current = token;
   const refresh = useCallback(async () => {
-    if (inflight.current) return inflight.current;
+    if (inflight.current?.token === token) return inflight.current.promise;
     const current = token;
     const operation = async () => {
       try {
-        const [o, i, r, d] = await Promise.all([
-          api<Overview>("/overview", token),
-          api<Incident[]>("/incidents", token),
-          api<Runtime>("/health", token),
-          api<DemoRun[]>("/demo/runs", token),
-        ]);
+        // Health can fail in the browser even when authenticated API reads succeed.
+        // Start optional metadata in parallel; never make it a login prerequisite.
+        void loadWorkspaceMetadata(current).then(({ runtime, runs }) => {
+          if (activeToken.current !== current) return;
+          setRuntime(runtime);
+          setRuns(runs);
+        });
+        const { overview, incidents } = await loadWorkspace(current);
         if (activeToken.current !== current) return;
-        setOverview(o);
-        setIncidents(i);
-        setRuntime(r);
-        setRuns(d);
+        setOverview(overview);
+        setIncidents(incidents);
         setLoadedToken(current);
         setReady(true);
         setError("");
@@ -50,19 +50,35 @@ export function useControlCenter(token: string) {
         }
         throw e;
       } finally {
-        inflight.current = null;
+        if (inflight.current === pending) inflight.current = null;
       }
     };
-    inflight.current = operation();
-    return inflight.current;
+    const pending = { token, promise: operation() };
+    inflight.current = pending;
+    return pending.promise;
   }, [token]);
   useEffect(() => {
     setReady(false);
     setEvents([]);
     cursor.current.current = 0;
     inflight.current = null;
+    setError("");
+    setOverview(null);
+    setIncidents([]);
+    setRuntime(null);
+    setRuns([]);
+    setConnection("connecting");
     if (!token) return;
-    refresh().catch(() => {});
+    let disposed = false;
+    let retry: ReturnType<typeof setTimeout>;
+    const load = () => {
+      refresh().catch((e) => {
+        if (!disposed && !(e instanceof ApiError && e.status === 401))
+          retry = setTimeout(load, 3000);
+      });
+    };
+    load();
+    return () => { disposed = true; clearTimeout(retry); };
   }, [token, refresh]);
   useEffect(() => {
     if (!ready || !token) return;
