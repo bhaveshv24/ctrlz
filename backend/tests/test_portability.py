@@ -170,3 +170,16 @@ def test_embedded_doctest_changes_are_detected(tmp_path):
     assert embedded_doctests(tmp_path,['library.py'])==before
     file.write_text(file.read_text().replace('    1\n','    0\n'))
     assert embedded_doctests(tmp_path,['library.py'])!=before
+
+
+def test_zip_rejects_original_name_before_windows_normalization(tmp_path, monkeypatch):
+    original_init = zipfile.ZipInfo.__init__
+    def windows_init(self, filename="NoName", *args, **kwargs):
+        original_init(self, filename, *args, **kwargs)
+        self.filename = self.filename.replace("\\", "/")
+    # Reproduce the reader behavior on every CI platform, not just Windows.
+    payload = zip_bytes({"x\\escape.py": "bad"})
+    monkeypatch.setattr(zipfile.ZipInfo, "__init__", windows_init)
+    with pytest.raises(ValueError, match="Invalid snapshot path"):
+        RepositoryImports(tmp_path/'imports').import_zip(payload)
+    assert list((tmp_path/'imports').iterdir()) == []

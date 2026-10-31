@@ -252,6 +252,9 @@ class RepositoryImports:
                     if len(entries) > MAX_FILES:
                         raise ValueError('Too many ZIP entries')
                     for entry in entries:
+                        # Windows normalizes backslashes (and truncates NULs) in
+                        # filename. Validate the archive's original spelling first.
+                        relative_path(entry.orig_filename)
                         path = relative_path(entry.filename)
                         mode = entry.external_attr >> 16
                         if stat.S_ISLNK(mode) or mode and stat.S_IFMT(mode) not in {0, stat.S_IFREG, stat.S_IFDIR}:
