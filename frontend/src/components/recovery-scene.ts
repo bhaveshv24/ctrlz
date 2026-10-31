@@ -1,3 +1,4 @@
+import { REWIND_DURATION, REWIND_REVEAL, rewindMotion } from "./rewind-motion";
 import { angleDelta } from "./motion-math";
 import { rewindVortex } from "./rewind-vortex";
 import { panelFrames } from "./panel-frames";
@@ -127,10 +128,11 @@ export function mountStudio(
       px: { value: new T.Vector2() },
       time: { value: 0 },
       wipe: { value: 0 },
+      eclipse: { value: 0 },
     },
     vertexShader:
       "varying vec2 v;void main(){v=uv;gl_Position=vec4(position.xy,0.,1.);}",
-    fragmentShader: `varying vec2 v;uniform sampler2D tex;uniform vec2 px;uniform float time,wipe;
+    fragmentShader: `varying vec2 v;uniform sampler2D tex;uniform vec2 px;uniform float time,wipe,eclipse;
     void main(){vec2 e=v-.5;vec2 shift=e*dot(e,e)*.002;vec3 c=texture2D(tex,v).rgb;c.r=texture2D(tex,v+shift).r;
     for(int i=0;i<8;i++){float a=float(i)*.7854;vec3 halo=texture2D(tex,v+vec2(cos(a),sin(a))*px*4.).rgb;c+=max(halo-.25,0.)*.095;}
     float grain=fract(sin(dot(gl_FragCoord.xy+fract(time),vec2(12.9898,78.233)))*43758.5);
@@ -142,6 +144,8 @@ export function mountStudio(
     float distanceToFront=abs(v.x+.11*v.y+.014*sin(v.y*13.+time)-progress);
     float coverage=wipe>0.?1.-smoothstep(.04,.12+sin(wipe*3.14159)*.23,distanceToFront):1.;
     vec3 result=(base+c)*(1.-.48*dot(e,e))+grain*.012+veil*.10;
+    float eclipseMask=1.-smoothstep(.05,.85,length(vec2(e.x*.75,e.y)));
+    result*=1.-eclipse*(.7+.28*eclipseMask);
     gl_FragColor=vec4(result*coverage,coverage);}`,
   });
   const plane = new T.PlaneGeometry(2, 2);
@@ -301,10 +305,14 @@ export function mountStudio(
     if (intro.rewinding) {
       const before = intro.rewindElapsed;
       intro.rewindElapsed += dt;
-      const progress = Math.min(1, intro.rewindElapsed / 4.2);
-      rewindStrength = Math.sin(progress * Math.PI);
-      host.dataset.rewinding = progress < 0.5 ? "depart" : "arrive";
-      if (before < 2.1 && intro.rewindElapsed >= 2.1) intro.reveal();
+      const progress = Math.min(1, intro.rewindElapsed / REWIND_DURATION);
+      const motion = rewindMotion(progress);
+      rewindStrength = motion.strength;
+      world.rewind(motion.turn, motion.bank);
+      field.rotation.z -= motion.turn;
+      composite.uniforms.eclipse.value = motion.shadow;
+      host.dataset.rewinding = progress < REWIND_REVEAL ? "depart" : "arrive";
+      if (before < REWIND_DURATION * REWIND_REVEAL && motion.reveal) intro.reveal();
       camera.position.x *= 1 - rewindStrength;
       camera.position.y *= 1 - rewindStrength;
       camera.position.z = T.MathUtils.lerp(
@@ -318,8 +326,14 @@ export function mountStudio(
         intro.rewinding = false;
         delete host.dataset.rewinding;
         vortex.update(0, 0, ratio);
+        world.rewind(0, 0);
+        composite.uniforms.eclipse.value = 0;
       }
-    } else vortex.update(0, 0, ratio);
+    } else {
+      vortex.update(0, 0, ratio);
+      world.rewind(0, 0);
+      composite.uniforms.eclipse.value = 0;
+    }
     const settle = 1 - Math.exp(-7.5 * dt);
     camera.position.lerpVectors(previousCamera, camera.position, settle);
     camera.quaternion.copy(previousCameraRotation.slerp(camera.quaternion, settle));

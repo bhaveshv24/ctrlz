@@ -5146,3 +5146,14 @@ html, body { overflow-x: clip; }
   .journey-stage .journey-skip { margin-left: auto; padding: .65rem .85rem; font-size: .85rem; }
   .journey-chapter p { font-size: 16px; }
 }
+
+/* Rewind choreography reveals the opening only after the disc's shadow sweep. */
+@media (prefers-reduced-motion: no-preference) {
+  .studio[data-rewinding=arrive]~.journey-layer .intro-journey {
+    animation: rewind-screen-reveal 1092ms var(--motion-ease) both;
+  }
+  @keyframes rewind-screen-reveal {
+    from { opacity: 0; transform: translate3d(0, 10px, 0); }
+    to { opacity: 1; transform: translate3d(0, 0, 0); }
+  }
+}

@@ -99,7 +99,9 @@ export function recoveryWorld(scene: T.Scene) {
     fins = new T.InstancedMesh(geometry, metal, count),
     dummy = new T.Object3D();
   fins.frustumCulled = false;
-  world.add(fins);
+  const rotor = new T.Group();
+  world.add(rotor);
+  rotor.add(fins);
   const guideGeometry = new T.BufferGeometry(),
     lines: number[] = [];
   for (let i = -18; i <= 18; i++) {
@@ -246,6 +248,9 @@ export function recoveryWorld(scene: T.Scene) {
       floor.position.z = (scroll * 0.65 + t * 0.09) % 1;
       dust.rotation.y = t * 0.014;
       dust.position.y = 0.08 * Math.sin(t * 0.19);
+    },
+    rewind(turn: number, bank: number) {
+      rotor.rotation.set(bank, 0, -turn);
     },
     dispose() {
       scene.remove(world, floor, dust);
