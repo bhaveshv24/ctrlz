@@ -66,7 +66,7 @@ export default function IncidentWorkspace({
     let active = true;
     api<Receipt>("/incidents/" + incident.id + "/receipt", token)
       .then((r) => {
-        if (active) setReceipt(r);
+        if (active) { setReceipt(r); setError(""); }
       })
       .catch((e) => {
         if (active) setError(e.message);
@@ -81,7 +81,7 @@ export default function IncidentWorkspace({
     setError("");
     try {
       await fn();
-      await onChange();
+      await onChange().catch(() => {});
       const result = await api<Receipt>(
         "/incidents/" + incident.id + "/receipt",
         token,

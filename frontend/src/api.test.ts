@@ -32,3 +32,33 @@ describe("persisted recovery event protocol", () => {
       ),
     ).toEqual({ id: 9, stage: "verification" }));
 });
+
+describe("API failure recovery", () => {
+  it("explains network failures without exposing browser exception text", async () => {
+    const { api } = await import("./api");
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new TypeError("Failed to fetch")));
+    await expect(api("/overview", "token")).rejects.toThrow("Couldn’t reach the server");
+  });
+  it("bounds requests and explains timeouts", async () => {
+    const { api } = await import("./api");
+    const fetch = vi.fn().mockRejectedValue(new DOMException("timeout", "TimeoutError"));
+    vi.stubGlobal("fetch", fetch);
+    await expect(api("/overview", "token")).rejects.toThrow("took too long");
+    expect(fetch.mock.calls[0][1].signal).toBeInstanceOf(AbortSignal);
+  });
+  it("retains unauthorized status for session expiry handling", async () => {
+    const { api } = await import("./api");
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response('{"detail":"Session expired"}', {status:401})));
+    await expect(api("/overview", "token")).rejects.toMatchObject({status:401});
+  });
+  it("turns proxy HTML into an actionable error", async () => {
+    const { api } = await import("./api");
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("<html>upstream offline</html>")));
+    await expect(api("/overview", "token")).rejects.toThrow("unexpected response");
+  });
+  it("renders validation details as readable messages", async () => {
+    const { api } = await import("./api");
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response('{"detail":[{"msg":"Enter a valid email address"}]}', {status:422})));
+    await expect(api("/auth/register", "", {})).rejects.toThrow("Enter a valid email address");
+  });
+});

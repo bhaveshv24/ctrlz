@@ -23,7 +23,9 @@ export default function ProjectDialog({
   busy,
   onClose,
   onSubmit,
+  submitError = "",
 }: {
+  submitError?: string;
   project: Project | "new";
   busy: boolean;
   onClose: () => void;
@@ -224,9 +226,9 @@ export default function ProjectDialog({
             </span>
           </label>
         )}
-        {error && (
+        {(error || submitError) && (
           <p role="alert" className="import-warning">
-            {error}
+            {error || submitError}
           </p>
         )}
         <div className="dialog-actions">

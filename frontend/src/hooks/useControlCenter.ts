@@ -17,6 +17,7 @@ export function useControlCenter(token: string) {
     [events, setEvents] = useState<FlightEvent[]>([]),
     [ready, setReady] = useState(false),
     [loading, setLoading] = useState(false),
+    [sessionExpired, setSessionExpired] = useState(false),
     [loadedToken, setLoadedToken] = useState(""),
     [error, setError] = useState(""),
     [connection, setConnection] = useState("connecting");
@@ -47,7 +48,7 @@ export function useControlCenter(token: string) {
         setError("");
       } catch (e) {
         if (activeToken.current === current) {
-          if (e instanceof ApiError && e.status === 401) setReady(false);
+          if (e instanceof ApiError && e.status === 401) { setReady(false); setSessionExpired(true); }
           setError((e as Error).message);
           setConnection("offline");
         }
@@ -63,6 +64,7 @@ export function useControlCenter(token: string) {
   }, [token]);
   useEffect(() => {
     setReady(false);
+    setSessionExpired(false);
     setEvents([]);
     cursor.current.current = 0;
     inflight.current = null;
@@ -95,12 +97,13 @@ export function useControlCenter(token: string) {
           token,
           abort.signal,
           (e) => {
+            if (abort.signal.aborted || activeToken.current !== token) return;
             setEvents((old) => [...old.slice(-299), e]);
             clearTimeout(debounce);
             debounce = setTimeout(() => refresh().catch(() => {}), 180);
           },
           cursor.current,
-          () => setConnection("live"),
+          () => { if (!abort.signal.aborted && activeToken.current === token) setConnection("live"); },
         );
       } catch {
         if (!abort.signal.aborted) setConnection("polling");
@@ -128,6 +131,7 @@ export function useControlCenter(token: string) {
     ready: ready && loadedToken === token,
     error,
     loading,
+    sessionExpired,
     connection,
     refresh,
   };

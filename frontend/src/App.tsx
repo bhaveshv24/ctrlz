@@ -85,7 +85,8 @@ export default function App() {
     setError("");
     try {
       await fn();
-      await data.refresh();
+      // A saved action must not look failed just because the following read fails.
+      await data.refresh().catch(() => {});
       if (message) notify(message);
       return true;
     } catch (e) {
@@ -119,6 +120,13 @@ export default function App() {
     void identify();
     return () => { disposed = true; clearTimeout(retry); };
   }, [token]);
+  useEffect(() => {
+    if (!data.sessionExpired) return;
+    sessionStorage.removeItem("ctrlz-token");
+    setToken(""); setAccount(null); setPassword("");
+    setProjectEdit(null); setNotice("");
+    setError("Your session expired. Please sign in again.");
+  }, [data.sessionExpired]);
   const connect = async (e: FormEvent) => {
     e.preventDefault(); setBusy(true); setError("");
     try {
@@ -132,6 +140,8 @@ export default function App() {
     api("/auth/logout", token, {}).catch(() => {});
     sessionStorage.removeItem("ctrlz-token");
     setToken(""); setPassword(""); setAccount(null);
+    setProjectEdit(null); setNotice(""); setError("");
+    navigate("overview");
   };
   const open = (id: string) => navigate("incident/" + id),
     projects = data.overview?.projects || [],
@@ -865,6 +875,7 @@ export default function App() {
       {projectEdit && (
         <ProjectDialog
           project={projectEdit}
+          submitError={error}
           busy={busy}
           onClose={closeProject}
           onSubmit={async (p) => {

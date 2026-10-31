@@ -43,7 +43,7 @@ export default function RuntimeStatus({ token }: { token: string }) {
       </div>
       <p className="muted">
         Inspect installed services and sandbox availability. Provider
-        credentials and webhook delivery are verified by recorded runs.
+        credentials are verified by recorded recovery runs.
       </p>
       {error && <p role="alert">{error}</p>}
       <dl className="runtime-components" aria-live="polite">
@@ -56,7 +56,7 @@ export default function RuntimeStatus({ token }: { token: string }) {
               {component.detail && <span>{component.detail}</span>}
               {component.verified === false && (
                 <span>
-                  Connection or delivery has not been tested by this check.
+                  Provider authentication has not been tested by this check.
                 </span>
               )}
             </dd>

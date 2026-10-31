@@ -2,7 +2,7 @@ export type Act = (
   fn: () => Promise<unknown>,
   message?: string,
 ) => Promise<boolean>;
-export const API = import.meta.env.VITE_API_URL || "/api";
+export const API = (import.meta.env.VITE_API_URL || "/api").replace(/\/+$/, "");
 export type Action = {
   operation: string;
   order_id?: string | null;
@@ -165,12 +165,21 @@ export async function api<T>(
   body?: unknown,
   signal?: AbortSignal,
 ): Promise<T> {
-  const response = await fetch(API + path, {
+  let response: Response;
+  try {
+    response = await fetch(API + path, {
     method: body === undefined ? "GET" : "POST",
     headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
     body: body === undefined ? undefined : JSON.stringify(body),
-    signal,
+    signal: signal ?? AbortSignal.timeout(90000),
   });
+  } catch (error) {
+    if (signal?.aborted) throw error;
+    const timedOut = error instanceof Error && (error.name === "TimeoutError" || error.name === "AbortError");
+    throw new Error(timedOut
+      ? "The server took too long to respond. Please retry in a moment."
+      : "Couldn’t reach the server. Check your connection and try again.");
+  }
   if (!response.ok) {
     const data = await response
       .json()
@@ -178,11 +187,14 @@ export async function api<T>(
     throw new ApiError(
       typeof data.detail === "string"
         ? data.detail
-        : JSON.stringify(data.detail),
+        : Array.isArray(data.detail)
+          ? data.detail.map((item: {msg?: string}) => item.msg || "Invalid input").join("; ")
+          : `Request failed (${response.status}). Please try again.`,
       response.status,
     );
   }
-  return response.json();
+  try { return await response.json(); }
+  catch { throw new Error("The server returned an unexpected response. Please try again."); }
 }
 export function saveFile(
   name: string,
