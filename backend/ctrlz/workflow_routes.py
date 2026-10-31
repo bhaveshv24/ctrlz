@@ -51,6 +51,20 @@ def install_workflow_routes(app,auth,workflows,spawn,code_execution):
         spawn(workflows.generate(proposal_id,body.approval_hash,body.install_dependencies))
         return {'status':'queued','deployed':False}
 
+    @app.post('/workflow-proposals/{proposal_id}/revision-review',dependencies=[Depends(auth)])
+    async def revision_review(proposal_id:str,request:Request):
+        from pydantic import BaseModel,ConfigDict,Field,ValidationError
+        class Revision(BaseModel):
+            model_config=ConfigDict(extra='forbid')
+            revision:str=Field(pattern=r'^[0-9a-f]{40}$')
+        try:body=Revision.model_validate(await request.json())
+        except (ValidationError,ValueError):raise HTTPException(422,'Provide only the exact deployed revision')
+        from .workflow_revision import propose
+        actor=(getattr(request.state,'principal',None) or {}).get('id','operator')
+        try:return await propose(workflows,proposal_id,body.revision,actor)
+        except KeyError:raise HTTPException(404,'Workflow proposal not found')
+        except ValueError as exc:raise HTTPException(409,str(exc))
+
     @app.post('/workflow-proposals/{proposal_id}/activate',dependencies=[Depends(auth)])
     async def activate(proposal_id:str,body:Activation,request:Request):
         actor=(getattr(request.state,'principal',None) or {}).get('id','operator')

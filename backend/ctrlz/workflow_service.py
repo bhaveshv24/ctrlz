@@ -91,6 +91,7 @@ class WorkflowObservability:
             if p['status'] in {'generation_queued','generating'}:raise ValueError('Wait for current generation before editing')
             if decision.proposal_hash!=p['proposal_hash'] or p['proposal_hash']!=self.binding(p,p['rule']):raise ValueError('Source, project or proposal changed; re-audit before approval')
             if decision.decision=='edit':
+                if p.get('revision_review'):raise ValueError('Reused observer review preserves its exact rule and privacy fields; run a new audit to change them')
                 if decision.rule is None:raise ValueError('Edited rule required')
                 a=self.db.get(AuditRow,p['audit_id']);files=self.files(a['id'])
                 validate_rule(decision.rule,files,a['source_context'])
@@ -167,7 +168,9 @@ class WorkflowObservability:
                 if binding.artifact_digest!=p['patch']['instrumentation_digest']:raise ValueError('Different instrumentation artifact')
             else:
                 if p['status']!='approved' or p['rule']['technique'] not in {'existing_telemetry','read_only_reconciliation'}:raise ValueError('This strategy has no verified activation adapter')
-                if binding.artifact_digest!=p['proposal_hash']:raise ValueError('Existing-source monitoring must bind the exact approved rule hash')
+                expected_artifact=(p.get('revision_review') or {}).get('artifact_digest',p['proposal_hash'])
+                if binding.artifact_digest!=expected_artifact:raise ValueError('Existing-source monitoring must bind the exact approved rule or verified reused observer')
+                if p.get('revision_review') and binding.revision!=p['revision_review']['revision']:raise ValueError('Reviewed source revision changed')
                 if p['rule']['technique']=='read_only_reconciliation' and not binding.reconciliation_source_id:raise ValueError('Independent durable-state source required')
             project,deployment,_=self.runtime.target(p['project_id'],p['deployment_id'])
             if binding.check_mode=='deadline_targeted' and not binding.reconciliation_source_id:raise ValueError('Deadline checks require an independent source')

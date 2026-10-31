@@ -1,5 +1,7 @@
 # Hosted CampusPass: full source-to-recovery rehearsal
 
+For the ten-customer targeted-failure and checkout-outage presentation, use [CAMPUSPASS_10_USER_JUDGE_DEMO.md](CAMPUSPASS_10_USER_JUDGE_DEMO.md). This guide retains the original global worker-pause fallback.
+
 This demonstration uses CampusPass's Vercel storefront, Render backend and a
 local isolated CtrlZ dashboard. Payments remain simulated. It requires the
 operator to approve monitoring, review generated code, deploy it, then separately
