@@ -29,6 +29,8 @@ export function panelFrames(renderer: T.WebGLRenderer) {
   scene.add(frames);
   let dirty = true,
     panels: HTMLElement[] = [];
+  let measuredAt = -1;
+  let rectangles: DOMRect[] = [];
   const observer = new MutationObserver(() => {
     dirty = true;
   });
@@ -41,13 +43,18 @@ export function panelFrames(renderer: T.WebGLRenderer) {
       if (dirty) {
         panels = Array.from(document.querySelectorAll<HTMLElement>(surfaces));
         dirty = false;
+        measuredAt = -1;
+      }
+      // DOM reads are batched at 30 Hz instead of forcing layout for every GPU frame.
+      if (measuredAt < 0 || time - measuredAt >= 1 / 30) {
+        rectangles = panels.map(el => el.getBoundingClientRect());
+        measuredAt = time;
       }
       camera.right = innerWidth;
       camera.top = innerHeight;
       camera.updateProjectionMatrix();
       let count = 0;
-      for (const el of panels) {
-        const r = el.getBoundingClientRect();
+      for (const r of rectangles) {
         if (!r.width || r.bottom < 0 || r.top > innerHeight || count === 64)
           continue;
         const depth = 5 + Math.min(4, r.height / 100);

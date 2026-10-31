@@ -13,6 +13,7 @@ export function useRouteMotion(onNavigate: () => void) {
     history.replaceState({ ...history.state, ctrlzEntry: index }, "");
     const positions = new Map<number, number>();
     let transition: ViewTransition | undefined;
+    let arrival: Animation | undefined;
     let disposed = false;
     let revision = 0;
     const listener = () => {
@@ -28,6 +29,7 @@ export function useRouteMotion(onNavigate: () => void) {
       index = destination;
       const top = positions.get(index) ?? 0;
       transition?.skipTransition();
+      arrival?.cancel();
       document.documentElement.dataset.navigation = direction;
       const commit = () => {
         if (disposed || request !== revision) return;
@@ -41,9 +43,9 @@ export function useRouteMotion(onNavigate: () => void) {
       } else {
         commit();
         if (!matchMedia("(prefers-reduced-motion: reduce)").matches) {
-          document.getElementById("main-content")?.animate(
-            [{ opacity: 0, transform: `translateX(${direction === "backward" ? -18 : 18}px)` }, { opacity: 1, transform: "translateX(0)" }],
-            { duration: 360, easing: "cubic-bezier(.22,1,.36,1)" },
+          arrival = document.getElementById("main-content")?.animate(
+            [{ opacity: 0, transform: `translate3d(0, 12px, 0)` }, { opacity: 1, transform: "translateX(0)" }],
+            { duration: 440, easing: "cubic-bezier(.22,1,.36,1)" },
           );
         }
       }
@@ -52,6 +54,7 @@ export function useRouteMotion(onNavigate: () => void) {
     return () => {
       disposed = true;
       transition?.skipTransition();
+      arrival?.cancel();
       history.scrollRestoration = restoration;
       window.removeEventListener("hashchange", listener);
     };

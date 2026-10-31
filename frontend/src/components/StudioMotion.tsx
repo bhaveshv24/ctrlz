@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
+import { damping, pointerDepth } from "./motion-math";
 import { useSmoothWheel } from "../hooks/useSmoothWheel";
 
 /** A persistent overlay above the opening journey, workspace and dialogs. */
@@ -12,14 +13,19 @@ export default function StudioMotion() {
     const context = surface.getContext("2d");
     if (!context) return;
     const media = matchMedia("(prefers-reduced-motion: reduce), (pointer: coarse)");
+    const color = getComputedStyle(document.documentElement).getPropertyValue("--motion-trail-rgb").trim() || "";
     const points = Array.from({ length: 18 }, () => ({ x: 0, y: 0 }));
     let frame = 0, last = 0, movedAt = 0, visible = false;
+    let rx = 0, ry = 0;
     let x = 0, y = 0, target: Element | null = null;
     let active: HTMLElement | null = null, card: HTMLElement | null = null;
     const reset = () => {
       active?.style.removeProperty("translate");
       card?.style.removeProperty("--tilt");
       card?.style.removeProperty("--light");
+      card?.style.removeProperty("--tilt-x");
+      card?.removeAttribute("data-depth-active");
+      rx = 0; ry = 0;
       active = null;
       card = null;
     };
@@ -56,7 +62,7 @@ export default function StudioMotion() {
       context.lineJoin = "round";
       for (let i = points.length - 1; i > 0; i--) {
         const weight = 1 - i / points.length;
-        context.strokeStyle = `rgba(175, 236, 166, ${weight * Math.min(1, fade) * 0.65})`;
+        context.strokeStyle = `rgba(${color}, ${weight * Math.min(1, fade) * 0.65})`;
         context.lineWidth = 0.5 + weight * 2.8;
         context.beginPath();
         context.moveTo(points[i].x, points[i].y);
@@ -69,7 +75,7 @@ export default function StudioMotion() {
         ring.current.dataset.hit = String(!!target?.closest("button,a,input,select,textarea,[role=button]"));
       }
       const nextActive = target?.closest<HTMLElement>(".button:not(:disabled)") ?? null;
-      const nextCard = target?.closest<HTMLElement>(".signal-card,.metric,.scenario-card") ?? null;
+      const nextCard = target?.closest<HTMLElement>(".signal-card,.metric,.scenario-card,.main-content .card,.login-form,.project-dialog,.scene-plate") ?? null;
       if (active !== nextActive || card !== nextCard) { reset(); active = nextActive; card = nextCard; }
       if (document.documentElement.dataset.motion === "on") {
         // Read geometry before applying styles; pointer events only schedule this frame.
@@ -78,12 +84,18 @@ export default function StudioMotion() {
         if (active && buttonRect) active.style.translate = `${(x - buttonRect.left - buttonRect.width / 2) * 0.055}px ${(y - buttonRect.top - buttonRect.height / 2) * 0.1}px`;
         if (card && cardRect) {
           const offset = Math.max(0, Math.min(1, (x - cardRect.left) / cardRect.width));
-          card.style.setProperty("--tilt", `${(offset - 0.5) * 2}deg`);
+          const depth = pointerDepth((offset - 0.5) * 2, ((y - cardRect.top) / cardRect.height - 0.5) * 2);
+          const follow = damping(dt, 12);
+          rx += (depth.x - rx) * follow;
+          ry += (depth.y - ry) * follow;
+          card.dataset.depthActive = "true";
+          card.style.setProperty("--tilt", `${ry}deg`);
+          card.style.setProperty("--tilt-x", `${rx}deg`);
           card.style.setProperty("--light", `${offset * 100}%`);
         }
       } else reset();
       if (fade > 0) frame = requestAnimationFrame(draw);
-      else last = 0;
+      else { last = 0; reset(); }
     };
     const move = (event: PointerEvent) => {
       if (media.matches || event.pointerType === "touch") return;
@@ -97,6 +109,7 @@ export default function StudioMotion() {
       }
       if (!frame) frame = requestAnimationFrame(draw);
     };
+    const scroll = () => { target = null; reset(); };
     const leave = (event: PointerEvent) => { if (!event.relatedTarget) stop(); };
     resize();
     document.addEventListener("pointermove", move, { passive: true });
@@ -105,6 +118,8 @@ export default function StudioMotion() {
     window.addEventListener("blur", stop);
     window.addEventListener("resize", resize);
     window.addEventListener("hashchange", reset);
+    window.addEventListener("scroll", scroll, {passive: true});
+    window.addEventListener("ctrlz-quality", stop);
     media.addEventListener("change", stop);
     return () => {
       stop();
@@ -114,6 +129,8 @@ export default function StudioMotion() {
       window.removeEventListener("blur", stop);
       window.removeEventListener("resize", resize);
       window.removeEventListener("hashchange", reset);
+      window.removeEventListener("scroll", scroll);
+      window.removeEventListener("ctrlz-quality", stop);
       media.removeEventListener("change", stop);
     };
   }, []);

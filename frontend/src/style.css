@@ -5067,3 +5067,82 @@ body {
 .runtime-components dd{margin:0;overflow-wrap:anywhere}
 .runtime-components dd span{display:block;margin-top:.25rem;font-size:.85rem}
 @media(max-width:500px){.runtime-components>div{grid-template-columns:minmax(0,1fr)}}
+
+/* Hallmark motion refinement: a persistent world, quiet operational surfaces. */
+:root {
+  --motion-trail-rgb: 175, 236, 166;
+  --motion-depth: 1200px;
+  --motion-exit-duration: 140ms;
+  --motion-enter-duration: 300ms;
+  --motion-enter-delay: 140ms;
+  --motion-total-duration: 440ms;
+}
+html, body { overflow-x: clip; }
+.journey-distance { height: 820svh; }
+.journey-copy { max-width: 1600px; margin-inline: auto; }
+.journey-chapter h1 { overflow-wrap: break-word; min-width: 0; }
+.journey-stage .journey-skip { margin-left: auto; font: inherit; }
+.journey-stage .film-mast > span:nth-of-type(2) { margin-left: 1.5rem; }
+.journey-stops button { min-width: 40px; min-height: 40px; }
+.journey-stops button[aria-current="true"] { border-color: var(--journey-edge); }
+.pointer-overlay .studio-cursor::after {
+  width: 20px;
+  height: 20px;
+  transition: transform 180ms var(--motion-ease);
+}
+.pointer-overlay .studio-cursor[data-hit="true"]::after {
+  width: 20px;
+  height: 20px;
+  transform: scale(1.35);
+}
+:is(.signal-card,.metric,.scenario-card,.main-content .card,.login-form,.project-dialog,.scene-plate) {
+  --tilt-x: 0deg;
+  --tilt: 0deg;
+}
+:is(button,a,input,select,textarea,summary,[role="button"]):focus-visible {
+  outline: 2px solid var(--studio-lime);
+  outline-offset: 4px;
+}
+@media (prefers-reduced-motion: no-preference) and (pointer: fine) {
+  [data-motion="on"] :is(.signal-card,.metric,.scenario-card,.main-content .card,.login-form,.project-dialog,.scene-plate) {
+    transform: perspective(var(--motion-depth)) rotateX(var(--tilt-x)) rotateY(var(--tilt));
+    transition: transform 280ms var(--motion-ease), border-color 180ms ease;
+    backface-visibility: hidden;
+  }
+  [data-motion="on"] [data-depth-active="true"] { transition-duration: 90ms; }
+  ::view-transition-group(workspace-page) { animation-duration: var(--motion-total-duration); }
+  ::view-transition-old(workspace-page) {
+    animation: workspace-out var(--motion-exit-duration) ease-in both;
+  }
+  ::view-transition-new(workspace-page) {
+    animation: workspace-in var(--motion-enter-duration) var(--motion-ease) var(--motion-enter-delay) both;
+  }
+  @keyframes workspace-out {
+    from { opacity: 1; transform: translate3d(0,0,0); }
+    to { opacity: 0; transform: translate3d(0,-8px,0); }
+  }
+  @keyframes workspace-in {
+    from { opacity: 0; transform: translate3d(0,12px,0); }
+    to { opacity: 1; transform: translate3d(0,0,0); }
+  }
+  .modal-backdrop > * { transform-origin: 50% 30%; animation: dialog-depth 360ms var(--motion-ease) both; }
+  @keyframes dialog-depth {
+    from { opacity: 0; transform: perspective(var(--motion-depth)) translate3d(0,18px,-36px) rotateX(-2deg); }
+    to { opacity: 1; transform: perspective(var(--motion-depth)) translate3d(0,0,0) rotateX(0); }
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .journey-layer { transition: none; }
+  .journey-layer[data-departing="true"] { opacity: 0; }
+  .studio[data-rewinding=depart]~.world-interface,
+  .studio[data-rewinding=arrive]~.journey-layer .intro-journey { animation: none; filter: none; }
+  :is(.signal-card,.metric,.scenario-card,.main-content .card,.login-form,.project-dialog,.scene-plate) {
+    transform: none !important;
+    transition: none !important;
+  }
+  ::view-transition-group(workspace-page), ::view-transition-old(workspace-page), ::view-transition-new(workspace-page) { animation: none; }
+}
+@media (max-width: 700px) {
+  .journey-stage .journey-skip { margin-left: auto; padding: .65rem .85rem; font-size: .85rem; }
+  .journey-chapter p { font-size: 16px; }
+}

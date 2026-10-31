@@ -204,14 +204,10 @@ export function recoveryWorld(scene: T.Scene) {
             start = introPose(i, from),
             end = introPose(i, from + 1);
           for (let axis = 0; axis < 3; axis++) {
-            positions[k + axis] = T.MathUtils.lerp(
-              start[axis],
-              end[axis],
-              blend,
-            );
-            rotations[k + axis] =
-              start[axis + 3] +
-              shortArc(end[axis + 3] - start[axis + 3]) * blend;
+            const desiredPosition = T.MathUtils.lerp(start[axis], end[axis], blend);
+            const desiredRotation = start[axis + 3] + shortArc(end[axis + 3] - start[axis + 3]) * blend;
+            positions[k + axis] += (desiredPosition - positions[k + axis]) * mix;
+            rotations[k + axis] += shortArc(desiredRotation - rotations[k + axis]) * mix;
           }
         } else {
           positions[k] += (x - positions[k]) * mix;

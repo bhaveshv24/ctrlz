@@ -1,3 +1,4 @@
+import { angleDelta } from "./motion-math";
 import { rewindVortex } from "./rewind-vortex";
 import { panelFrames } from "./panel-frames";
 import { recoveryWorld } from "./recovery-world";
@@ -28,7 +29,7 @@ export function mountStudio(
     stencil: false,
     powerPreference: "high-performance",
   });
-  const size = cinematic ? 320 : 160;
+  const size = cinematic ? 224 : 144;
   const gpu = new GPUComputationRenderer(size, size, renderer);
   const initial = gpu.createTexture(),
     velocity = gpu.createTexture();
@@ -183,6 +184,8 @@ export function mountStudio(
       impulse + Math.hypot(e.movementX, e.movementY) * 0.05,
     );
   };
+  const leave = () => { ndc.set(0, 0); pointer.set(12, 12); impulse = 0; };
+  const out = (event: PointerEvent) => { if (!event.relatedTarget) leave(); };
   const routeAngles: Record<string, number> = {
     overview: 0,
     incidents: 0.8,
@@ -254,7 +257,7 @@ export function mountStudio(
       login ? 0.76 : 1.02,
       0,
     );
-    yaw += (destinationYaw - yaw) * (1 - Math.exp(-4 * dt));
+    yaw += angleDelta(yaw, destinationYaw) * (1 - Math.exp(-5 * dt));
     field.rotation.set(
       -0.28 + 0.07 * Math.sin(t * 0.14),
       t * 0.09 + scroll * 0.14 + yaw,
@@ -262,7 +265,7 @@ export function mountStudio(
     );
     field.scale.setScalar(login ? 0.78 : 0.74);
     camera.position.z =
-      5.2 - 0.18 * Math.tanh(scroll) - 0.65 * Math.sin(wipe * Math.PI);
+      5.2 - 0.18 * Math.tanh(scroll) - 0.18 * Math.sin(wipe * Math.PI);
     camera.position.x = 0.025 * Math.tanh(pointer.x);
     camera.position.y = 0.022 * Math.tanh(pointer.y);
     responsivePointer.lerp(ndc, 1 - Math.exp(-dt * 3.4));
@@ -346,20 +349,36 @@ export function mountStudio(
   const visibility = () => {
     cancelAnimationFrame(raf);
     last = 0;
-    if (!document.hidden) raf = requestAnimationFrame(frame);
+    if (!document.hidden && !renderer.getContext().isContextLost()) raf = requestAnimationFrame(frame);
   };
+  const contextLost = (event: Event) => {
+    event.preventDefault();
+    cancelAnimationFrame(raf);
+    renderer.domElement.style.opacity = "0";
+    delete host.dataset.ready;
+    document.documentElement.dataset.motion = "off";
+  };
+  const contextRestored = () => window.dispatchEvent(new Event("ctrlz-quality"));
+  renderer.domElement.addEventListener("webglcontextlost", contextLost);
+  renderer.domElement.addEventListener("webglcontextrestored", contextRestored);
   resize();
   visibility();
   addEventListener("resize", resize);
   addEventListener("pointermove", move);
+  addEventListener("pointerout", out);
+  addEventListener("blur", leave);
   addEventListener("hashchange", route);
   document.addEventListener("visibilitychange", visibility);
   return () => {
     cancelAnimationFrame(raf);
     removeEventListener("resize", resize);
     removeEventListener("pointermove", move);
+    removeEventListener("pointerout", out);
+    removeEventListener("blur", leave);
     removeEventListener("hashchange", route);
     document.removeEventListener("visibilitychange", visibility);
+    renderer.domElement.removeEventListener("webglcontextlost", contextLost);
+    renderer.domElement.removeEventListener("webglcontextrestored", contextRestored);
     frames.dispose();
     vortex.dispose();
     delete host.dataset.rewinding;
