@@ -188,6 +188,13 @@ class RepositoryImports:
                 shutil.copyfile(path, target)
         return omitted
 
+    def _retain_full_repository(self, source, snapshot, subdirectory):
+        if not subdirectory:
+            return []
+        if not (snapshot/'.git').exists():
+            git(['init', '-b', 'main'], snapshot)
+        return self._copy(source, snapshot/'.git/ctrlz-full-source')
+
     def _commit(self, path, provenance, omitted, history=None, history_note=None):
         if not (path/'.git').exists():git(['init', '-b', 'main'], path)
         git(['add', '--force', '.'], path)
@@ -216,6 +223,7 @@ class RepositoryImports:
                     omitted = self._copy(source, snapshot)
                     from .history import preserve_history
                     history, history_note = preserve_history(upstream, snapshot, request.subdirectory)
+                    omitted += self._retain_full_repository(upstream, snapshot, request.subdirectory)
                     provenance = {'kind': 'github', 'url': identity['url'], 'upstream_commit': commit, 'subdirectory': request.subdirectory}
             else:
                 source = Path(request.source).expanduser().resolve()
@@ -229,13 +237,14 @@ class RepositoryImports:
                 omitted = self._copy(source, snapshot)
                 from .history import preserve_history
                 history, history_note = preserve_history(parent_source, snapshot, request.subdirectory)
-                provenance = {'kind': 'local', 'source': str(source)}
+                omitted += self._retain_full_repository(parent_source, snapshot, request.subdirectory)
+                provenance = {'kind': 'local', 'source': str(parent_source), 'subdirectory': request.subdirectory}
             return self._commit(snapshot, provenance, omitted, history, history_note)
         except BaseException:
             shutil.rmtree(snapshot, ignore_errors=True)
             raise
 
-    def import_zip(self, contents):
+    def import_zip(self, contents, subdirectory=''):
         snapshot = self.root/('repo-'+uuid.uuid4().hex[:12])
         snapshot.mkdir()
         try:
@@ -264,8 +273,12 @@ class RepositoryImports:
                             shutil.copyfileobj(source, output, length=65536)
                 children = list(unpacked.iterdir())
                 source = children[0] if len(children) == 1 and children[0].is_dir() else unpacked
-                omitted = self._copy(source, snapshot)
-                provenance = {'kind': 'zip', 'archive_sha256': hashlib.sha256(contents).hexdigest()}
+                package = source.joinpath(*relative_path(subdirectory).parts) if subdirectory else source
+                if not package.is_dir():
+                    raise ValueError('Project subdirectory does not exist')
+                omitted = self._copy(package, snapshot)
+                omitted += self._retain_full_repository(source, snapshot, subdirectory)
+                provenance = {'kind': 'zip', 'archive_sha256': hashlib.sha256(contents).hexdigest(), 'subdirectory': subdirectory}
                 return self._commit(snapshot, provenance, omitted)
         except BaseException:
             shutil.rmtree(snapshot, ignore_errors=True)

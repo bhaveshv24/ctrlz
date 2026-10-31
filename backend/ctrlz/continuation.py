@@ -153,11 +153,25 @@ class Continuation:
                 if not name:continue
                 validate_path(workspace, name)
             output = io.BytesIO()
+            export_root = workspace
+            export_names = [name for name in git(['ls-files', '-z'], workspace, raw=True).decode('utf-8').split('\0') if name]
+            metadata_path = repo/'.git/ctrlz-import.json'
+            metadata = json.loads(metadata_path.read_text()) if metadata_path.is_file() else {}
+            subdirectory = metadata.get('provenance', {}).get('subdirectory', '')
+            if subdirectory:
+                full_source = repo/'.git/ctrlz-full-source'
+                if not full_source.is_dir():
+                    raise ValueError('This older import retained only the selected package. Re-import the full repository to download all project files.')
+                export_root = Path(directory)/'full-repository'
+                shutil.copytree(full_source, export_root, symlinks=True)
+                package = export_root.joinpath(*relative_path(subdirectory).parts)
+                shutil.rmtree(package)
+                shutil.copytree(workspace, package, ignore=shutil.ignore_patterns('.git'), symlinks=True)
+                export_names = [p.relative_to(export_root).as_posix() for p in export_root.rglob('*') if p.is_file() or p.is_symlink()]
             with zipfile.ZipFile(output, 'w', zipfile.ZIP_DEFLATED) as archive:
-                for name in git(['ls-files', '-z'], workspace, raw=True).decode('utf-8').split('\0'):
-                    if not name:continue
-                    path = workspace/name
-                    if path.is_symlink():
+                for name in export_names:
+                    path = export_root.joinpath(*relative_path(name).parts)
+                    if path.is_symlink() or not path.resolve().is_relative_to(export_root.resolve()):
                         raise ValueError('Unsafe export path')
                     archive.write(path, 'repaired-repository/'+name)
             return output.getvalue()

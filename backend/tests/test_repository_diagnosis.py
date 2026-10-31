@@ -77,6 +77,55 @@ def test_repaired_archive_includes_new_source_files(tmp_path):
         assert archive.read('repaired-repository/helper.py') == b'VALUE = 2\n'
 
 
+@pytest.mark.parametrize('kind', ['zip', 'local', 'github'])
+def test_package_repair_exports_whole_repository(tmp_path, monkeypatch, kind):
+    from ctrlz.repository import RepositorySource
+    source = tmp_path/'sources/project'
+    (source/'backend').mkdir(parents=True)
+    (source/'frontend/src').mkdir(parents=True)
+    files = {'backend/logic.py': 'def allowed(value):\n    return value != 2\n',
+             'backend/test_logic.py': 'from logic import allowed\ndef test_allowed(): assert allowed(2)\n',
+             'frontend/src/main.tsx': 'export const app = "original frontend";\n',
+             'docker-compose.yml': 'services: {}\n', 'README.md': 'Full project\n',
+             '.env': 'SECRET=excluded\n'}
+    for name, content in files.items():
+        (source/name).write_bytes(content.encode())
+    imports = RepositoryImports(tmp_path/'imports')
+    if kind == 'zip':
+        data = io.BytesIO()
+        with zipfile.ZipFile(data, 'w') as archive:
+            for name, content in files.items():archive.writestr('project/'+name, content)
+        snapshot = imports.import_zip(data.getvalue(), 'backend')
+    else:
+        monkeypatch.setenv('REPOSITORY_SOURCE_ROOTS', str(tmp_path/'sources'))
+        if kind == 'github':
+            import ctrlz.repository as module
+            original_git = module.git
+            def clone_fixture(args, cwd, **kwargs):
+                if args[0] == 'clone':
+                    import shutil
+                    shutil.copytree(source, Path(args[-1]))
+                    return ''
+                return original_git(args, cwd, **kwargs)
+            monkeypatch.setattr(module, 'git', clone_fixture)
+            git(['init', '-b', 'main'], source)
+            git(['add', '.'], source)
+            git(['-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.test', 'commit', '-m', 'Source'], source)
+        snapshot = imports.import_source(RepositorySource(kind=kind, source=str(source) if kind == 'local' else 'https://github.com/example/project', subdirectory='backend'))
+    repo = Path(snapshot['repository'])
+    (repo/'logic.py').write_bytes(files['backend/logic.py'].replace('!=', '==').encode())
+    patch = git(['diff'], repo)
+    git(['checkout', '--', 'logic.py'], repo)
+    runner = Continuation(None, None, imports.root, tmp_path/'artifacts')
+    incident = {'import_request': {'repository': str(repo)}, 'commit': snapshot['commit'],
+                'patch': patch, 'verification': {'passed': True}}
+    with zipfile.ZipFile(io.BytesIO(runner.repaired_archive(incident))) as archive:
+        assert b'value == 2' in archive.read('repaired-repository/backend/logic.py')
+        for name in ['frontend/src/main.tsx', 'docker-compose.yml', 'README.md', 'backend/test_logic.py']:
+            assert archive.read('repaired-repository/'+name) == files[name].encode()
+        assert not any('/.git/' in name or name.endswith('/.env') for name in archive.namelist())
+
+
 def test_repaired_archive_uses_verified_commit_and_unicode_paths(tmp_path):
     runner, snapshot = imported(tmp_path)
     repo = Path(snapshot['repository'])

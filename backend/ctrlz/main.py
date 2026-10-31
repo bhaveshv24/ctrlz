@@ -305,14 +305,14 @@ def create_workspace_app(store=None, client=None, reasoner=None, runbooks=None, 
             raise HTTPException(422, str(exc)) from exc
 
     @app.post("/repositories/upload", dependencies=[Depends(auth)], status_code=201)
-    async def upload_repository(request: Request):
+    async def upload_repository(request: Request, subdirectory: str = ''):
         contents = bytearray()
         async for chunk in request.stream():
             contents.extend(chunk)
             if len(contents) > MAX_UPLOAD:
                 raise HTTPException(413, "ZIP upload exceeds 25 MiB")
         try:
-            return await asyncio.to_thread(imports.import_zip, bytes(contents))
+            return await asyncio.to_thread(imports.import_zip, bytes(contents), subdirectory)
         except Exception as exc:
             raise HTTPException(422, "Invalid ZIP snapshot: "+str(exc)[:400]) from exc
 
