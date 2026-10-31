@@ -65,6 +65,22 @@ After verification, download the repaired repository ZIP from the Patch tab, or 
 the patch and receipt. Review the changes before applying them. CtrlZ never pushes, merges,
 deploys or writes to a remote repository. See [support limits](docs/PORTABILITY.md).
 
+For projects with a backend and frontend, import the complete repository and select
+`backend` in **Package subdirectory**. CtrlZ tests and repairs that package and exports
+the complete imported source tree with the repair in its original location. Secrets,
+Git metadata, installed dependencies and build caches are excluded. A repository that
+contains only a backend cannot supply a frontend from another repository. Older imports
+that retained only a selected package must be imported again for a full-project ZIP.
+CtrlZ prepares and saves the repaired ZIP before marking a source repair resolved.
+Repeated downloads reuse the saved archive, and legacy incidents prepare it on their
+first download. **Download errors before repair** exports the original test results
+both during inspection and from the incident. Import the repository you intend to run;
+CtrlZ does not add a frontend or launch scripts absent from that source.
+Conflicting replacement/edit proposals and nonmatching snippets receive source-grounded
+feedback before they consume a test attempt. After a failed candidate, a bounded search
+can test fail-closed comparison corrections from traceback files against unchanged tests.
+Stopped incidents offer **Retry repair**, retaining their previous evidence.
+
 For a disclosed local history fixture, run `uv run --project backend python
 scripts/create_history_demo.py` from this checkout. Import the printed server-folder path;
 request a fix for total amount calculation while preserving acceptance tests. Its known

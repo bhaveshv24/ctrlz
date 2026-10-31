@@ -2,8 +2,10 @@ import asyncio
 import ast
 import hashlib
 import json
+import re
 import io
 import zipfile
+import zlib
 import shutil
 import tempfile
 from collections import Counter
@@ -44,7 +46,7 @@ def embedded_doctests(root, paths):
     result = {}
     for name in paths:
         if Path(name).suffix != '.py' or not editable(name):continue
-        try:tree = ast.parse((root/name).read_text())
+        try:tree = ast.parse((root/name).read_text(encoding='utf-8'))
         except (SyntaxError,UnicodeError,OSError):
             result[name]=[]
             continue
@@ -76,26 +78,55 @@ def preserve_rejection_guards(before, after, filename):
 
 
 def guard_comparison_repairs(root, names, limit=4):
-    proposals = []
+    groups = []
     for name in names:
         if Path(name).suffix != '.py':continue
         target = validate_path(root, name)
         if not target.is_file():continue
-        source = target.read_text()
+        source = target.read_text(encoding='utf-8')
         try:tree = ast.parse(source)
         except SyntaxError:continue
+        proposals = []
         for branch in ast.walk(tree):
             if not isinstance(branch, ast.If) or not any(isinstance(statement, ast.Raise) for statement in branch.body):continue
             for node in ast.walk(branch.test):
                 if not isinstance(node, ast.Compare) or len(node.ops) != 1 or not isinstance(node.left, (ast.Name, ast.Attribute)):continue
                 if not isinstance(node.comparators[0], ast.Constant) or not isinstance(node.comparators[0].value, str):continue
-                if not isinstance(node.ops[0], (ast.Eq, ast.NotEq)):continue
+                # Synthesize fail-closed required-state guards only. Never turn
+                # a required-state rejection into a blacklist of that state.
+                if not isinstance(node.ops[0], ast.Eq):continue
                 before = ast.get_source_segment(source, node)
                 if not before or source.count(before) != 1:continue
-                old, new = ('==', '!=') if isinstance(node.ops[0], ast.Eq) else ('!=', '==')
+                old, new = '==', '!='
                 proposals.append(CodeProposal(diagnosis='Evaluate a minimal rejection-guard comparison correction; preserve its required value and all other source.', edits=[SourceEdit(path=name, before=before, after=before.replace(old,new,1))]))
-                if len(proposals) >= limit:return proposals
-    return proposals
+        if proposals:groups.append(proposals[:limit])
+    # Cover distinct traceback files before spending the budget on more guards
+    # from a large entry point that may only be forwarding another file's error.
+    return [group[index] for index in range(limit) for group in groups if len(group) > index][:limit]
+
+
+class EditMatchError(ValueError):
+    def __init__(self, path, matches, source):
+        super().__init__(f'{path}: before snippet matched {matches} source occurrences; exactly one is required. Read the original file and return a complete revised candidate.')
+        self.path, self.source = path, source[:16000]
+
+
+def proposal_sources(root, proposal, protected):
+    replacements = {}
+    for change in proposal.changes:
+        validate_path(root, change.path)
+        if change.path in protected:raise ValueError('Acceptance test files are immutable')
+        if change.path in replacements:raise ValueError('Duplicate full-file replacement')
+        replacements[change.path] = change.content
+    for edit in proposal.edits:
+        target = validate_path(root, edit.path)
+        if edit.path in protected:raise ValueError('Acceptance test files are immutable')
+        text = replacements.get(edit.path, target.read_text(encoding='utf-8') if target.is_file() else '')
+        matches = text.count(edit.before)
+        if matches != 1:
+            raise EditMatchError(edit.path, matches, text)
+        replacements[edit.path] = text.replace(edit.before, edit.after, 1)
+    return replacements
 
 
 def acceptance(baseline, candidate, immutable):
@@ -135,24 +166,69 @@ class Continuation:
     def repaired_archive(self, incident):
         if not incident.get('verification', {}).get('passed') or not incident.get('patch'):
             raise ValueError('A verified source patch is required before downloading repaired code')
+        repository = Path(incident['import_request']['repository']).resolve()
+        if not repository.is_relative_to(self.root) or repository == self.root:
+            raise ValueError('Repository is outside the managed workspace')
+        key = hashlib.sha256(json.dumps([str(repository), incident.get('commit'), incident['patch']], ensure_ascii=True).encode()).hexdigest()
+        cached = self.artifacts/(key+'.repaired.zip')
+        if cached.is_file():
+            try:
+                contents = cached.read_bytes()
+                with zipfile.ZipFile(io.BytesIO(contents)) as archive:
+                    if archive.namelist() and archive.testzip() is None:
+                        return contents
+            except (OSError, zipfile.BadZipFile, EOFError, zlib.error, RuntimeError):
+                pass
         repo = self.repository(incident['import_request']['repository'])
         with tempfile.TemporaryDirectory(prefix='ctrlz-export-') as directory:
             workspace = Path(directory)/'repository'
             git(['clone', '--no-hardlinks', '--no-local', str(repo), str(workspace)], repo)
+            # Export the snapshot that passed verification, even if HEAD moved later.
+            if incident.get('commit'):
+                git(['checkout', '--detach', incident['commit']], workspace)
             patch = Path(directory)/'verified.patch'
             patch.write_bytes(incident['patch'].encode('utf-8'))
-            git(['apply', '--check', str(patch)], workspace)
-            git(['apply', '--index', str(patch)], workspace)
-            for name in git(['diff', '--cached', '--name-only'], workspace).splitlines():
+            git(['apply', '--check', '--ignore-space-change', str(patch)], workspace)
+            # Windows checkout metadata/line endings can differ from the index.
+            # Apply to the checked-out files, then stage the resulting snapshot.
+            git(['apply', '--ignore-space-change', str(patch)], workspace)
+            git(['add', '--all'], workspace)
+            for name in git(['diff', '--cached', '--name-only', '-z'], workspace, raw=True).decode('utf-8').split('\0'):
+                if not name:continue
                 validate_path(workspace, name)
             output = io.BytesIO()
+            export_root = workspace
+            export_names = [name for name in git(['ls-files', '-z'], workspace, raw=True).decode('utf-8').split('\0') if name]
+            metadata_path = repo/'.git/ctrlz-import.json'
+            metadata = json.loads(metadata_path.read_text()) if metadata_path.is_file() else {}
+            subdirectory = metadata.get('provenance', {}).get('subdirectory', '')
+            if subdirectory:
+                full_source = repo/'.git/ctrlz-full-source'
+                if not full_source.is_dir():
+                    raise ValueError('This older import retained only the selected package. Re-import the full repository to download all project files.')
+                export_root = Path(directory)/'full-repository'
+                shutil.copytree(full_source, export_root, symlinks=True)
+                package = export_root.joinpath(*relative_path(subdirectory).parts)
+                shutil.rmtree(package)
+                shutil.copytree(workspace, package, ignore=shutil.ignore_patterns('.git'), symlinks=True)
+                export_names = [p.relative_to(export_root).as_posix() for p in export_root.rglob('*') if p.is_file() or p.is_symlink()]
             with zipfile.ZipFile(output, 'w', zipfile.ZIP_DEFLATED) as archive:
-                for name in git(['ls-files'], workspace).splitlines():
-                    path = workspace/name
-                    if path.is_symlink():
+                for name in export_names:
+                    path = export_root.joinpath(*relative_path(name).parts)
+                    if path.is_symlink() or not path.resolve().is_relative_to(export_root.resolve()):
                         raise ValueError('Unsafe export path')
                     archive.write(path, 'repaired-repository/'+name)
-            return output.getvalue()
+            contents = output.getvalue()
+            # Publish the complete artifact atomically. Later downloads do not
+            # need Git, a surviving import folder, or another patch application.
+            with tempfile.NamedTemporaryFile(dir=self.artifacts, suffix='.tmp', delete=False) as handle:
+                temporary = Path(handle.name)
+                handle.write(contents)
+            try:
+                temporary.replace(cached)
+            finally:
+                temporary.unlink(missing_ok=True)
+            return contents
 
     def diagnose(self, request: ImportRequest):
         repo = self.repository(request.repository)
@@ -191,7 +267,7 @@ class Continuation:
         reasoner = self.reasoner
         worktree = None; repo = None; added = False; sandbox = None
         try:
-            self.store.update(incident_id, status='diagnosing', error=None, reasoning_provider=getattr(reasoner, 'provider', 'test fixture'), model=getattr(reasoner, 'selected_model', None))
+            self.store.update(incident_id, status='diagnosing', error=None, import_request=request.model_dump(), download_ready=False, reasoning_provider=getattr(reasoner, 'provider', 'test fixture'), model=getattr(reasoner, 'selected_model', None))
             repo = await asyncio.to_thread(self.repository, request.repository)
             inspection = inspect_repository(repo, request.acceptance_profile)
             if not inspection['supported']:
@@ -244,11 +320,12 @@ class Continuation:
             relevant_tests = [p for p in inspection['tests'] if Path(p).stem in failed_ids]
             failure_output = baseline.get('output', '')
             implicated_sources = [name for name in inspection['editable_files'] if name in failure_output]
+            implicated_sources.sort(key=lambda name:len(re.findall(re.escape(name)+r':\d+:\s+\w*(?:Error|Exception)', failure_output)), reverse=True)
             # Prioritize failing test context over unrelated source excerpts.
             selected = implicated_sources+relevant_tests+inspection['tests'][:2]+[p for p in paths if p in {'pyproject.toml', 'package.json', 'requirements.txt'}]+inspection['editable_files'][:3]
             budget = 42000
             for name in dict.fromkeys(selected):
-                text = (worktree/name).read_text(errors='replace')
+                text = (worktree/name).read_text(encoding='utf-8', errors='replace')
                 excerpt = text[:min(12000,budget)]
                 if excerpt:initial[name] = excerpt
                 budget -= len(excerpt)
@@ -268,7 +345,7 @@ class Continuation:
                     target = worktree/name
                     if original is None:
                         target.unlink(missing_ok=True)
-                    else:target.write_text(original)
+                    else:target.write_bytes(original.encode('utf-8'))
                 for name in new_files:
                     git(['reset', '--', name], worktree)
                 originals = {}; new_files = set()
@@ -276,11 +353,18 @@ class Continuation:
                 context = {**baseline, 'profile': inspection['profile'], 'repository_tree': paths[:1000], 'previous_attempt': feedback, '_workspace': str(worktree), '_allowed_files': paths, '_record': lambda payload:self.store.record(incident_id,'tool_result',payload)}
                 proposal = None
                 for format_attempt in range(3):
+                    proposal = None
                     context['previous_attempt'] = feedback
                     try:
                         proposal = await reasoner.code(request, initial, context)
+                        replacements = proposal_sources(worktree, proposal, protected)
                         break
+                    except EditMatchError as exc:
+                        proposal = None
+                        feedback = {**(feedback or {}), 'attempt':attempt+1, 'edit_error':str(exc), 'original_source':{'path':exc.path, 'content':exc.source}, 'instruction':'Do not repeat the rejected edit. Match the original source exactly once. Keep the previous test failure evidence and fix its cause; never edit acceptance tests.'}
+                        self.store.record(incident_id,'code_proposal_rejected',{'attempt':attempt+1, 'format_attempt':format_attempt+1, **feedback})
                     except ValidationError as exc:
+                        proposal = None
                         feedback = {**(feedback or {}), 'attempt':attempt+1, 'schema_error':str(exc)[:3000], 'instruction':'Return a complete candidate against the original snapshot, retaining the previous test failure feedback. Each exact edit has ONLY path, before, after. Do not add is_edit or other metadata. Include a nonempty changes or edits array.'}
                         self.store.record(incident_id,'code_proposal_rejected',{'attempt':attempt+1, 'format_attempt':format_attempt+1, **feedback})
                     except Exception as exc:
@@ -294,31 +378,19 @@ class Continuation:
                 self.store.record(incident_id, 'code_proposal', {'attempt': attempt+1, **proposal.model_dump()})
                 result = {'exit_code': 4, 'cases': [], 'output': 'Candidate not validated'}
                 try:
-                    replacements = {}
-                    for change in proposal.changes:
-                        validate_path(worktree, change.path)
-                        if change.path in protected:raise ValueError('Acceptance test files are immutable')
-                        if change.path in replacements:raise ValueError('Duplicate full-file replacement')
-                        replacements[change.path] = change.content
-                    for edit in proposal.edits:
-                        target = validate_path(worktree, edit.path)
-                        if edit.path in protected:raise ValueError('Acceptance test files are immutable')
-                        text = replacements.get(edit.path, target.read_text() if target.is_file() else '')
-                        if text.count(edit.before) != 1:
-                            raise ValueError('Exact edit must match one and only one source occurrence')
-                        replacements[edit.path] = text.replace(edit.before, edit.after, 1)
+                    replacements = proposal_sources(worktree, proposal, protected)
                     for name, content in replacements.items():
                         target = validate_path(worktree, name)
                         if len(content.encode()) > 256000 or '\x00' in content:
                             raise ValueError('Source change exceeds bounded text limits')
                         if target.suffix == '.py':
                             ast.parse(content, filename=name)
-                            preserve_rejection_guards(target.read_text() if target.exists() else '', content, name)
+                            preserve_rejection_guards(target.read_text(encoding='utf-8') if target.exists() else '', content, name)
                     for name, content in replacements.items():
                         target = validate_path(worktree, name)
-                        originals[name] = target.read_text() if target.exists() else None
+                        originals[name] = target.read_text(encoding='utf-8') if target.exists() else None
                         target.parent.mkdir(parents=True, exist_ok=True)
-                        target.write_text(content); target.chmod(0o644)
+                        target.write_bytes(content.encode('utf-8')); target.chmod(0o644)
                         for directory in target.parents:
                             if directory == worktree.parent:break
                             directory.chmod(0o755)
@@ -335,10 +407,10 @@ class Continuation:
                         edit = guard_proposal.edits[0]
                         target = validate_path(worktree, edit.path)
                         if edit.path in protected:continue
-                        original = target.read_text()
+                        original = target.read_text(encoding='utf-8')
                         content = original.replace(edit.before, edit.after, 1)
                         preserve_rejection_guards(original, content, edit.path)
-                        target.write_text(content)
+                        target.write_bytes(content.encode('utf-8'))
                         try:
                             self.store.update(incident_id, status='verifying')
                             agent_runs += 1
@@ -354,7 +426,7 @@ class Continuation:
                                 self.store.update(incident_id, diagnosis=guard_proposal.diagnosis)
                                 break
                         finally:
-                            if edit.path not in originals:target.write_text(original)
+                            if edit.path not in originals:target.write_bytes(original.encode('utf-8'))
                 diff = git(['diff', '--no-ext-diff', '--no-textconv'], worktree)
                 unchanged = immutable_digest(worktree, paths, protected) == immutable and embedded_doctests(worktree, paths) == doctests
                 checks, details = acceptance(baseline, result, unchanged)
@@ -362,7 +434,39 @@ class Continuation:
                 passed = all(checks.values())
                 self.store.record(incident_id, 'candidate_tests', {'attempt': attempt+1, 'passed': passed, 'acceptance': details, **result})
                 if passed:break
+                # A failed model candidate may target a symptom rather than the
+                # throwing guard. Probe bounded comparisons from traceback files
+                # against the original snapshot and immutable acceptance suite.
                 feedback = {'attempt': attempt+1, 'candidate': proposal.model_dump(), 'test_result': result, 'acceptance': details}
+                if implicated_sources:
+                    tournament.restore()
+                    originals = {}; new_files = set()
+                    for guard_proposal in guard_comparison_repairs(worktree, implicated_sources):
+                        edit = guard_proposal.edits[0]
+                        if edit.path in protected:continue
+                        target = validate_path(worktree, edit.path)
+                        original = target.read_bytes()
+                        content = original.decode('utf-8').replace(edit.before, edit.after, 1)
+                        preserve_rejection_guards(original.decode('utf-8'), content, edit.path)
+                        target.write_bytes(content.encode('utf-8'))
+                        try:
+                            agent_runs += 1
+                            guard_result = await asyncio.to_thread(sandbox.run)
+                            guard_checks, guard_details = qualify(guard_result)
+                            guard_passed = all(guard_checks.values())
+                            self.store.record(incident_id, 'guard_candidate_tests', {'attempt':attempt+1, 'origin':'traceback_comparison_search', 'edit':edit.model_dump(), 'passed':guard_passed, **guard_result})
+                            if guard_passed:
+                                result, checks, details = guard_result, guard_checks, guard_details
+                                diff = git(['diff', '--no-ext-diff', '--no-textconv'], worktree)
+                                checks['nonempty_patch'] = bool(diff)
+                                passed = bool(diff)
+                                repair_origin = 'Bounded traceback comparison search passed original immutable acceptance; source values inferred from this repository'
+                                self.store.record(incident_id, 'code_proposal', {'attempt':attempt+1, 'origin':'traceback_comparison_search', **guard_proposal.model_dump()})
+                                self.store.update(incident_id, diagnosis=guard_proposal.diagnosis)
+                                break
+                        finally:
+                            if not passed:target.write_bytes(original)
+                    if passed:break
             tournament.agent(result,checks,details,diff,agent_runs,repair_origin or agent_error)
             winner = tournament.record()
             if winner:
@@ -372,7 +476,14 @@ class Continuation:
                 passed = False
             unchanged = immutable_digest(worktree,paths,protected)==immutable
             self.store.record(incident_id, 'verification', {**result, 'passed': passed, 'checks': checks, 'acceptance': details, 'original_commit': commit, 'tests_immutable': unchanged, 'selected_strategy':winner['id'] if winner else None})
-            artifact = self.artifacts/f'{incident_id}.patch'; artifact.write_text(diff)
+            artifact = self.artifacts/f'{incident_id}.patch'; artifact.write_bytes(diff.encode('utf-8'))
+            if passed and diff:
+                contents = await asyncio.to_thread(self.repaired_archive, {
+                    'import_request': request.model_dump(), 'commit': commit,
+                    'patch': diff, 'verification': {'passed': True},
+                })
+                self.store.update(incident_id, download_ready=True)
+                self.store.record(incident_id, 'repaired_archive', {'bytes':len(contents), 'sha256':hashlib.sha256(contents).hexdigest()})
             self.store.update(incident_id, status='resolved' if passed else 'escalated', error=None if passed else (agent_error or 'No candidate passed the original acceptance suite within three repair attempts. Last failure: '+result.get('output','No test output')[-500:]), verification={'passed':passed,'checks':checks}, patch=diff, commit=commit, remaining_risks=([winner['reason'],'Verified against the imported acceptance suite only; patch review and deployment remain operator actions.'] if winner else []) if passed else ['No verified repair; inspect the test evidence and unsupported requirements.'])
             self.store.record(incident_id, 'record', {'resolved':passed,'artifact':'patch','profile':inspection['profile']})
         except Exception as exc:

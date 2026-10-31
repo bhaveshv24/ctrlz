@@ -20,8 +20,8 @@ import {
 } from "lucide-react";
 import {
   api,
-  API,
   downloadBrief,
+  downloadRepairedZip,
   saveFile,
   type Candidate,
   type FlightEvent,
@@ -117,6 +117,7 @@ export default function IncidentWorkspace({
     decisions = i.tournament || [],
     tools = receipt.events.filter((e) => ["tool_result", "repository_context", "baseline_tests", "code_proposal_rejected", "candidate_tests", "guard_candidate_tests"].includes(e.stage)),
     lastProposal = receipt.events.filter(e => e.stage === "code_proposal").slice(-1)[0]?.payload,
+    baseline = receipt.events.find(e => e.stage === "baseline_tests"),
     terminal = ["resolved", "blocked", "escalated"].includes(i.status),
     tabs = [
       "Story",
@@ -126,19 +127,15 @@ export default function IncidentWorkspace({
       ...(i.patch ? ["Patch"] : []),
     ];
   const downloadRepairedRepository = async () => {
-    const response = await fetch(API + "/incidents/" + i.id + "/repaired.zip", {
-      headers: { Authorization: "Bearer " + token },
-    });
-    if (!response.ok) {
-      const error = await response.json().catch(() => null);
-      throw new Error(error?.detail || "Could not export the repaired repository.");
+    setBusy(true);
+    setError("");
+    try {
+      await downloadRepairedZip(i.id, token);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
     }
-    const url = URL.createObjectURL(await response.blob());
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = "ctrlz-" + i.id + "-repaired.zip";
-    link.click();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
   return (
     <>
@@ -158,8 +155,30 @@ export default function IncidentWorkspace({
         </div>
         <div className="heading-actions">
           <Badge state={i.status} />
+          {i.kind === "code" && ["escalated", "blocked"].includes(i.status) && (
+            <button className="button primary" disabled={busy} onClick={() => act(() => api("/incidents/" + i.id + "/retry-repair", token, {}), "Repair restarted with the original source and tests.")}>
+              <RotateCcw size={16} />Retry repair
+            </button>
+          )}
+          {baseline && (
+            <button className="button secondary" onClick={() => {
+              const data = baseline.payload;
+              const cases = Array.isArray(data.cases) ? data.cases : [];
+              saveFile("ctrlz-" + i.id + "-before-repair.txt", [
+                "CtrlZ — Errors before repair",
+                "Incident: " + i.id,
+                "Original commit: " + (i.commit || "Unavailable"),
+                "Exit code: " + String(data.exit_code),
+                "", "Failing checks:",
+                ...cases.filter(c => !c.passed && c.status !== "skipped").map(c => "- " + c.id + " (" + c.status + ")"),
+                "", "Original test output:", String(data.output || "No output captured."),
+              ].join("\n"), "text/plain;charset=utf-8");
+            }}>
+              <ArrowDownToLine size={15} />Download errors before repair
+            </button>
+          )}
           {verified && i.patch && (
-            <button className="button primary" disabled={busy} onClick={() => act(downloadRepairedRepository)}>
+            <button className="button primary" disabled={busy} onClick={downloadRepairedRepository}>
               <ArrowDownToLine size={16} />
               {busy ? "Preparing download…" : "Download fixed code (.zip)"}
             </button>
@@ -757,7 +776,7 @@ export default function IncidentWorkspace({
                 remain separate operator actions.
               </span>
             </div>
-            {verified && <button className="button primary" disabled={busy} onClick={() => act(downloadRepairedRepository)}><ArrowDownToLine size={16} />Download fixed code (.zip)</button>}
+            {verified && <button className="button primary" disabled={busy} onClick={downloadRepairedRepository}><ArrowDownToLine size={16} />Download fixed code (.zip)</button>}
             <pre className="patch-view">{i.patch}</pre>
           </section>
         )}

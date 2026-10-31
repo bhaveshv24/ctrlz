@@ -58,9 +58,15 @@ def relative_path(name):
 
 def git(args, cwd, timeout=60, raw=False):
     env = {**os.environ, 'GIT_CONFIG_GLOBAL': os.devnull, 'GIT_CONFIG_NOSYSTEM': '1', 'GIT_TERMINAL_PROMPT': '0'}
-    result = subprocess.run(['git', '-c', 'core.hooksPath='+os.devnull, '-c', 'core.fsmonitor=false', '-c', 'credential.helper=', '-c', 'core.autocrlf=false', '-c', 'core.safecrlf=false', *args], cwd=cwd, env=env, capture_output=True, text=not (raw or 'diff' in args), timeout=timeout)
+    try:
+        result = subprocess.run(['git', '-c', 'core.hooksPath='+os.devnull, '-c', 'core.fsmonitor=false', '-c', 'core.quotePath=false', '-c', 'core.autocrlf=false', '-c', 'core.safecrlf=false', '-c', 'credential.helper=', *args], cwd=cwd, env=env, capture_output=True, text=not (raw or 'diff' in args), encoding=None if raw or 'diff' in args else 'utf-8', timeout=timeout)
+    except subprocess.TimeoutExpired as exc:
+        raise ValueError('Git source operation timed out. Retry the import or download.') from exc
+    except FileNotFoundError as exc:
+        raise ValueError('Git is unavailable on the CtrlZ server. Install Git and restart CtrlZ.') from exc
     if result.returncode:
-        raise ValueError('Git could not complete the source snapshot operation')
+        operation = next((name for name in args if name in {'clone', 'apply', 'checkout', 'commit', 'worktree'}), 'snapshot')
+        raise ValueError(f'Git {operation} failed. Check the repository URL and revision for imports; for exports, re-import and repair the original source snapshot.')
     if raw:
         return result.stdout
     output = result.stdout.decode('utf-8') if isinstance(result.stdout, bytes) else result.stdout
@@ -171,6 +177,13 @@ class RepositoryImports:
         self.root = Path(root).resolve()
         self.root.mkdir(parents=True, exist_ok=True)
 
+    def _package(self, root, subdirectory):
+        package = root.joinpath(*relative_path(subdirectory).parts) if subdirectory else root
+        if not package.is_dir() or not package.resolve().is_relative_to(root.resolve()):
+            folders = ', '.join(sorted(p.name for p in root.iterdir() if p.is_dir() and p.name not in SKIP_DIRS)[:15])
+            raise ValueError(f'Package subdirectory "{subdirectory}" does not exist. Leave it blank to repair the repository root. Available folders: {folders or "none"}.')
+        return package
+
     def _copy(self, source, destination):
         count, size, omitted = 0, 0, []
         for parent, directories, files in os.walk(source, followlinks=False):
@@ -191,6 +204,13 @@ class RepositoryImports:
                 shutil.copyfile(path, target)
         return omitted
 
+    def _retain_full_repository(self, source, snapshot, subdirectory):
+        if not subdirectory:
+            return []
+        if not (snapshot/'.git').exists():
+            git(['init', '-b', 'main'], snapshot)
+        return self._copy(source, snapshot/'.git/ctrlz-full-source')
+
     def _commit(self, path, provenance, omitted, history=None, history_note=None):
         if not (path/'.git').exists():git(['init', '-b', 'main'], path)
         git(['add', '--force', '.'], path)
@@ -206,19 +226,17 @@ class RepositoryImports:
         snapshot.mkdir()
         try:
             history = []; history_note = None
-            subdir = relative_path(request.subdirectory) if request.subdirectory else None
             if request.kind == 'github':
                 identity = normalize_github(request.source)
                 with tempfile.TemporaryDirectory(prefix='ctrlz-clone-') as tmp:
                     upstream = Path(tmp)/'upstream'
                     git(['clone', '--depth', '30', '--no-recurse-submodules', '--', identity['url'], str(upstream)], Path(tmp), timeout=90)
                     commit = git(['rev-parse', 'HEAD'], upstream)
-                    source = upstream.joinpath(*subdir.parts) if subdir else upstream
-                    if not source.is_dir() or not source.resolve().is_relative_to(upstream.resolve()):
-                        raise ValueError('Project subdirectory does not exist')
+                    source = self._package(upstream, request.subdirectory)
                     omitted = self._copy(source, snapshot)
                     from .history import preserve_history
                     history, history_note = preserve_history(upstream, snapshot, request.subdirectory)
+                    omitted += self._retain_full_repository(upstream, snapshot, request.subdirectory)
                     provenance = {'kind': 'github', 'url': identity['url'], 'upstream_commit': commit, 'subdirectory': request.subdirectory}
             else:
                 source = Path(request.source).expanduser().resolve()
@@ -226,19 +244,18 @@ class RepositoryImports:
                 if not source.is_dir() or not any(source.is_relative_to(root) and source != root for root in roots) or self.root.is_relative_to(source):
                     raise ValueError('Local source must be within an operator-configured REPOSITORY_SOURCE_ROOTS directory and cannot contain the managed imports root')
                 parent_source = source
-                source = source.joinpath(*subdir.parts) if subdir else source
-                if not source.resolve().is_relative_to(parent_source) or not source.is_dir():
-                    raise ValueError('Invalid project subdirectory')
+                source = self._package(parent_source, request.subdirectory)
                 omitted = self._copy(source, snapshot)
                 from .history import preserve_history
                 history, history_note = preserve_history(parent_source, snapshot, request.subdirectory)
-                provenance = {'kind': 'local', 'source': str(source)}
+                omitted += self._retain_full_repository(parent_source, snapshot, request.subdirectory)
+                provenance = {'kind': 'local', 'source': str(parent_source), 'subdirectory': request.subdirectory}
             return self._commit(snapshot, provenance, omitted, history, history_note)
         except BaseException:
             shutil.rmtree(snapshot, ignore_errors=True)
             raise
 
-    def import_zip(self, contents):
+    def import_zip(self, contents, subdirectory=''):
         snapshot = self.root/('repo-'+uuid.uuid4().hex[:12])
         snapshot.mkdir()
         try:
@@ -270,8 +287,10 @@ class RepositoryImports:
                             shutil.copyfileobj(source, output, length=65536)
                 children = list(unpacked.iterdir())
                 source = children[0] if len(children) == 1 and children[0].is_dir() else unpacked
-                omitted = self._copy(source, snapshot)
-                provenance = {'kind': 'zip', 'archive_sha256': hashlib.sha256(contents).hexdigest()}
+                package = self._package(source, subdirectory)
+                omitted = self._copy(package, snapshot)
+                omitted += self._retain_full_repository(source, snapshot, subdirectory)
+                provenance = {'kind': 'zip', 'archive_sha256': hashlib.sha256(contents).hexdigest(), 'subdirectory': subdirectory}
                 return self._commit(snapshot, provenance, omitted)
         except BaseException:
             shutil.rmtree(snapshot, ignore_errors=True)

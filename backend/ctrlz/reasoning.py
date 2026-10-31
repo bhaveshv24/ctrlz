@@ -109,7 +109,7 @@ class NIMReasoner:
             relative_path(path)
             if path not in allowed or sensitive(path):
                 return 'Not an available snapshot file'
-            text = (workspace/path).read_text(errors='replace').splitlines()
+            text = (workspace/path).read_text(encoding='utf-8', errors='replace').splitlines()
             start = max(0, start_line-1)
             result = '\n'.join(f'{n+1}: {text[n]}' for n in range(start, min(len(text), start+max(1,min(lines,200)))))[:18000]
             record({'tool':'read_repository_file','path':path,'start_line':start+1,'result':result})
@@ -123,7 +123,7 @@ class NIMReasoner:
             for path in sorted(allowed):
                 target = workspace/path
                 if sensitive(path) or target.stat().st_size > 256000:continue
-                for n, line in enumerate(target.read_text(errors='replace').splitlines()):
+                for n, line in enumerate(target.read_text(encoding='utf-8', errors='replace').splitlines()):
                     if query in line:
                         matches.append(f'{path}:{n+1}: {line[:300]}')
                         if len(matches) >= 50:break

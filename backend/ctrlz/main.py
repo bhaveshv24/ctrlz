@@ -241,7 +241,7 @@ def create_workspace_app(store=None, client=None, reasoner=None, runbooks=None, 
         incident = get_incident(incident_id)
         try:
             contents = await asyncio.to_thread(continuation.repaired_archive, incident)
-            return Response(contents, media_type="application/zip", headers={"Content-Disposition": f'attachment; filename="ctrlz-{incident_id}-repaired.zip"'})
+            return Response(contents, media_type="application/zip", headers={"Content-Disposition": f'attachment; filename="ctrlz-{incident_id}-repaired.zip"', "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff"})
         except (ValueError, KeyError, OSError) as exc:
             raise HTTPException(422, "Repaired code unavailable: "+str(exc)) from exc
 
@@ -305,14 +305,14 @@ def create_workspace_app(store=None, client=None, reasoner=None, runbooks=None, 
             raise HTTPException(422, str(exc)) from exc
 
     @app.post("/repositories/upload", dependencies=[Depends(auth)], status_code=201)
-    async def upload_repository(request: Request):
+    async def upload_repository(request: Request, subdirectory: str = ''):
         contents = bytearray()
         async for chunk in request.stream():
             contents.extend(chunk)
             if len(contents) > MAX_UPLOAD:
                 raise HTTPException(413, "ZIP upload exceeds 25 MiB")
         try:
-            return await asyncio.to_thread(imports.import_zip, bytes(contents))
+            return await asyncio.to_thread(imports.import_zip, bytes(contents), subdirectory)
         except Exception as exc:
             raise HTTPException(422, "Invalid ZIP snapshot: "+str(exc)[:400]) from exc
 
@@ -359,6 +359,22 @@ def create_workspace_app(store=None, client=None, reasoner=None, runbooks=None, 
             store.record(incident["id"], "detect", {"explicit_import": True, "repository": str(repo)})
             spawn(continuation.run(incident["id"], body))
         return store.get(incident["id"])
+
+    @app.post("/incidents/{incident_id}/retry-repair", dependencies=[Depends(auth)], status_code=202)
+    async def retry_code_repair(incident_id: str):
+        require_code_execution()
+        incident = get_incident(incident_id)
+        if incident['kind'] != 'code' or incident['status'] not in {'escalated', 'blocked'}:
+            raise HTTPException(409, 'Retry is available only for a stopped repository repair.')
+        try:
+            body = ImportRequest.model_validate(incident['import_request'])
+            continuation.repository(body.repository)
+        except (ValueError, KeyError) as exc:
+            raise HTTPException(422, 'Re-import the source repository before retrying this repair: '+str(exc)) from exc
+        store.record(incident_id, 'repair_retry', {'previous_error':incident.get('error'), 'requested_by_user':True})
+        store.update(incident_id, status='queued', error=None, download_ready=False, verification={'passed':False})
+        spawn(continuation.run(incident_id, body))
+        return store.get(incident_id)
 
     @app.post("/incidents/{incident_id}/replay", dependencies=[Depends(auth)], status_code=202)
     async def replay_candidate(incident_id: str, body: ReplayRequest):
