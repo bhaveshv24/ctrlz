@@ -117,6 +117,7 @@ export default function IncidentWorkspace({
     decisions = i.tournament || [],
     tools = receipt.events.filter((e) => ["tool_result", "repository_context", "baseline_tests", "code_proposal_rejected", "candidate_tests", "guard_candidate_tests"].includes(e.stage)),
     lastProposal = receipt.events.filter(e => e.stage === "code_proposal").slice(-1)[0]?.payload,
+    baseline = receipt.events.find(e => e.stage === "baseline_tests"),
     terminal = ["resolved", "blocked", "escalated"].includes(i.status),
     tabs = [
       "Story",
@@ -158,6 +159,23 @@ export default function IncidentWorkspace({
         </div>
         <div className="heading-actions">
           <Badge state={i.status} />
+          {baseline && (
+            <button className="button secondary" onClick={() => {
+              const data = baseline.payload;
+              const cases = Array.isArray(data.cases) ? data.cases : [];
+              saveFile("ctrlz-" + i.id + "-before-repair.txt", [
+                "CtrlZ — Errors before repair",
+                "Incident: " + i.id,
+                "Original commit: " + (i.commit || "Unavailable"),
+                "Exit code: " + String(data.exit_code),
+                "", "Failing checks:",
+                ...cases.filter(c => !c.passed && c.status !== "skipped").map(c => "- " + c.id + " (" + c.status + ")"),
+                "", "Original test output:", String(data.output || "No output captured."),
+              ].join("\n"), "text/plain;charset=utf-8");
+            }}>
+              <ArrowDownToLine size={15} />Download errors before repair
+            </button>
+          )}
           {verified && i.patch && (
             <button className="button primary" disabled={busy} onClick={() => act(downloadRepairedRepository)}>
               <ArrowDownToLine size={16} />

@@ -44,8 +44,9 @@ def test_diagnosis_uses_real_runner_results_and_leaves_source_clean(tmp_path, mo
     assert closed == [True]
 
 
-def test_repaired_archive_requires_verification_and_keeps_original_tests(tmp_path):
-    runner, snapshot = imported(tmp_path)
+@pytest.mark.parametrize('newline', ['\n', '\r\n'])
+def test_repaired_archive_requires_verification_and_keeps_original_tests(tmp_path, newline):
+    runner, snapshot = imported(tmp_path, ('def allowed(value):\n    return value != 2\n').replace('\n', newline))
     repo = Path(snapshot['repository'])
     original = (repo/'logic.py').read_text()
     (repo/'logic.py').write_text(original.replace('!=', '=='))
@@ -74,6 +75,33 @@ def test_repaired_archive_includes_new_source_files(tmp_path):
     incident = {'import_request': {'repository': str(repo)}, 'patch': patch, 'verification': {'passed': True}}
     with zipfile.ZipFile(io.BytesIO(runner.repaired_archive(incident))) as archive:
         assert archive.read('repaired-repository/helper.py') == b'VALUE = 2\n'
+
+
+def test_repaired_archive_uses_verified_commit_and_unicode_paths(tmp_path):
+    runner, snapshot = imported(tmp_path)
+    repo = Path(snapshot['repository'])
+    name = 'résumé.py'
+    git(['config', 'user.name', 'Archive regression test'], repo)
+    git(['config', 'user.email', 'archive@example.test'], repo)
+    original = 'MESSAGE = "café"\n'
+    repaired = 'MESSAGE = "こんにちは"\n'
+    (repo/name).write_bytes(original.encode('utf-8'))
+    git(['add', '--', name], repo)
+    git(['commit', '-m', 'Unicode source'], repo)
+    commit = git(['rev-parse', 'HEAD'], repo)
+    (repo/name).write_bytes(repaired.encode('utf-8'))
+    patch = git(['diff'], repo, raw=True).decode('utf-8')
+    git(['checkout', '--', name], repo)
+    (repo/name).write_bytes(b'MESSAGE = "later unrelated change"\n')
+    git(['add', '--', name], repo)
+    git(['commit', '-m', 'Move HEAD after verification'], repo)
+    incident = {'import_request': {'repository': str(repo)}, 'commit': commit,
+                'patch': patch, 'verification': {'passed': True}}
+    for _ in range(2):
+        with zipfile.ZipFile(io.BytesIO(runner.repaired_archive(incident))) as archive:
+            assert archive.read('repaired-repository/'+name) == repaired.encode('utf-8')
+            assert archive.read('repaired-repository/test_logic.py') == (repo/'test_logic.py').read_bytes()
+    assert (repo/name).read_bytes() == b'MESSAGE = "later unrelated change"\n'
 
 
 @pytest.mark.asyncio

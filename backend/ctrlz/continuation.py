@@ -139,15 +139,23 @@ class Continuation:
         with tempfile.TemporaryDirectory(prefix='ctrlz-export-') as directory:
             workspace = Path(directory)/'repository'
             git(['clone', '--no-hardlinks', '--no-local', str(repo), str(workspace)], repo)
+            # Export the snapshot that passed verification, even if HEAD moved later.
+            if incident.get('commit'):
+                git(['checkout', '--detach', incident['commit']], workspace)
             patch = Path(directory)/'verified.patch'
-            patch.write_text(incident['patch'])
-            git(['apply', '--check', str(patch)], workspace)
-            git(['apply', '--index', str(patch)], workspace)
-            for name in git(['diff', '--cached', '--name-only'], workspace).splitlines():
+            patch.write_bytes(incident['patch'].encode('utf-8'))
+            git(['apply', '--check', '--ignore-space-change', str(patch)], workspace)
+            # Windows checkout metadata/line endings can differ from the index.
+            # Apply to the checked-out files, then stage the resulting snapshot.
+            git(['apply', '--ignore-space-change', str(patch)], workspace)
+            git(['add', '--all'], workspace)
+            for name in git(['diff', '--cached', '--name-only', '-z'], workspace, raw=True).decode('utf-8').split('\0'):
+                if not name:continue
                 validate_path(workspace, name)
             output = io.BytesIO()
             with zipfile.ZipFile(output, 'w', zipfile.ZIP_DEFLATED) as archive:
-                for name in git(['ls-files'], workspace).splitlines():
+                for name in git(['ls-files', '-z'], workspace, raw=True).decode('utf-8').split('\0'):
+                    if not name:continue
                     path = workspace/name
                     if path.is_symlink():
                         raise ValueError('Unsafe export path')

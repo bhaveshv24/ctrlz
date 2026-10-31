@@ -52,6 +52,7 @@ export type Incident = {
   verification?: Verification;
   remaining_risks?: string[];
   patch?: string;
+  commit?: string;
   selected_code_strategy?: string;
   suspect_commit?: {
     snapshot_commit: string;
@@ -192,8 +193,10 @@ export function saveFile(
   const link = document.createElement("a");
   link.href = url;
   link.download = name;
+  document.body.appendChild(link);
   link.click();
-  URL.revokeObjectURL(url);
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 export async function downloadBrief(id: string, token: string) {
   const response = await fetch(API + "/incidents/" + id + "/brief", {

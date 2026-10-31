@@ -58,7 +58,7 @@ def relative_path(name):
 
 def git(args, cwd, timeout=60, raw=False):
     env = {**os.environ, 'GIT_CONFIG_GLOBAL': os.devnull, 'GIT_CONFIG_NOSYSTEM': '1', 'GIT_TERMINAL_PROMPT': '0'}
-    result = subprocess.run(['git', '-c', 'core.hooksPath='+os.devnull, '-c', 'core.fsmonitor=false', '-c', 'credential.helper=', *args], cwd=cwd, env=env, capture_output=True, text=not raw, timeout=timeout)
+    result = subprocess.run(['git', '-c', 'core.hooksPath='+os.devnull, '-c', 'core.fsmonitor=false', '-c', 'core.quotePath=false', '-c', 'credential.helper=', *args], cwd=cwd, env=env, capture_output=True, text=not raw, encoding=None if raw else 'utf-8', timeout=timeout)
     if result.returncode:
         raise ValueError('Git could not complete the source snapshot operation')
     return result.stdout if raw or 'diff' in args else result.stdout.strip()

@@ -19,3 +19,4 @@ coverage/
 /.hallmark/
 
 .dev-tools/
+.test-tmp/
