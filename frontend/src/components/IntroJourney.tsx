@@ -1,4 +1,5 @@
 import { useLayoutEffect, useRef } from "react";
+import { chapterTransition } from "./journey-transition";
 export type JourneyState = { active: boolean; progress: number };
 const chapters = [
   {
@@ -62,16 +63,12 @@ export default function IntroJourney({
         return;
       }
       panels.forEach((panel, index) => {
-        const distance = position - index,
-          opacity = Math.max(
-            0,
-            Math.min(1, (0.7 - Math.abs(distance)) / 0.4),
-          );
-        panel.style.opacity = String(opacity * opacity * (3 - 2 * opacity));
-        panel.style.transform = `translate3d(0,${-distance * 48}px,0)`;
-        panel.inert = index !== active;
-        panel.setAttribute("aria-hidden", String(index !== active));
-        panel.style.visibility = opacity > 0 ? "visible" : "hidden";
+        const { opacity, visible, offset } = chapterTransition(position, index);
+        panel.style.opacity = String(opacity);
+        panel.style.transform = `translate3d(0,${offset}px,0)`;
+        panel.inert = index !== active || !visible;
+        panel.setAttribute("aria-hidden", String(index !== active || !visible));
+        panel.style.visibility = visible ? "visible" : "hidden";
       });
     };
     let frame = 0,
@@ -188,6 +185,9 @@ export default function IntroJourney({
                 className={"journey-chapter chapter-" + index}
                 key={chapter.eyebrow}
                 aria-label={chapter.eyebrow}
+                aria-hidden={index !== 0}
+                inert={index !== 0}
+                style={{ opacity: index === 0 ? 1 : 0, visibility: index === 0 ? "visible" : "hidden" }}
               >
                 <small>{chapter.eyebrow}</small>
                 <h1>
