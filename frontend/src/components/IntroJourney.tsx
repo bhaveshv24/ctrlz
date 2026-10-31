@@ -208,9 +208,9 @@ export default function IntroJourney({
               </section>
             ))}
           </div>
+          {/* Keep this footer free of numbered chapter navigation. */}
           <footer className="journey-footer">
             <span>Scroll to explore</span>
-
           </footer>
         </div>
       </div>
