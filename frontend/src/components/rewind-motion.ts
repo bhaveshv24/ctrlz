@@ -7,11 +7,14 @@ const smooth = (a: number, b: number, value: number) => {
 /** Spin, eclipse, then reveal. Integral rotations return the disc to a seamless rest. */
 export function rewindMotion(progress: number) {
   const p = Math.max(0, Math.min(1, progress));
-  const spin = smooth(0, 1, p);
+  // Finish the turn early, reserving the last fifth for the camera and field
+  // to settle into their actual resting pose before leaving rewind mode.
+  const spin = smooth(0, 0.8, p);
+  const strength = Math.sin(p * Math.PI) ** 2;
   return {
     turn: spin * Math.PI * 4,
-    bank: Math.sin(p * Math.PI) * 0.42,
-    strength: Math.sin(p * Math.PI),
+    bank: strength * 0.42,
+    strength,
     shadow: smooth(0.38, 0.68, p) * (1 - smooth(REWIND_REVEAL, 1, p)),
     reveal: p >= REWIND_REVEAL,
   };

@@ -161,6 +161,7 @@ export function mountStudio(
     wipe = 0,
     scroll = 0,
     impulse = 0;
+  let rewindTurn = 0, rewindBase = 0;
   const samples: number[] = [];
   let measureAt = 0;
   const resize = () => {
@@ -304,12 +305,13 @@ export function mountStudio(
     let rewindStrength = 0;
     if (intro.rewinding) {
       const before = intro.rewindElapsed;
+      if (before === 0) rewindBase = rewindTurn;
       intro.rewindElapsed += dt;
       const progress = Math.min(1, intro.rewindElapsed / REWIND_DURATION);
       const motion = rewindMotion(progress);
       rewindStrength = motion.strength;
-      world.rewind(motion.turn, motion.bank);
-      field.rotation.z -= motion.turn;
+      rewindTurn = rewindBase + motion.turn;
+      world.rewind(rewindTurn, motion.bank);
       composite.uniforms.eclipse.value = motion.shadow;
       host.dataset.rewinding = progress < REWIND_REVEAL ? "depart" : "arrive";
       if (before < REWIND_DURATION * REWIND_REVEAL && motion.reveal) intro.reveal();
@@ -320,20 +322,21 @@ export function mountStudio(
         3.8,
         rewindStrength,
       );
-      camera.rotation.z += Math.sin(progress * Math.PI) * 0.16;
+      camera.rotation.z += motion.strength * 0.16;
       vortex.update(progress, rewindStrength, ratio);
       if (progress === 1) {
         intro.rewinding = false;
         delete host.dataset.rewinding;
         vortex.update(0, 0, ratio);
-        world.rewind(0, 0);
+        // Retain the completed rotation; no transform is reset at the handoff.
         composite.uniforms.eclipse.value = 0;
       }
     } else {
       vortex.update(0, 0, ratio);
-      world.rewind(0, 0);
       composite.uniforms.eclipse.value = 0;
     }
+    // Keep the same orientation on both sides of the final animation frame.
+    field.rotation.z -= rewindTurn;
     const settle = 1 - Math.exp(-7.5 * dt);
     camera.position.lerpVectors(previousCamera, camera.position, settle);
     camera.quaternion.copy(previousCameraRotation.slerp(camera.quaternion, settle));
