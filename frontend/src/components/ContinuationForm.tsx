@@ -9,7 +9,7 @@ import {
   FolderGit2,
   Upload,
 } from "lucide-react";
-import { api, API, type Incident, type Act } from "../api";
+import { api, API, saveFile, type Incident, type Act } from "../api";
 
 type Assessment = {
   files?: string[];
@@ -25,7 +25,7 @@ type Assessment = {
   dependencies: string[];
   dependency_install_required: boolean;
   warnings: string[];
-  provenance?: { kind: string; url?: string; upstream_commit?: string };
+  provenance?: { kind: string; url?: string; upstream_commit?: string; subdirectory?: string };
   omitted_files?: string[];
 };
 type Diagnosis = {
@@ -90,7 +90,7 @@ export default function ContinuationForm({
               if (!file) throw new Error("Choose a repository ZIP first.");
               if (file.size > 25 * 1024 * 1024)
                 throw new Error("ZIP uploads must be under 25 MiB.");
-              const response = await fetch(API + "/repositories/upload?subdirectory=" + encodeURIComponent(subdirectory), {
+              const response = await fetch(API + "/repositories/upload?subdirectory=" + encodeURIComponent(subdirectory.trim()), {
                 method: "POST",
                 headers: {
                   Authorization: "Bearer " + token,
@@ -110,7 +110,7 @@ export default function ContinuationForm({
               imported = await api<Assessment>("/repositories/import", token, {
                 kind,
                 source,
-                subdirectory,
+                subdirectory: subdirectory.trim(),
               });
             setSnapshot(imported);
             if (imported.supported && executionEnabled) await scan(imported);
@@ -246,6 +246,7 @@ export default function ContinuationForm({
         </>
       ) : (
         <>
+          <p className="form-note">The download contains the imported source{snapshot.provenance?.subdirectory ? `, with ${snapshot.provenance.subdirectory} repaired in its original location` : " at the repository root"}. A separate frontend repository is not added automatically. Dependencies, secrets and build caches are excluded.</p>
           <details open={!snapshot.supported}>
             <summary>Repository files & detected test setup (optional)</summary>
           <FilePlate inspection={snapshot} />
@@ -312,6 +313,12 @@ export default function ContinuationForm({
             {scanning && <p className="muted">Preparing declared dependencies and collecting real failures. This can take a few minutes.</p>}
             {diagnosis && <>
               <p>{diagnosis.passed} passed · {diagnosis.failed} failed · {diagnosis.skipped} skipped</p>
+              <button type="button" className="button secondary" onClick={() => saveFile("ctrlz-errors-before-repair.txt", [
+                "CtrlZ — Tests before repair", `Result: ${diagnosis.status}`,
+                `${diagnosis.passed} passed · ${diagnosis.failed} failed · ${diagnosis.skipped} skipped`,
+                "", ...diagnosis.baseline.cases.filter(c => c.status === "failed" || c.status === "error").map(c => `${c.id}\n${c.detail || ""}`),
+                "", "Original test output:", diagnosis.baseline.output,
+              ].join("\n"), "text/plain;charset=utf-8")}>Download errors before repair</button>
               {diagnosis.baseline.cases.filter(c => c.status === "failed" || c.status === "error").map(c =>
                 <details key={c.id}><summary>{c.id}</summary><pre className="patch-view">{c.detail}</pre></details>
               )}

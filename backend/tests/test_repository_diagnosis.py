@@ -77,6 +77,40 @@ def test_repaired_archive_includes_new_source_files(tmp_path):
         assert archive.read('repaired-repository/helper.py') == b'VALUE = 2\n'
 
 
+def test_saved_archive_survives_source_removal_and_corrupt_cache_recovers(tmp_path):
+    runner, snapshot = imported(tmp_path)
+    repo = Path(snapshot['repository'])
+    (repo/'logic.py').write_text('def allowed(value):\n    return value == 2\n')
+    patch = git(['diff'], repo)
+    git(['checkout', '--', 'logic.py'], repo)
+    incident = {'import_request': {'repository': str(repo)}, 'commit': snapshot['commit'],
+                'patch': patch, 'verification': {'passed': True}}
+    runner.repaired_archive(incident)
+    cached = next(runner.artifacts.glob('*.repaired.zip'))
+    cached.write_bytes(b'truncated download')
+    recovered = runner.repaired_archive(incident)
+    with zipfile.ZipFile(io.BytesIO(recovered)) as archive:
+        assert b'value == 2' in archive.read('repaired-repository/logic.py')
+    unavailable = repo.with_name(repo.name+'-unavailable')
+    assert unavailable.resolve().is_relative_to(runner.root)
+    repo.rename(unavailable)
+    assert not repo.exists()
+    assert runner.repaired_archive(incident) == recovered
+    incident['verification']['passed'] = False
+    with pytest.raises(ValueError, match='verified'):
+        runner.repaired_archive(incident)
+
+
+def test_missing_package_explains_root_import_and_available_folders(tmp_path):
+    data = io.BytesIO()
+    with zipfile.ZipFile(data, 'w') as archive:
+        archive.writestr('campuspass/main.py', 'VALUE = 1')
+        archive.writestr('pyproject.toml', '[project]\nname="example"')
+    with pytest.raises(ValueError, match='Leave it blank.*campuspass'):
+        RepositoryImports(tmp_path/'imports').import_zip(data.getvalue(), 'backend')
+    assert list((tmp_path/'imports').iterdir()) == []
+
+
 @pytest.mark.parametrize('kind', ['zip', 'local', 'github'])
 def test_package_repair_exports_whole_repository(tmp_path, monkeypatch, kind):
     from ctrlz.repository import RepositorySource
@@ -172,6 +206,13 @@ async def test_diagnose_api_authentication_and_automatic_defaults(tmp_path, monk
         return {'status': 'failing', 'failed': 1}
     monkeypatch.setattr(Continuation, 'diagnose', diagnose)
     store = Store(f"sqlite:///{tmp_path/'api.db'}")
+    runner, snapshot = imported(tmp_path)
+    repo = Path(snapshot['repository'])
+    (repo/'logic.py').write_bytes(b'def allowed(value):\n    return value == 2\n')
+    patch = git(['diff'], repo)
+    git(['checkout', '--', 'logic.py'], repo)
+    incident, _ = store.create('code-import', 'code', str(repo), {})
+    store.update(incident['id'], import_request={'repository': str(repo)}, commit=snapshot['commit'], patch=patch, verification={'passed': False})
     app = create_app(store=store, reasoner=Reasoner(), runbooks=Books(), monitor=False)
     async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url='http://test') as client:
         assert (await client.post('/repositories/diagnose', json={'repository': 'fixture'})).status_code == 401
@@ -179,6 +220,19 @@ async def test_diagnose_api_authentication_and_automatic_defaults(tmp_path, monk
         assert response.status_code == 200
         assert response.json()['status'] == 'failing'
         assert seen[0].requirements and seen[0].install_dependencies
+        url = '/incidents/'+incident['id']+'/repaired.zip'
+        headers = {'X-Operator-Token': 'diagnosis-fixture-token'}
+        assert (await client.get(url)).status_code == 401
+        assert (await client.get(url, headers=headers)).status_code == 422
+        store.update(incident['id'], verification={'passed': True})
+        response = await client.get(url, headers=headers)
+        assert response.status_code == 200
+        assert response.headers['content-type'] == 'application/zip'
+        assert 'attachment;' in response.headers['content-disposition']
+        assert response.headers['cache-control'] == 'no-store'
+        with zipfile.ZipFile(io.BytesIO(response.content)) as archive:
+            assert b'value == 2' in archive.read('repaired-repository/logic.py')
+        assert (await client.get('/incidents/missing/repaired.zip', headers=headers)).status_code == 404
     await app.state.engine.client.aclose()
     store.engine.dispose()
 
@@ -193,7 +247,8 @@ def test_repair_cannot_drop_required_state_or_replace_it_with_blacklist(replacem
 
 
 @pytest.mark.asyncio
-async def test_schema_retries_preserve_test_feedback_and_do_not_spend_repair_attempts(tmp_path, monkeypatch):
+@pytest.mark.parametrize('export_failure', [False, True])
+async def test_schema_retries_preserve_test_feedback_and_do_not_spend_repair_attempts(tmp_path, monkeypatch, export_failure):
     from ctrlz.models import CodeProposal, SourceEdit
     from ctrlz.store import Store
     runner, snapshot = imported(tmp_path)
@@ -222,11 +277,23 @@ async def test_schema_retries_preserve_test_feedback_and_do_not_spend_repair_att
             return CodeProposal(diagnosis='Correct comparison', edits=[SourceEdit(path='logic.py', before='return value != 2', after='return value == 2')])
     monkeypatch.setattr('ctrlz.continuation.Sandbox', Sandbox)
     runner.reasoner = Reasoner()
+    if export_failure:
+        def fail_export(incident):
+            raise OSError('Archive storage unavailable')
+        monkeypatch.setattr(runner, 'repaired_archive', fail_export)
     incident, _ = store.create('code-import', 'code', snapshot['repository'], {})
     await runner.run(incident['id'], ImportRequest(repository=snapshot['repository']))
     result = store.get(incident['id'])
+    if export_failure:
+        assert result['status'] == 'escalated'
+        assert 'Archive storage unavailable' in result['error']
+        assert not result.get('download_ready')
+        store.engine.dispose()
+        return
     assert result['status'] == 'resolved', result
     assert result['diagnosis'] == 'Correct comparison'
+    assert result['download_ready'] is True
+    assert list(runner.artifacts.glob('*.repaired.zip'))
     attempts = [e['payload']['attempt'] for e in store.events() if e['stage'] == 'candidate_tests']
     assert attempts == [1, 2]
     assert len(seen) == 4

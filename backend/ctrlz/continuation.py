@@ -4,6 +4,7 @@ import hashlib
 import json
 import io
 import zipfile
+import zlib
 import shutil
 import tempfile
 from collections import Counter
@@ -44,7 +45,7 @@ def embedded_doctests(root, paths):
     result = {}
     for name in paths:
         if Path(name).suffix != '.py' or not editable(name):continue
-        try:tree = ast.parse((root/name).read_text())
+        try:tree = ast.parse((root/name).read_text(encoding='utf-8'))
         except (SyntaxError,UnicodeError,OSError):
             result[name]=[]
             continue
@@ -81,7 +82,7 @@ def guard_comparison_repairs(root, names, limit=4):
         if Path(name).suffix != '.py':continue
         target = validate_path(root, name)
         if not target.is_file():continue
-        source = target.read_text()
+        source = target.read_text(encoding='utf-8')
         try:tree = ast.parse(source)
         except SyntaxError:continue
         for branch in ast.walk(tree):
@@ -135,6 +136,19 @@ class Continuation:
     def repaired_archive(self, incident):
         if not incident.get('verification', {}).get('passed') or not incident.get('patch'):
             raise ValueError('A verified source patch is required before downloading repaired code')
+        repository = Path(incident['import_request']['repository']).resolve()
+        if not repository.is_relative_to(self.root) or repository == self.root:
+            raise ValueError('Repository is outside the managed workspace')
+        key = hashlib.sha256(json.dumps([str(repository), incident.get('commit'), incident['patch']], ensure_ascii=True).encode()).hexdigest()
+        cached = self.artifacts/(key+'.repaired.zip')
+        if cached.is_file():
+            try:
+                contents = cached.read_bytes()
+                with zipfile.ZipFile(io.BytesIO(contents)) as archive:
+                    if archive.namelist() and archive.testzip() is None:
+                        return contents
+            except (OSError, zipfile.BadZipFile, EOFError, zlib.error, RuntimeError):
+                pass
         repo = self.repository(incident['import_request']['repository'])
         with tempfile.TemporaryDirectory(prefix='ctrlz-export-') as directory:
             workspace = Path(directory)/'repository'
@@ -174,7 +188,17 @@ class Continuation:
                     if path.is_symlink() or not path.resolve().is_relative_to(export_root.resolve()):
                         raise ValueError('Unsafe export path')
                     archive.write(path, 'repaired-repository/'+name)
-            return output.getvalue()
+            contents = output.getvalue()
+            # Publish the complete artifact atomically. Later downloads do not
+            # need Git, a surviving import folder, or another patch application.
+            with tempfile.NamedTemporaryFile(dir=self.artifacts, suffix='.tmp', delete=False) as handle:
+                temporary = Path(handle.name)
+                handle.write(contents)
+            try:
+                temporary.replace(cached)
+            finally:
+                temporary.unlink(missing_ok=True)
+            return contents
 
     def diagnose(self, request: ImportRequest):
         repo = self.repository(request.repository)
@@ -213,7 +237,7 @@ class Continuation:
         reasoner = self.reasoner
         worktree = None; repo = None; added = False; sandbox = None
         try:
-            self.store.update(incident_id, status='diagnosing', error=None, reasoning_provider=getattr(reasoner, 'provider', 'test fixture'), model=getattr(reasoner, 'selected_model', None))
+            self.store.update(incident_id, status='diagnosing', error=None, import_request=request.model_dump(), download_ready=False, reasoning_provider=getattr(reasoner, 'provider', 'test fixture'), model=getattr(reasoner, 'selected_model', None))
             repo = await asyncio.to_thread(self.repository, request.repository)
             inspection = inspect_repository(repo, request.acceptance_profile)
             if not inspection['supported']:
@@ -270,7 +294,7 @@ class Continuation:
             selected = implicated_sources+relevant_tests+inspection['tests'][:2]+[p for p in paths if p in {'pyproject.toml', 'package.json', 'requirements.txt'}]+inspection['editable_files'][:3]
             budget = 42000
             for name in dict.fromkeys(selected):
-                text = (worktree/name).read_text(errors='replace')
+                text = (worktree/name).read_text(encoding='utf-8', errors='replace')
                 excerpt = text[:min(12000,budget)]
                 if excerpt:initial[name] = excerpt
                 budget -= len(excerpt)
@@ -290,7 +314,7 @@ class Continuation:
                     target = worktree/name
                     if original is None:
                         target.unlink(missing_ok=True)
-                    else:target.write_text(original)
+                    else:target.write_bytes(original.encode('utf-8'))
                 for name in new_files:
                     git(['reset', '--', name], worktree)
                 originals = {}; new_files = set()
@@ -325,7 +349,7 @@ class Continuation:
                     for edit in proposal.edits:
                         target = validate_path(worktree, edit.path)
                         if edit.path in protected:raise ValueError('Acceptance test files are immutable')
-                        text = replacements.get(edit.path, target.read_text() if target.is_file() else '')
+                        text = replacements.get(edit.path, target.read_text(encoding='utf-8') if target.is_file() else '')
                         if text.count(edit.before) != 1:
                             raise ValueError('Exact edit must match one and only one source occurrence')
                         replacements[edit.path] = text.replace(edit.before, edit.after, 1)
@@ -335,12 +359,12 @@ class Continuation:
                             raise ValueError('Source change exceeds bounded text limits')
                         if target.suffix == '.py':
                             ast.parse(content, filename=name)
-                            preserve_rejection_guards(target.read_text() if target.exists() else '', content, name)
+                            preserve_rejection_guards(target.read_text(encoding='utf-8') if target.exists() else '', content, name)
                     for name, content in replacements.items():
                         target = validate_path(worktree, name)
-                        originals[name] = target.read_text() if target.exists() else None
+                        originals[name] = target.read_text(encoding='utf-8') if target.exists() else None
                         target.parent.mkdir(parents=True, exist_ok=True)
-                        target.write_text(content); target.chmod(0o644)
+                        target.write_bytes(content.encode('utf-8')); target.chmod(0o644)
                         for directory in target.parents:
                             if directory == worktree.parent:break
                             directory.chmod(0o755)
@@ -357,10 +381,10 @@ class Continuation:
                         edit = guard_proposal.edits[0]
                         target = validate_path(worktree, edit.path)
                         if edit.path in protected:continue
-                        original = target.read_text()
+                        original = target.read_text(encoding='utf-8')
                         content = original.replace(edit.before, edit.after, 1)
                         preserve_rejection_guards(original, content, edit.path)
-                        target.write_text(content)
+                        target.write_bytes(content.encode('utf-8'))
                         try:
                             self.store.update(incident_id, status='verifying')
                             agent_runs += 1
@@ -376,7 +400,7 @@ class Continuation:
                                 self.store.update(incident_id, diagnosis=guard_proposal.diagnosis)
                                 break
                         finally:
-                            if edit.path not in originals:target.write_text(original)
+                            if edit.path not in originals:target.write_bytes(original.encode('utf-8'))
                 diff = git(['diff', '--no-ext-diff', '--no-textconv'], worktree)
                 unchanged = immutable_digest(worktree, paths, protected) == immutable and embedded_doctests(worktree, paths) == doctests
                 checks, details = acceptance(baseline, result, unchanged)
@@ -394,7 +418,14 @@ class Continuation:
                 passed = False
             unchanged = immutable_digest(worktree,paths,protected)==immutable
             self.store.record(incident_id, 'verification', {**result, 'passed': passed, 'checks': checks, 'acceptance': details, 'original_commit': commit, 'tests_immutable': unchanged, 'selected_strategy':winner['id'] if winner else None})
-            artifact = self.artifacts/f'{incident_id}.patch'; artifact.write_text(diff)
+            artifact = self.artifacts/f'{incident_id}.patch'; artifact.write_bytes(diff.encode('utf-8'))
+            if passed and diff:
+                contents = await asyncio.to_thread(self.repaired_archive, {
+                    'import_request': request.model_dump(), 'commit': commit,
+                    'patch': diff, 'verification': {'passed': True},
+                })
+                self.store.update(incident_id, download_ready=True)
+                self.store.record(incident_id, 'repaired_archive', {'bytes':len(contents), 'sha256':hashlib.sha256(contents).hexdigest()})
             self.store.update(incident_id, status='resolved' if passed else 'escalated', error=None if passed else (agent_error or 'No candidate passed the original acceptance suite within three repair attempts. Last failure: '+result.get('output','No test output')[-500:]), verification={'passed':passed,'checks':checks}, patch=diff, commit=commit, remaining_risks=([winner['reason'],'Verified against the imported acceptance suite only; patch review and deployment remain operator actions.'] if winner else []) if passed else ['No verified repair; inspect the test evidence and unsupported requirements.'])
             self.store.record(incident_id, 'record', {'resolved':passed,'artifact':'patch','profile':inspection['profile']})
         except Exception as exc:

@@ -20,8 +20,8 @@ import {
 } from "lucide-react";
 import {
   api,
-  API,
   downloadBrief,
+  downloadRepairedZip,
   saveFile,
   type Candidate,
   type FlightEvent,
@@ -127,19 +127,15 @@ export default function IncidentWorkspace({
       ...(i.patch ? ["Patch"] : []),
     ];
   const downloadRepairedRepository = async () => {
-    const response = await fetch(API + "/incidents/" + i.id + "/repaired.zip", {
-      headers: { Authorization: "Bearer " + token },
-    });
-    if (!response.ok) {
-      const error = await response.json().catch(() => null);
-      throw new Error(error?.detail || "Could not export the repaired repository.");
+    setBusy(true);
+    setError("");
+    try {
+      await downloadRepairedZip(i.id, token);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
     }
-    const url = URL.createObjectURL(await response.blob());
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = "ctrlz-" + i.id + "-repaired.zip";
-    link.click();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
   return (
     <>
@@ -177,7 +173,7 @@ export default function IncidentWorkspace({
             </button>
           )}
           {verified && i.patch && (
-            <button className="button primary" disabled={busy} onClick={() => act(downloadRepairedRepository)}>
+            <button className="button primary" disabled={busy} onClick={downloadRepairedRepository}>
               <ArrowDownToLine size={16} />
               {busy ? "Preparing download…" : "Download fixed code (.zip)"}
             </button>
@@ -775,7 +771,7 @@ export default function IncidentWorkspace({
                 remain separate operator actions.
               </span>
             </div>
-            {verified && <button className="button primary" disabled={busy} onClick={() => act(downloadRepairedRepository)}><ArrowDownToLine size={16} />Download fixed code (.zip)</button>}
+            {verified && <button className="button primary" disabled={busy} onClick={downloadRepairedRepository}><ArrowDownToLine size={16} />Download fixed code (.zip)</button>}
             <pre className="patch-view">{i.patch}</pre>
           </section>
         )}

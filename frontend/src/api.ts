@@ -189,7 +189,10 @@ export function saveFile(
   content: string,
   type = "application/json",
 ) {
-  const url = URL.createObjectURL(new Blob([content], { type }));
+  saveBlob(name, new Blob([content], { type }));
+}
+export function saveBlob(name: string, content: Blob) {
+  const url = URL.createObjectURL(content);
   const link = document.createElement("a");
   link.href = url;
   link.download = name;
@@ -197,6 +200,21 @@ export function saveFile(
   link.click();
   link.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+export async function downloadRepairedZip(id: string, token: string) {
+  const response = await fetch(API + "/incidents/" + encodeURIComponent(id) + "/repaired.zip", {
+    headers: { Authorization: "Bearer " + token },
+  });
+  if (!response.ok) {
+    const error = await response.json().catch(() => null);
+    throw new Error(error?.detail || `Repaired ZIP download failed (${response.status}). Try again.`);
+  }
+  const blob = await response.blob();
+  const signature = new Uint8Array(await blob.slice(0, 4).arrayBuffer());
+  if (signature[0] !== 0x50 || signature[1] !== 0x4b || signature[2] !== 3 || signature[3] !== 4) {
+    throw new Error("The server did not return a valid repository ZIP. Retry the download.");
+  }
+  saveBlob("ctrlz-" + id + "-repaired.zip", blob);
 }
 export async function downloadBrief(id: string, token: string) {
   const response = await fetch(API + "/incidents/" + id + "/brief", {

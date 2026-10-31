@@ -241,7 +241,7 @@ def create_workspace_app(store=None, client=None, reasoner=None, runbooks=None, 
         incident = get_incident(incident_id)
         try:
             contents = await asyncio.to_thread(continuation.repaired_archive, incident)
-            return Response(contents, media_type="application/zip", headers={"Content-Disposition": f'attachment; filename="ctrlz-{incident_id}-repaired.zip"'})
+            return Response(contents, media_type="application/zip", headers={"Content-Disposition": f'attachment; filename="ctrlz-{incident_id}-repaired.zip"', "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff"})
         except (ValueError, KeyError, OSError) as exc:
             raise HTTPException(422, "Repaired code unavailable: "+str(exc)) from exc
 

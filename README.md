@@ -71,6 +71,11 @@ the complete imported source tree with the repair in its original location. Secr
 Git metadata, installed dependencies and build caches are excluded. A repository that
 contains only a backend cannot supply a frontend from another repository. Older imports
 that retained only a selected package must be imported again for a full-project ZIP.
+CtrlZ prepares and saves the repaired ZIP before marking a source repair resolved.
+Repeated downloads reuse the saved archive, and legacy incidents prepare it on their
+first download. **Download errors before repair** exports the original test results
+both during inspection and from the incident. Import the repository you intend to run;
+CtrlZ does not add a frontend or launch scripts absent from that source.
 
 For a disclosed local history fixture, run `uv run --project backend python
 scripts/create_history_demo.py` from this checkout. Import the printed server-folder path;

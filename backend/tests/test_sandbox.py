@@ -23,7 +23,7 @@ async def test_real_worktree_sandbox_and_verified_artifact(tmp_path, first_inval
     repo.mkdir(parents=True)
     (repo / "maths.py").write_text("def add(a, b):\n    return a - b\n")
     (repo / "test_maths.py").write_text("from maths import add\ndef test_add():\n    assert add(2, 3) == 5\n")
-    for args in (["git", "init"], ["git", "add", "."], ["git", "-c", "user.name=Test", "-c", "user.email=test@localhost", "commit", "-m", "unfinished"]):
+    for args in (["git", "init"], ["git", "config", "core.autocrlf", "false"], ["git", "add", "."], ["git", "-c", "user.name=Test", "-c", "user.email=test@localhost", "commit", "-m", "unfinished"]):
         subprocess.run(args, cwd=repo, check=True, capture_output=True)
     store = Store(f"sqlite:///{tmp_path}/sandbox.db")
     incident, _ = store.create("code-import", "code", str(repo), {})
@@ -46,6 +46,12 @@ async def test_real_worktree_sandbox_and_verified_artifact(tmp_path, first_inval
     result = store.get(incident["id"])
     assert result["status"] == "resolved", result
     assert "return a + b" in result["patch"]
+    assert result['download_ready'] is True
+    import io
+    import zipfile
+    with zipfile.ZipFile(io.BytesIO(continuation.repaired_archive(result))) as archive:
+        assert b'return a + b' in archive.read('repaired-repository/maths.py')
+        assert archive.read('repaired-repository/test_maths.py') == (repo/'test_maths.py').read_bytes()
     assert "return a - b" in (repo / "maths.py").read_text()
     assert fixture.calls == (2 if first_invalid else 1)
     assert len(subprocess.check_output(["git", "worktree", "list"], cwd=repo, text=True).splitlines()) == 1
