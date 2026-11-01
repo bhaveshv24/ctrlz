@@ -11,6 +11,7 @@ import tempfile
 from collections import Counter
 from pathlib import Path
 from pydantic import ValidationError
+from crewai.utilities.converter import ConverterError
 from .models import ImportRequest, CodeProposal, SourceEdit
 from .repository import editable, git, inspect_repository, relative_path
 from .sandbox import Sandbox
@@ -362,14 +363,15 @@ class Continuation:
                     try:
                         proposal = await reasoner.code(request, initial, context)
                         replacements = proposal_sources(worktree, proposal, protected)
+                        agent_error = None
                         break
                     except EditMatchError as exc:
                         proposal = None
                         feedback = {**(feedback or {}), 'attempt':attempt+1, 'edit_error':str(exc), 'original_source':{'path':exc.path, 'content':exc.source}, 'instruction':'Do not repeat the rejected edit. Match the original source exactly once. Keep the previous test failure evidence and fix its cause; never edit acceptance tests.'}
                         self.store.record(incident_id,'code_proposal_rejected',{'attempt':attempt+1, 'format_attempt':format_attempt+1, **feedback})
-                    except ValidationError as exc:
+                    except (ValidationError, ConverterError) as exc:
                         proposal = None
-                        feedback = {**(feedback or {}), 'attempt':attempt+1, 'schema_error':str(exc)[:3000], 'instruction':'Return a complete candidate against the original snapshot, retaining the previous test failure feedback. Each exact edit has ONLY path, before, after. Do not add is_edit or other metadata. Include a nonempty changes or edits array.'}
+                        feedback = {**(feedback or {}), 'attempt':attempt+1, 'schema_error':str(exc)[:3000], 'instruction':'Return a complete candidate against the original snapshot, retaining the previous test failure feedback. Choose exactly one representation per file: either a full replacement in changes OR exact snippets in edits, never the same path in both. Each exact edit has ONLY path, before, after. Do not add is_edit or other metadata. Include a nonempty changes or edits array.'}
                         self.store.record(incident_id,'code_proposal_rejected',{'attempt':attempt+1, 'format_attempt':format_attempt+1, **feedback})
                     except Exception as exc:
                         agent_error = type(exc).__name__+': '+str(exc)[:300]

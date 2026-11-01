@@ -5780,3 +5780,4 @@ p { text-wrap: pretty; }
   --refine-focus: var(--polish-extra-11);
 }
 [data-motion="on"] .incident-detail-page .outcome-duration b { color: var(--refine-ink); }
+[data-motion="on"] .incident-detail-page .outcome-banner > div > strong { color: var(--refine-ink); }
