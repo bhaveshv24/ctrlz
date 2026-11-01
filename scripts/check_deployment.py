@@ -17,7 +17,7 @@ def origin(value, allow_http=False):
     return value.rstrip('/')
 
 
-def check(backend, frontend, email=None, password=None, allow_http=False):
+def check(backend, frontend, email=None, password=None, allow_http=False, require_invite_only=False):
     backend, frontend = origin(backend, allow_http), origin(frontend, allow_http)
 
     def request(path, method='GET', body=None, headers=None, expected=200, base=backend):
@@ -53,9 +53,11 @@ def check(backend, frontend, email=None, password=None, allow_http=False):
     request('/projects', expected=401)
     print('PASS: anonymous workspace access rejected')
     config, _ = request('/auth/config')
-    if config.get('registration_enabled'):
-        raise RuntimeError('Staging should be invite-only: disable CTRLZ_ALLOW_REGISTRATION')
-    print('PASS: invite-only account registration')
+    if not isinstance(config, dict) or not isinstance(config.get('registration_enabled'), bool):
+        raise RuntimeError('Account registration configuration is invalid')
+    if require_invite_only and config['registration_enabled']:
+        raise RuntimeError('Invite-only staging requested: disable CTRLZ_ALLOW_REGISTRATION')
+    print('PASS: account registration configuration (' + ('public sign-up' if config['registration_enabled'] else 'invite-only') + ')')
     if not email:
         print('SKIP: account checks (supply --email to verify sign-in and permissions)')
         return
@@ -86,11 +88,12 @@ def main():
     parser.add_argument('--backend', required=True)
     parser.add_argument('--frontend', required=True)
     parser.add_argument('--email')
+    parser.add_argument('--require-invite-only', action='store_true', help='Require disabled public registration for an invite-only staging environment')
     parser.add_argument('--allow-http', action='store_true', help='Local rehearsal only')
     args = parser.parse_args()
     password = (os.getenv('CTRLZ_DEPLOY_CHECK_PASSWORD') or getpass.getpass('Account password: ')) if args.email else None
     try:
-        check(args.backend, args.frontend, args.email, password, args.allow_http)
+        check(args.backend, args.frontend, args.email, password, args.allow_http, args.require_invite_only)
     except Exception as exc:
         print('FAIL: ' + str(exc), file=sys.stderr)
         return 1
