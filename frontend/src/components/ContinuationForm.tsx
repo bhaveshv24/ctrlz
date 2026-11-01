@@ -274,7 +274,7 @@ export default function ContinuationForm({
             <small>Be specific about the expected result. Existing tests check regressions; review the generated changes against your prompt. This flow needs a supported test setup and preserves tests, dependency manifests and configuration.</small>
           </label>}
           <p className="form-note">The download contains the imported source{snapshot.provenance?.subdirectory ? `, with ${snapshot.provenance.subdirectory} repaired in its original location` : " at the repository root"}. A separate frontend repository is not added automatically. Dependencies, secrets and build caches are excluded.</p>
-          <details open={!snapshot.supported}>
+          <details className="repository-disclosure" open={!snapshot.supported}>
             <summary>Repository files & detected test setup (optional)</summary>
           <FilePlate inspection={snapshot} />
           <div className="repository-assessment" role="status">
@@ -335,7 +335,7 @@ export default function ContinuationForm({
           >
             Choose another repository
           </button>
-          <section aria-live="polite" className="repository-assessment">
+          <section aria-live="polite" className="repository-assessment repository-results">
             <h3>{scanning ? "Inspecting source, dependencies and tests…" : diagnosis ? (mode === "complete" && diagnosis.status === "healthy" && diagnosis.inspection?.summary !== "review_required" ? "Baseline tests pass. Ready to continue your project." : diagnosis.message) : "Ready to run the existing tests"}</h3>
             {scanning && <p className="muted">Checking source risks and dependency advisories, then running supported tests in isolation. This can take a few minutes.</p>}
             {diagnosis?.inspection && <RepositoryInspection report={diagnosis.inspection} />}
@@ -353,7 +353,7 @@ export default function ContinuationForm({
               <details><summary>Full test output</summary><pre className="patch-view">{diagnosis.baseline.output}</pre></details>
             </>}
           </section>
-          <details>
+          <details className="repository-disclosure">
             <summary>Additional instructions (optional)</summary>
             {mode === "repair" && <label>
               Intended behavior
@@ -373,6 +373,7 @@ export default function ContinuationForm({
               immutable. A verified result includes a repaired repository ZIP, a patch, and test evidence. Applying and deploying it remain separate actions.
             </span>
           </div>
+          <div className="repository-form-actions">
           {diagnosis?.inspection && <button type="button" className="button secondary" disabled={busy} onClick={() => act(() => scan(snapshot))}>Inspect again</button>}
           <button
             className="button primary"
@@ -389,6 +390,7 @@ export default function ContinuationForm({
             {busy ? (scanning ? "Inspecting & running tests…" : mode === "complete" ? "Starting project completion…" : "Starting repair…") : mode === "complete" && diagnosis && diagnosis.status !== "blocked" ? "Complete project" : diagnosis?.status === "failing" ? "Fix failing code" : "Run tests again"}
             <ArrowRight size={15} />
           </button>
+          </div>
         </>
       )}
     </form>
