@@ -56,7 +56,7 @@ export default function ProjectDialog({
       JSON.stringify(existing?.contract || genericContract, null, 2),
     ),
     [error, setError] = useState("");
-  if (runtimeMode) return <RuntimeProjectForm project={existing} token={token} busy={busy} onClose={onClose} onBack={() => existing ? onClose() : setRuntimeMode(false)} onSubmit={onSubmit} />;
+  if (runtimeMode) return <RuntimeProjectForm submitError={submitError} project={existing} token={token} busy={busy} onClose={onClose} onBack={() => existing ? onClose() : setRuntimeMode(false)} onSubmit={onSubmit} />;
   return (
     <Dialog
       title={existing ? "Project settings" : "Connect a project"}

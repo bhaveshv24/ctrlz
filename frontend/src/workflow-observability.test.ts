@@ -10,7 +10,7 @@ import type { Receipt } from './api';
 const project=runtimeProject('documents','Documents','https://github.com/example/documents',[{...emptyDeployment(1),id:'local',service_id:'documents',platform:'local',environment:'staging',sources:[{id:'app',connector:'generic-events'},{id:'state',connector:'generic-events'}]}]);
 const proposal:Parameters<typeof WorkflowProposal>[0]['proposal']={id:'proposal',audit_id:'audit',deployment_id:'local',source_id:'app',environment:'staging',revision:'sha256:'+'a'.repeat(64),status:'proposed',provenance:'Uploaded source; Git identity unverified',proposal_hash:'b'.repeat(64),
   rule:{id:'processing',name:'Document processing',description:'A submitted document should complete.',evidence:[{path:'jobs.py',line:20}],start_condition:'Durable job created',completion_condition:'Same job completed',deadline_seconds:30,technique:'instrumentation',classification:'suspected_gap',allowed_fields:['instance_id','resource_id'],hooks:[],existing_signals:['jobs table'],missing_signals:['completion lifecycle'],uncertainties:['Deadline needs review'],privacy:'No bodies or email',overhead:'Bounded queue',permissions:['read-only selected jobs'],independent_verification:'Independent state snapshot',coverage_limits:['Best-effort logs']}};
-const render=(p=proposal)=>renderToStaticMarkup(createElement(WorkflowProposal,{proposal:p,project,token:'',busy:false,act:async()=>{}}));
+const render=(p=proposal)=>renderToStaticMarkup(createElement(WorkflowProposal,{proposal:p,project,token:'',busy:false,act:async()=>true}));
 
 it('offers an optional structured source audit without custom API configuration',()=>{
   const html=renderToStaticMarkup(createElement(WorkflowAudit,{project,token:'',onClose:()=>{}}));
@@ -31,4 +31,10 @@ it('workflow incident scopes the affected resource and preserves unknown identit
   const receipt:Receipt={schema_version:1,success:false,reasoning_provider:'explicit SSR test fixture',integrity:{algorithm:'sha256',snapshot_digest:'test',scope:'test'},events:[],incident:{id:'one-job',project_id:'documents',kind:'runtime',resource:'fingerprint',status:'awaiting_review',created:1,updated:1,workflow_evidence:{proposal_id:'proposal',approved_rule:{name:'Document processing',completion_condition:'Same job completed'},instance_id:'job-1',resource_id:'document-1',user_id:null,identity:'unknown',observation:'authoritative overdue incomplete',revision:'sha256:source',source_revision:'sha256:baseline',source_provenance:'local test snapshot',last_evidence:{}}}};
   const html=renderToStaticMarkup(createElement(RuntimeIncident,{receipt,token:'',onBack:()=>{},onChange:async()=>{}}));
   expect(html).toContain('job-1');expect(html).toContain('document-1');expect(html).toContain('User association: Unknown');expect(html).toContain('authoritative overdue incomplete');expect(html).toContain('Recommendations have not executed');
+});
+
+it('keeps old proposals readable after their deployment is removed', () => {
+  const html = render({...proposal, deployment_id:'removed-deployment',status:'awaiting_deployment'});
+  expect(html).toContain('deployment is no longer configured');
+  expect(html).not.toContain('Record deployed version');
 });

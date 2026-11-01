@@ -115,6 +115,7 @@ export default function ContinuationForm({
               if (file.size > 25 * 1024 * 1024)
                 throw new Error("ZIP uploads must be under 25 MiB.");
               const response = await fetch(API + "/repositories/upload?subdirectory=" + encodeURIComponent(subdirectory.trim()), {
+                signal: AbortSignal.timeout(90000),
                 method: "POST",
                 headers: {
                   Authorization: "Bearer " + token,
@@ -122,7 +123,7 @@ export default function ContinuationForm({
                 },
                 body: file,
               });
-              const data = await response.json();
+              const data = await response.json().catch(() => { throw new Error("The server could not process the ZIP upload. Please try again."); });
               if (!response.ok)
                 throw new Error(
                   typeof data.detail === "string"

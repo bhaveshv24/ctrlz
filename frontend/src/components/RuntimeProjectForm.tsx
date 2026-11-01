@@ -1,17 +1,17 @@
 import { useState } from 'react';
 import { api, type Project, type RuntimeDeployment } from '../api';
-import { emptyDeployment, runtimeProject } from '../runtime-projects';
+import { emptyDeployment, runtimeProject, updatePrimarySource, nextDeployment } from '../runtime-projects';
 import { Dialog } from './ui';
 
-export default function RuntimeProjectForm({project, token, busy, onClose, onBack, onSubmit}: {
-  project: Project | null; token: string; busy: boolean; onClose: () => void;
+export default function RuntimeProjectForm({project, token, busy, onClose, onBack, onSubmit, submitError = ""}: {
+  submitError?: string; project: Project | null; token: string; busy: boolean; onClose: () => void;
   onBack: () => void; onSubmit: (project: unknown) => Promise<void>;
 }) {
   const [step,setStep]=useState(0),[id,setId]=useState(project?.id || ''),[name,setName]=useState(project?.name || ''),
     [repo,setRepo]=useState(project?.repository_monitoring?.github_url || ''),[ref,setRef]=useState(project?.repository_monitoring?.preferred_ref || ''),
     [deployments,setDeployments]=useState<RuntimeDeployment[]>(project?.repository_monitoring?.deployments || [emptyDeployment(1)]),
     [enabled,setEnabled]=useState(project?.enabled ?? false),[test,setTest]=useState<unknown>(null),[testing,setTesting]=useState(false),[error,setError]=useState('');
-  const draft=()=>runtimeProject(id,name,repo,deployments,enabled,ref);
+  const draft=()=>({...project, ...runtimeProject(id,name,repo,deployments,enabled,ref)});
   const update=(index: number, change: Partial<RuntimeDeployment>)=>{setDeployments(old=>old.map((d,n)=>n===index?{...d,...change}:d));setTest(null);};
   return <Dialog title="Repository + Deployment Monitoring" onClose={onClose} busy={busy || testing}>
     <p className="dialog-copy">Connect source, identify deployments, then configure telemetry. Recommendations are read-only and require review.</p>
@@ -26,12 +26,12 @@ export default function RuntimeProjectForm({project, token, busy, onClose, onBac
       {step===1 && <>
         {deployments.map((d,n)=><fieldset className="card" key={n}><legend>Deployment {n+1}</legend>
           <label>Deployment ID<input required pattern="[a-zA-Z0-9][a-zA-Z0-9_.-]{0,99}" value={d.id} onChange={e=>update(n,{id:e.target.value})}/></label>
-          <label>Platform<select value={d.platform} onChange={e=>update(n,{platform:e.target.value as RuntimeDeployment['platform'],sources:[{id:d.sources[0].id,connector:'generic-events'}]})}>
+          <label>Platform<select value={d.platform} onChange={e=>update(n,{platform:e.target.value as RuntimeDeployment['platform'],sources:updatePrimarySource(d,'generic-events')})}>
             <option value="vps">VPS / server · log collector</option><option value="docker">Docker · exported application logs</option><option value="local">Local · log collector</option><option value="vercel">Vercel</option><option value="aws">AWS · generic collector only</option>
           </select></label>
           <label>{d.platform==='vercel'?'Vercel project ID':'Service identifier'}<input required value={d.service_id} onChange={e=>update(n,{service_id:e.target.value})}/></label>
           <label>Environment<input required value={d.environment} onChange={e=>update(n,{environment:e.target.value})}/></label>
-          <label>Telemetry source<select value={d.sources[0].connector} onChange={e=>update(n,{sources:[{...d.sources[0],connector:e.target.value as 'generic-events'|'vercel-drain'}]})}>
+          <label>Telemetry source<select value={d.sources[0].connector} onChange={e=>update(n,{sources:updatePrimarySource(d,e.target.value as 'generic-events'|'vercel-drain')})}>
             <option value="generic-events">Authenticated structured events / JSON log collector</option>
             {d.platform==='vercel' && <option value="vercel-drain">Signed Vercel Log Drain · eligible paid plan + public HTTPS receiver</option>}
           </select></label>
@@ -42,9 +42,9 @@ export default function RuntimeProjectForm({project, token, busy, onClose, onBac
           {d.platform==='vercel' && <label>Vercel team ID (optional)<input value={d.vercel_team_id || ''} onChange={e=>update(n,{vercel_team_id:e.target.value || null})}/></label>}
           {d.sources.slice(1).map((s,index)=><label key={index}>Independent reconciliation source ID<input value={s.id} onChange={e=>update(n,{sources:d.sources.map((old,i)=>i===index+1?{...old,id:e.target.value}:old)})}/></label>)}
           {d.sources.length<2&&<button type="button" className="button secondary" onClick={()=>update(n,{sources:[...d.sources,{id:'reconciliation',connector:'generic-events'}]})}>Add independent workflow reconciliation source</button>}
-          {deployments.length>1 && <button type="button" className="inline-link" onClick={()=>setDeployments(old=>old.filter((_,i)=>i!==n))}>Remove this deployment</button>}
+          {deployments.length>1 && <button type="button" className="inline-link" onClick={()=>{setDeployments(old=>old.filter((_,i)=>i!==n));setTest(null);}}>Remove this deployment</button>}
         </fieldset>)}
-        <button className="button secondary" type="button" disabled={deployments.length>=12} onClick={()=>setDeployments(old=>[...old,emptyDeployment(old.length+1)])}>Add deployment / environment</button>
+        <button className="button secondary" type="button" disabled={deployments.length>=12} onClick={()=>{setDeployments(old=>[...old,nextDeployment(old)]);setTest(null);}}>Add deployment / environment</button>
         <p className="subtle">Native CloudWatch and OTLP ingestion are not implemented. Structured-event forwarding works across hosts. Browser exceptions require client-side collection.</p>
       </>}
       {step===2 && <>
@@ -55,7 +55,7 @@ export default function RuntimeProjectForm({project, token, busy, onClose, onBac
         <label className="checkbox-label"><input type="checkbox" checked={enabled} onChange={e=>setEnabled(e.target.checked)}/>Enable monitoring and authenticated event ingestion</label>
         <details><summary>Optional next step: AI Workflow Audit</summary><p>After saving, choose “AI Workflow Audit · optional” on this project card to analyze silent failures, review completion rules, and generate a verified instrumentation patch. Existing runtime monitoring does not require this audit.</p></details>
       </>}
-      {error && <p role="alert">{error}</p>}
+      {(error || submitError) && <p role="alert">{error || submitError}</p>}
       <div className="dialog-actions"><button className="button secondary" type="button" onClick={()=>step?setStep(step-1):onBack()}>Back</button><button className="button primary" disabled={busy || testing}>{step<2?'Next':'Save monitoring project'}</button></div>
     </form>
   </Dialog>;

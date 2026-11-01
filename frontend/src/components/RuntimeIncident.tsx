@@ -8,7 +8,7 @@ import { eventSummary, stamp } from '../presentation';
 export default function RuntimeIncident({receipt,token,onBack,onChange}: {receipt:Receipt;token:string;onBack:()=>void;onChange:()=>Promise<void>}) {
   const [tab,setTab]=useState('Evidence'),[busy,setBusy]=useState(false),[error,setError]=useState('');
   const i=receipt.incident, sample=i.runtime_samples?.[0], source=i.source_evidence;
-  const act=async(fn:()=>Promise<unknown>)=>{setBusy(true);setError('');try{await fn();await onChange();}catch(e){setError((e as Error).message);}finally{setBusy(false);}};
+  const act=async(fn:()=>Promise<unknown>)=>{setBusy(true);setError('');try{await fn();await onChange().catch(()=>setError("Action completed, but the latest view could not load. Refresh before taking another action."));}catch(e){setError((e as Error).message);}finally{setBusy(false);}};
   return <div className="runtime-incident-detail">
     <button className="back-button" onClick={onBack}>All incidents</button>
     <div className="page-title incident-title"><div><span className="eyebrow">RUNTIME INCIDENT / {i.id.slice(0,8)}</span><h1>Observed failure. Reviewable response.</h1><p>{i.project_id} · {sample?.deployment_id || 'Deployment unknown'} · {sample?.environment || 'Environment unknown'}</p></div><Badge state={i.status}/></div>

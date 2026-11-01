@@ -45,3 +45,20 @@ it('rejects a prior incident receipt during navigation even when project and can
  expect(receiptMatchesIncident(prior,'previous-incident')).toBe(true);
  expect(receiptMatchesIncident(null,'new-incident')).toBe(false);
 });
+
+it('keeps independent reconciliation sources when the primary connector changes', async () => {
+  const {updatePrimarySource} = await import('./runtime-projects');
+  const deployment = emptyDeployment(1);
+  deployment.sources.push({id:'reconciliation',connector:'generic-events'});
+  expect(updatePrimarySource(deployment, 'vercel-drain')).toEqual([{id:'logs',connector:'vercel-drain'},{id:'reconciliation',connector:'generic-events'}]);
+  expect(deployment.sources[0].connector).toBe('generic-events');
+});
+it('does not duplicate deployment IDs after a deployment is removed', async () => {
+  const {nextDeployment} = await import('./runtime-projects');
+  expect(nextDeployment([emptyDeployment(1),emptyDeployment(3)]).id).toBe('deployment-2');
+});
+it('shows server save errors inside the monitoring dialog', () => {
+  const html = renderToStaticMarkup(createElement(RuntimeProjectForm, {project:null, token:'',busy:false,onClose:()=>{},onBack:()=>{},onSubmit:async()=>{},submitError:'Project ID is already in use'}));
+  expect(html).toContain('Project ID is already in use');
+  expect(html).toContain('role="alert"');
+});

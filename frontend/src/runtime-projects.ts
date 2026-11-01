@@ -13,3 +13,14 @@ export const coverageLabel = (state: string) => ({
   observing: 'Receiving telemetry · health unknown', no_recent_events: 'No recent telemetry · health unknown',
   incomplete_configuration: 'Source credentials need setup', error_detected: 'Runtime errors observed', paused: 'Monitoring disabled',
 }[state] || 'Connection unknown');
+
+/** Preserve independent reconciliation sources when changing the primary source. */
+export function updatePrimarySource(deployment: RuntimeDeployment, connector: RuntimeDeployment['sources'][number]['connector']) {
+  return [{...deployment.sources[0], connector}, ...deployment.sources.slice(1)];
+}
+
+export function nextDeployment(deployments: RuntimeDeployment[]) {
+  let index = 1;
+  while (deployments.some(deployment => deployment.id === 'deployment-' + index)) index++;
+  return emptyDeployment(index);
+}

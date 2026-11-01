@@ -84,11 +84,12 @@ export default function IncidentWorkspace({
     try {
       await fn();
       await onChange().catch(() => {});
-      const result = await api<Receipt>(
-        "/incidents/" + incident.id + "/receipt",
-        token,
-      );
-      setReceipt(result);
+      try {
+        const result = await api<Receipt>("/incidents/" + incident.id + "/receipt", token);
+        setReceipt(result);
+      } catch {
+        setError("Action completed, but the updated receipt could not load. Refresh before taking another action.");
+      }
       if (message) notify(message);
     } catch (e) {
       setError((e as Error).message);
