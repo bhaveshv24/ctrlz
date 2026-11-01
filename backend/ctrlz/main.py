@@ -259,8 +259,16 @@ def create_workspace_app(store=None, client=None, reasoner=None, runbooks=None, 
 
     @app.get("/incidents/{incident_id}/receipt", dependencies=[Depends(auth)])
     def receipt(incident_id: str):
-        get_incident(incident_id)
-        return engine.receipt(incident_id)
+        incident = get_incident(incident_id)
+        result = engine.receipt(incident_id)
+        if incident['kind'] == 'code':
+            try:
+                request = ImportRequest.model_validate(incident['import_request'])
+                repo = continuation.repository(request.repository)
+                result['check_commands'] = inspect_repository(repo, request.acceptance_profile).get('check_commands')
+            except (ValueError, KeyError, OSError):
+                result['check_commands'] = None
+        return result
 
     @app.get("/incidents/{incident_id}/repaired.zip", dependencies=[Depends(auth)])
     async def repaired_repository(incident_id: str):

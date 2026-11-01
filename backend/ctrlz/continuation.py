@@ -279,7 +279,7 @@ class Continuation:
             if not inspection['supported']:
                 raise ValueError('Unsupported repair environment: '+'; '.join(inspection['warnings']))
             self.store.record(incident_id, 'repository_assessment', {k:v for k,v in inspection.items() if k != 'files'})
-            self.store.update(incident_id, repair_profile=inspection['profile'])
+            self.store.update(incident_id, repair_profile=inspection['profile'], check_commands=inspection.get('check_commands'))
             metadata = {}
             provenance = repo/'.git/ctrlz-import.json'
             if provenance.is_file():

@@ -17,6 +17,7 @@ import { repositoryAction } from "../repository-action";
 import { api, ApiError, API, saveFile, type Incident, type Act } from "../api";
 
 type Assessment = {
+  check_commands?: {setup:string;test:string;basis:string};
   files?: string[];
   repository: string;
   profile: string;
@@ -350,7 +351,7 @@ export default function ContinuationForm({
               {diagnosis.baseline.cases.filter(c => c.status === "failed" || c.status === "error").map(c =>
                 <details key={c.id}><summary>{c.id}</summary><pre className="patch-view">{c.detail}</pre></details>
               )}
-              {(mode === "complete" || diagnosis.status === "failing") && <RepositoryCheckGuide profile={snapshot.profile} completion={mode === "complete"} baselineRecorded={true} requirement={requirements} failures={diagnosis.baseline.cases.filter(c => c.status === "failed" || c.status === "error")} />}
+              {(mode === "complete" || diagnosis.status === "failing") && <RepositoryCheckGuide commands={snapshot.check_commands} profile={snapshot.profile} completion={mode === "complete"} baselineRecorded={true} requirement={requirements} failures={diagnosis.baseline.cases.filter(c => c.status === "failed" || c.status === "error")} />}
               <details><summary>Full test output</summary><pre className="patch-view">{diagnosis.baseline.output}</pre></details>
             </>}
           </section>

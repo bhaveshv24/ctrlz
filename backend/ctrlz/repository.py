@@ -169,7 +169,8 @@ def inspect_repository(root, requested='auto'):
         warnings.append('No existing acceptance tests detected. Add tests before requesting a verified repair.')
     if not sources:
         warnings.append('No supported editable source files detected.')
-    return {'profile': profile, 'profile_label': PROFILES[profile]['label'] if profile in PROFILES else 'Unsupported', 'supported': not warnings, 'dependencies': dependencies, 'dependency_install_required': bool(dependencies), 'tests': tests[:100], 'test_file_count': len(tests), 'editable_files': sources[:300], 'file_count': len(paths), 'source_count': len(sources), 'warnings': list(dict.fromkeys(warnings)), 'files': paths[:1000]}
+    from .check_commands import check_commands
+    return {'check_commands': check_commands(root, profile), 'profile': profile, 'profile_label': PROFILES[profile]['label'] if profile in PROFILES else 'Unsupported', 'supported': not warnings, 'dependencies': dependencies, 'dependency_install_required': bool(dependencies), 'tests': tests[:100], 'test_file_count': len(tests), 'editable_files': sources[:300], 'file_count': len(paths), 'source_count': len(sources), 'warnings': list(dict.fromkeys(warnings)), 'files': paths[:1000]}
 
 
 class RepositoryImports:
