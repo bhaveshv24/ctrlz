@@ -17,7 +17,7 @@ import { repositoryAction } from "../repository-action";
 import { api, ApiError, API, saveFile, type Incident, type Act } from "../api";
 
 type Assessment = {
-  check_commands?: {setup:string;test:string;basis:string};
+  check_commands?: {setup:string;test:string;basis:string;directory?:string;server?:string;requests?:string;api_note?:string};
   files?: string[];
   repository: string;
   profile: string;

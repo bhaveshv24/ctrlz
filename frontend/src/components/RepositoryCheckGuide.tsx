@@ -1,5 +1,5 @@
 import {useState} from 'react';
-export default function RepositoryCheckGuide({profile, repaired = false, failures = [], completion = false, baselineRecorded = false, requirement = "", commands}: {commands?: {setup:string;test:string;basis:string}; profile: string; repaired?: boolean; failures?: {id:string; detail?:string}[]; completion?: boolean; baselineRecorded?: boolean; requirement?: string}) {
+export default function RepositoryCheckGuide({profile, repaired = false, failures = [], completion = false, baselineRecorded = false, requirement = "", commands}: {commands?: {setup:string;test:string;basis:string;directory?:string;server?:string;requests?:string;api_note?:string}; profile: string; repaired?: boolean; failures?: {id:string; detail?:string}[]; completion?: boolean; baselineRecorded?: boolean; requirement?: string}) {
   const [copied,setCopied] = useState(false);
   const fallback = profile === 'python-pytest' ? 'python -m pytest -q' : profile === 'node-test' ? 'node --test' : profile === 'javascript-vitest' ? 'node node_modules/vitest/vitest.mjs run' : null;
   const command = commands ? commands.setup + "\n" + commands.test : fallback;
@@ -9,7 +9,16 @@ export default function RepositoryCheckGuide({profile, repaired = false, failure
     <p>{repaired ? 'Download and extract the repaired ZIP into a new folder. Open a terminal in the matching package inside repaired-repository, then run the same command.' : failures.length ? 'Analysis found the failing checks below. Open a terminal in your original project’s test package and run the command to reproduce them.' : 'The existing tests passed. Run the same baseline in your original project before comparing the requested completion.'}</p>
     {completion && requirement && <p><strong>Requested completion:</strong> {requirement}</p>}
     {!repaired && failures.slice(0,3).map(failure => <div key={failure.id}><strong>{failure.id}</strong>{failure.detail && <pre>{failure.detail}</pre>}</div>)}
-    {commands && <p>Run from the inspected package directory. Detected setup: {commands.basis}. Setup commands below use a macOS/Linux shell.</p>}
+    {commands && <p>Start from the imported repository root; the commands select the detected package folder. Detected setup: {commands.basis}. Setup commands below use a macOS/Linux shell.</p>}
+    {commands?.server && <>
+      <h3>Start the backend — terminal 1</h3>
+      <pre><code>{commands.server}</code></pre>
+      <h3>Check current API responses — terminal 2</h3>
+      <pre><code>{commands.requests}</code></pre>
+      <p>{commands.api_note}</p>
+      <p>Compare status codes and response bodies before and after completion. A 501 response means that endpoint is not implemented; passing tests alone may still expect that behavior.</p>
+    </>}
+    <h3>Run the acceptance tests</h3>
     <pre><code>{command}</code></pre>
     <button type="button" className="button secondary" onClick={async()=>{try{await navigator.clipboard.writeText(command);setCopied(true);}catch{setCopied(false);}}}>{copied ? 'Command copied' : 'Copy test command'}</button>
     <p>{repaired ? completion ? 'Compare with your baseline, then check the requested features against the recorded requirement assessment. Passing existing tests proves regression coverage, not that every requested feature is finished.' : 'Compare with your original output. The repaired suite should pass; review any new failure before using the changes.' : completion ? 'Compare this output before choosing Complete project. Existing tests may pass even when functionality is unfinished; the requested work comes from your prompt and inspected source, not the language or test result alone.' : 'Compare your output with the recorded errors above, then choose Fix failing code. The command reproduces test failures; it does not establish their root cause by itself.'}</p>

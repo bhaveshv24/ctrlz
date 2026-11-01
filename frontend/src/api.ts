@@ -26,7 +26,7 @@ export type Verification = {
   evidence?: unknown;
 };
 export type Incident = {
-  check_commands?: {setup:string;test:string;basis:string};
+  check_commands?: {setup:string;test:string;basis:string;directory?:string;server?:string;requests?:string;api_note?:string};
   id: string;
   project_id: string;
   kind: string;
@@ -103,7 +103,7 @@ export type FlightEvent = {
   payload: Record<string, any>;
 };
 export type Receipt = {
-  check_commands?: {setup:string;test:string;basis:string};
+  check_commands?: {setup:string;test:string;basis:string;directory?:string;server?:string;requests?:string;api_note?:string};
   schema_version: number;
   replay_supported?: boolean;
   incident: Incident;
