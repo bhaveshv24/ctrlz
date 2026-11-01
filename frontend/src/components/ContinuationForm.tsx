@@ -12,7 +12,8 @@ import {
   Bug,
   Sparkles,
 } from "lucide-react";
-import { api, API, saveFile, type Incident, type Act } from "../api";
+import { repositoryAction } from "../repository-action";
+import { api, ApiError, API, saveFile, type Incident, type Act } from "../api";
 
 type Assessment = {
   files?: string[];
@@ -61,6 +62,7 @@ export default function ContinuationForm({
     [context, setContext] = useState(""),
     [diagnosis, setDiagnosis] = useState<Diagnosis | null>(null);
   const [scanning, setScanning] = useState(false);
+  const [inspectionError, setInspectionError] = useState("");
   const [executionEnabled, setExecutionEnabled] = useState(true);
   useEffect(() => {
     api<{code_execution_enabled: boolean}>("/capabilities",token).then(c => setExecutionEnabled(c.code_execution_enabled)).catch(() => {});
@@ -68,10 +70,12 @@ export default function ContinuationForm({
   const reset = () => {
     setSnapshot(null);
     setDiagnosis(null);
+    setInspectionError("");
   };
   const scan = async (assessment: Assessment) => {
     setDiagnosis(null);
     setScanning(true);
+    setInspectionError("");
     try {
       const result = await api<Diagnosis>("/repositories/audit", token, {
         repository: assessment.repository,
@@ -79,10 +83,17 @@ export default function ContinuationForm({
         install_dependencies: true,
       }, AbortSignal.timeout(360000));
       setDiagnosis(result);
+    } catch (error) {
+      const message = error instanceof ApiError && error.status === 404
+        ? "The deployed backend does not provide repository inspection yet. Deploy the latest backend on Render, then retry inspection."
+        : error instanceof Error ? error.message : "Repository inspection failed. Please retry.";
+      setInspectionError(message);
+      throw error;
     } finally {
       setScanning(false);
     }
   };
+  const action = repositoryAction(mode || "repair", diagnosis?.status || null, executionEnabled, !!snapshot?.supported, !!inspectionError);
   if (!mode) return (
     <section className="repository-mode-picker">
       <h2>What would you like to do?</h2>
@@ -140,7 +151,7 @@ export default function ContinuationForm({
               });
             setSnapshot(imported);
             await scan(imported);
-          } else if (!diagnosis || diagnosis.status === "blocked" || (mode === "repair" && diagnosis.status !== "failing")) {
+          } else if (!action.startsChanges) {
             await scan(snapshot);
           } else {
             const i = await api<Incident>("/continuations", token, {
@@ -336,7 +347,9 @@ export default function ContinuationForm({
             Choose another repository
           </button>
           <section aria-live="polite" className="repository-assessment repository-results">
-            <h3>{scanning ? "Inspecting source, dependencies and tests…" : diagnosis ? (mode === "complete" && diagnosis.status === "healthy" && diagnosis.inspection?.summary !== "review_required" ? "Baseline tests pass. Ready to continue your project." : diagnosis.message) : "Ready to run the existing tests"}</h3>
+            <h3>{scanning ? "Inspecting source, dependencies and tests…" : diagnosis ? (mode === "complete" && diagnosis.status === "healthy" && diagnosis.inspection?.summary !== "review_required" ? "Baseline tests pass. Ready to continue your project." : diagnosis.message) : inspectionError ? "Inspection could not finish" : "Repository imported. Inspection is ready."}</h3>
+            {inspectionError && <p role="alert" className="alert">{inspectionError}</p>}
+            {!scanning && !inspectionError && diagnosis?.status === "healthy" && mode === "repair" && <p>The existing tests passed, so there is no reproduced test failure to repair. Review the inspection findings, or choose project completion to request missing functionality.</p>}
             {scanning && <p className="muted">Checking source risks and dependency advisories, then running supported tests in isolation. This can take a few minutes.</p>}
             {diagnosis?.inspection && <RepositoryInspection report={diagnosis.inspection} />}
             {diagnosis && <>
@@ -378,8 +391,7 @@ export default function ContinuationForm({
           <button
             className="button primary"
             disabled={
-              busy ||
-              !snapshot.supported || !executionEnabled
+              busy || scanning || action.disabled
             }
           >
             {busy ? (
@@ -387,7 +399,7 @@ export default function ContinuationForm({
             ) : (
               <Code2 size={16} />
             )}
-            {busy ? (scanning ? "Inspecting & running tests…" : mode === "complete" ? "Starting project completion…" : "Starting repair…") : mode === "complete" && diagnosis && diagnosis.status !== "blocked" ? "Complete project" : diagnosis?.status === "failing" ? "Fix failing code" : "Run tests again"}
+            {busy ? (scanning ? "Inspecting & running tests…" : mode === "complete" ? "Starting project completion…" : "Starting repair…") : action.label}
             <ArrowRight size={15} />
           </button>
           </div>
