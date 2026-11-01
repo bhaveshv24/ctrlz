@@ -5658,3 +5658,10 @@ p { text-wrap: pretty; }
 .main-content .button.primary { background: var(--accent); color: var(--sidebar); border-color: var(--accent); }
 .main-content .guide-icon, .main-content .outcome-banner.verified .outcome-symbol { color: var(--refine-ink); }
 .proof-stat strong { font-variant-numeric: tabular-nums; }
+.inspection-report { margin-block: 24px; padding-block: 20px; border-block: 1px solid var(--line); }
+.inspection-checks { display: grid; gap: 12px; margin-block: 20px; }
+.inspection-checks > div { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,2fr); gap: 16px; }
+.inspection-checks dd { margin: 0; }
+.inspection-report details { margin-block: 12px; }
+.inspection-report > .button { margin-top: 16px; }
+@media(max-width:600px) { .inspection-checks > div { grid-template-columns: minmax(0,1fr); gap: 4px; } }

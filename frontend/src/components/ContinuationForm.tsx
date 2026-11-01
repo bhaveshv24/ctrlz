@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { FilePlate } from "./FilePlate";
 import RepoIntelligence from "./RepoIntelligence";
+import RepositoryInspection, {type InspectionReport} from "./RepositoryInspection";
 import {
   Code2,
   ArrowRight,
@@ -31,6 +32,7 @@ type Assessment = {
   omitted_files?: string[];
 };
 type Diagnosis = {
+  inspection?: InspectionReport;
   status: "failing" | "healthy" | "blocked";
   message: string;
   passed: number;
@@ -71,11 +73,11 @@ export default function ContinuationForm({
     setDiagnosis(null);
     setScanning(true);
     try {
-      const result = await api<Diagnosis>("/repositories/diagnose", token, {
+      const result = await api<Diagnosis>("/repositories/audit", token, {
         repository: assessment.repository,
         acceptance_profile: assessment.profile,
         install_dependencies: true,
-      });
+      }, AbortSignal.timeout(360000));
       setDiagnosis(result);
     } finally {
       setScanning(false);
@@ -137,7 +139,7 @@ export default function ContinuationForm({
                 subdirectory: subdirectory.trim(),
               });
             setSnapshot(imported);
-            if (imported.supported && executionEnabled) await scan(imported);
+            await scan(imported);
           } else if (!diagnosis || diagnosis.status === "blocked" || (mode === "repair" && diagnosis.status !== "failing")) {
             await scan(snapshot);
           } else {
@@ -179,7 +181,7 @@ export default function ContinuationForm({
           )
         }
       />
-      {!snapshot && <p className="muted">Inspection runs tests in an isolated container and downloads declared dependencies without install scripts. Your original folder stays unchanged.</p>}
+      {!snapshot && <p className="muted">Inspect checks source risks, known dependency advisories and repository readiness. Only resolved package names and versions are sent to OSV. Supported tests run in isolation when a runner is available; your source stays unchanged.</p>}
       {!snapshot ? (
         <>
           <label>
@@ -334,8 +336,9 @@ export default function ContinuationForm({
             Choose another repository
           </button>
           <section aria-live="polite" className="repository-assessment">
-            <h3>{scanning ? "Running repository tests…" : diagnosis ? (mode === "complete" && diagnosis.status === "healthy" ? "Baseline tests pass. Ready to continue your project." : diagnosis.message) : "Ready to run the existing tests"}</h3>
-            {scanning && <p className="muted">Preparing declared dependencies and collecting real failures. This can take a few minutes.</p>}
+            <h3>{scanning ? "Inspecting source, dependencies and tests…" : diagnosis ? (mode === "complete" && diagnosis.status === "healthy" && diagnosis.inspection?.summary !== "review_required" ? "Baseline tests pass. Ready to continue your project." : diagnosis.message) : "Ready to run the existing tests"}</h3>
+            {scanning && <p className="muted">Checking source risks and dependency advisories, then running supported tests in isolation. This can take a few minutes.</p>}
+            {diagnosis?.inspection && <RepositoryInspection report={diagnosis.inspection} />}
             {diagnosis && <>
               <p>{diagnosis.passed} passed / {diagnosis.failed} failed / {diagnosis.skipped} skipped</p>
               <button type="button" className="button secondary" onClick={() => saveFile("ctrlz-errors-before-repair.txt", [
@@ -370,6 +373,7 @@ export default function ContinuationForm({
               immutable. A verified result includes a repaired repository ZIP, a patch, and test evidence. Applying and deploying it remain separate actions.
             </span>
           </div>
+          {diagnosis?.inspection && <button type="button" className="button secondary" disabled={busy} onClick={() => act(() => scan(snapshot))}>Inspect again</button>}
           <button
             className="button primary"
             disabled={

@@ -357,6 +357,14 @@ def create_workspace_app(store=None, client=None, reasoner=None, runbooks=None, 
         except (ValueError, RuntimeError) as exc:
             raise HTTPException(422, str(exc)) from exc
 
+    @app.post("/repositories/audit", dependencies=[Depends(auth)])
+    async def audit_repository(body: ImportRequest):
+        from .repository_audit import inspect_all
+        try:
+            return await inspect_all(continuation, body, settings.CTRLZ_CODE_EXECUTION_ENABLED, client)
+        except (ValueError, RuntimeError, OSError) as exc:
+            raise HTTPException(422, str(exc)) from exc
+
     @app.post("/repositories/diagnose", dependencies=[Depends(auth)])
     async def diagnose_repository(body: ImportRequest):
         require_code_execution()
