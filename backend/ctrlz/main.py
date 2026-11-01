@@ -79,8 +79,10 @@ def create_workspace_app(store=None, client=None, reasoner=None, runbooks=None, 
     runtime_monitor.workflows = workflow_observability
 
     def require_code_execution():
-        if not settings.CTRLZ_CODE_EXECUTION_ENABLED:
-            raise HTTPException(503, 'Repository execution is disabled on this host; use the Docker-capable runner deployment')
+        from .runtime import execution_readiness
+        readiness = execution_readiness(settings.CTRLZ_CODE_EXECUTION_ENABLED)
+        if not readiness['available']:
+            raise HTTPException(503, readiness['reason'])
 
     def spawn(coro):
         task = asyncio.create_task(coro)
@@ -316,7 +318,9 @@ def create_workspace_app(store=None, client=None, reasoner=None, runbooks=None, 
 
     @app.get("/capabilities", dependencies=[Depends(auth)])
     def capabilities():
-        return {"code_execution_enabled": settings.CTRLZ_CODE_EXECUTION_ENABLED, "sources": ["github", "zip", "local"], "profiles": {key:{"label":value["label"],"image":value["image"]} for key,value in PROFILES.items()}, "maximum_upload_bytes": MAX_UPLOAD, "maximum_attempts": 3, "generic_http": True, "dependency_setup": "Explicit approval; npm scripts disabled / Python wheels only; tests offline", "publishes_changes": False}
+        from .runtime import execution_readiness
+        readiness = execution_readiness(settings.CTRLZ_CODE_EXECUTION_ENABLED)
+        return {"code_execution_enabled": readiness["available"], "execution_configured": settings.CTRLZ_CODE_EXECUTION_ENABLED, "execution_reason": readiness["reason"], "sources": ["github", "zip", "local"], "profiles": {key:{"label":value["label"],"image":value["image"]} for key,value in PROFILES.items()}, "maximum_upload_bytes": MAX_UPLOAD, "maximum_attempts": 3, "generic_http": True, "dependency_setup": "Explicit approval; npm scripts disabled / Python wheels only; tests offline", "publishes_changes": False}
 
     @app.post("/repositories/import", dependencies=[Depends(auth)], status_code=201)
     async def import_repository(body: RepositorySource, request: Request):

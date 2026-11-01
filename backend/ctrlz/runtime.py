@@ -69,3 +69,13 @@ def inspect_runtime(settings, store, runbooks, reasoner):
          "detail": getattr(reasoner, "selected_model", None) or "No model selected", "verified": False},
     ])
     return {"components": components}
+
+
+def execution_readiness(enabled):
+    """Probe the actual isolation boundary, not only the configured feature flag."""
+    if not enabled:
+        return {'available': False, 'reason': 'Repository execution is disabled on this host. Static inspection remains available.'}
+    daemon = command_status(['docker', 'version', '--format', '{{.Server.Version}}'])
+    if daemon['state'] != 'available':
+        return {'available': False, 'reason': 'This backend cannot reach a Docker sandbox runner. Hosted inspection works, but tests, repair and completion require a Docker-capable backend.'}
+    return {'available': True, 'reason': 'Docker daemon is reachable. The selected profile image and dependency setup are checked during inspection.'}

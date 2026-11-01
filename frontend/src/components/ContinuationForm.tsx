@@ -62,9 +62,10 @@ export default function ContinuationForm({
     [diagnosis, setDiagnosis] = useState<Diagnosis | null>(null);
   const [scanning, setScanning] = useState(false);
   const [inspectionError, setInspectionError] = useState("");
-  const [executionEnabled, setExecutionEnabled] = useState(true);
+  const [executionEnabled, setExecutionEnabled] = useState(false);
+  const [executionReason, setExecutionReason] = useState("Checking isolated runner availability…");
   useEffect(() => {
-    api<{code_execution_enabled: boolean}>("/capabilities",token).then(c => setExecutionEnabled(c.code_execution_enabled)).catch(() => {});
+    api<{code_execution_enabled: boolean; execution_reason?: string}>("/capabilities",token).then(c => { setExecutionEnabled(c.code_execution_enabled); setExecutionReason(c.execution_reason || "Running repairs requires a Docker-capable backend."); }).catch(() => { setExecutionEnabled(false); setExecutionReason("Runner availability could not be checked. Retry when the backend is reachable; static inspection remains available."); });
   }, [token]);
   const reset = () => {
     setSnapshot(null);
@@ -166,7 +167,7 @@ export default function ContinuationForm({
       }}
     >
       <button className="inline-link" type="button" disabled={busy} onClick={() => setMode(null)}>← Choose a different goal</button>
-      {!executionEnabled && <p role="status" className="alert">This host supports repository inspection. Running repairs requires the Docker-capable runner deployment.</p>}
+      {!executionEnabled && <p role="status" className="alert">{executionReason}</p>}
       <span className="eyebrow">
         {snapshot ? (mode === "complete" ? "03 / DESCRIBE THE FINISH LINE" : "02 / AUTOMATIC DIAGNOSIS") : "02 / BRING A REPOSITORY"}
       </span>
@@ -337,7 +338,7 @@ export default function ContinuationForm({
             {!scanning && !inspectionError && diagnosis?.status === "healthy" && mode === "repair" && <p>The existing tests passed, so there is no reproduced test failure to repair. Review the inspection findings, or choose project completion to request missing functionality.</p>}
             {scanning && <p className="muted">Checking source risks and dependency advisories, then running supported tests in isolation. This can take a few minutes.</p>}
             {diagnosis?.inspection && <RepositoryInspection report={diagnosis.inspection} />}
-            {diagnosis && <>
+            {diagnosis && (!diagnosis.inspection || ["healthy", "failing"].includes(diagnosis.inspection.tests.state)) && <>
               <p>{diagnosis.passed} passed / {diagnosis.failed} failed / {diagnosis.skipped} skipped</p>
               <button type="button" className="button secondary" onClick={() => saveFile("ctrlz-errors-before-repair.txt", [
                 "CtrlZ — Tests before repair", `Result: ${diagnosis.status}`,
