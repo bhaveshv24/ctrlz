@@ -243,6 +243,7 @@ async def test_diagnose_api_authentication_and_automatic_defaults(tmp_path, monk
         assert (await client.post(retry_url)).status_code == 401
         response = await client.post(retry_url, headers=headers)
         assert response.status_code == 202
+        assert response.json()['verification'] == {'passed': False, 'checks': {}}
         assert (await client.post(retry_url, headers=headers)).status_code == 409
         import asyncio
         await asyncio.sleep(0)

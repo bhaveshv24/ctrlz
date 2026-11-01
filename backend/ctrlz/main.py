@@ -408,7 +408,7 @@ def create_workspace_app(store=None, client=None, reasoner=None, runbooks=None, 
         except (ValueError, KeyError) as exc:
             raise HTTPException(422, 'Re-import the source repository before retrying this repair: '+str(exc)) from exc
         store.record(incident_id, 'repair_retry', {'previous_error':incident.get('error'), 'requested_by_user':True})
-        store.update(incident_id, status='queued', error=None, download_ready=False, verification={'passed':False})
+        store.update(incident_id, status='queued', error=None, download_ready=False, verification={'passed':False, 'checks':{}})
         spawn(continuation.run(incident_id, body))
         return store.get(incident_id)
 

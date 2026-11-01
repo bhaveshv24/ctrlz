@@ -240,7 +240,10 @@ export function Metric({
     </article>
   );
 }
-export function CheckList({ checks }: { checks: Record<string, boolean> }) {
+export function CheckList({ checks }: { checks?: Record<string, boolean> | null }) {
+  if (!checks || Object.keys(checks).length === 0) {
+    return <p role="status">Verification checks will appear when this attempt has been tested.</p>;
+  }
   return (
     <div className="acceptance-list">
       {Object.entries(checks).map(([name, passed]) => (
