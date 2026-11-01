@@ -458,7 +458,7 @@ export default function IncidentWorkspace({
               )}
               <section className="card">
                 <h2>Independent verification</h2>
-                {i.kind === "code" && i.import_request?.mode !== "complete" && <RepositoryCheckGuide profile={String((i as Incident & {repair_profile?:string}).repair_profile || baseline?.payload.profile || "")} repaired={verified} failures={i.diagnosis && Array.isArray(baseline?.payload.cases) ? baseline.payload.cases.filter(c => c.status === "failed" || c.status === "error") : []} />}
+                {i.kind === "code" && <RepositoryCheckGuide profile={String((i as Incident & {repair_profile?:string}).repair_profile || baseline?.payload.profile || "")} repaired={verified} completion={i.import_request?.mode === "complete"} baselineRecorded={!!i.diagnosis && !!baseline} requirement={i.import_request?.requirements} failures={i.diagnosis && Array.isArray(baseline?.payload.cases) ? baseline.payload.cases.filter(c => c.status === "failed" || c.status === "error") : []} />}
                 {i.verification ? (
                   <CheckList checks={i.verification.checks} />
                 ) : (
