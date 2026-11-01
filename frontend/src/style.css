@@ -5721,3 +5721,30 @@ p { text-wrap: pretty; }
 [data-motion="on"] .login-form form > .button.secondary:focus-visible {
   outline-color: var(--studio-lime);
 }
+/* Repository controls inherit the active surface's readable foreground. */
+.main-content .continuation-form :is(input,textarea,select) {
+  color: var(--refine-ink);
+  background: var(--refine-subtle);
+  border-color: var(--refine-border);
+  font-size: 15px;
+  line-height: 1.6;
+  min-height: 48px;
+}
+.main-content .continuation-form :is(input,textarea)::placeholder {
+  color: var(--refine-muted);
+  opacity: 1;
+}
+.main-content .continuation-form select option {
+  color: var(--refine-ink);
+  background: var(--refine-subtle);
+}
+[data-motion="on"] .main-content .continuation-form :is(input,textarea,select) { color-scheme: dark; }
+.main-content .continuation-form input[type="file"]::file-selector-button {
+  color: var(--refine-ink);
+  background: var(--refine-surface);
+  border: 1px solid var(--refine-border);
+  border-radius: 4px;
+  padding: 8px 12px;
+  margin-right: 12px;
+  cursor: pointer;
+}
