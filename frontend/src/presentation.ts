@@ -86,7 +86,7 @@ export const lifecycle = (receipt: Receipt) => {
           ["Reproduce", ["baseline_tests"]],
           ["Continue", ["code_proposal"]],
           ["Verify", ["verification"]],
-          ["Record", ["verification"]],
+          ["Record", ["record"]],
         ]
       : [
           ["Detect", ["detect"]],

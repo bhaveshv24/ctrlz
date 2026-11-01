@@ -5748,3 +5748,35 @@ p { text-wrap: pretty; }
   margin-right: 12px;
   cursor: pointer;
 }
+/* Event-driven recovery progress and readable incident evidence surfaces. */
+.recovery-progress { padding: 24px; margin-block: 24px; background: var(--refine-surface); border: 1px solid var(--refine-border); border-radius: var(--refine-radius); color: var(--refine-ink); }
+.recovery-progress-heading { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; font-size: 14px; margin-bottom: 16px; }
+.recovery-progress-heading > span { color: var(--refine-muted); }
+.recovery-progress-track { position: relative; overflow: clip; height: 8px; border-radius: 4px; background: var(--refine-border); }
+.recovery-progress-fill { position: absolute; inset: 0; background: var(--refine-focus); transform: scaleX(var(--progress)); transform-origin: left; transition: transform 600ms ease; }
+.recovery-progress-motion { position: absolute; inset: 0; background: linear-gradient(90deg, transparent, var(--studio-lime), transparent); opacity: .65; animation: recovery-travel 1.8s linear infinite; }
+@keyframes recovery-travel { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
+.recovery-progress-stages { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 20px; list-style: none; margin: 20px 0 0; padding: 0; }
+.recovery-progress-stages li { font-size: 14px; color: var(--refine-muted); }
+.recovery-progress-stages li > span { display: block; margin-top: 4px; font-size: 12px; }
+.recovery-progress-stages li.recorded { color: var(--refine-ink); }
+.recovery-progress-stages li.failed { color: var(--polish-color-78); }
+[data-motion="on"] .incident-detail-page { --refine-surface: var(--polish-extra-7); }
+.incident-detail-page :is(.story-field,.code-comparison) { padding: 24px; margin-block: 24px; border: 1px solid var(--refine-border); border-radius: var(--refine-radius); background: var(--refine-surface); color: var(--refine-ink); }
+.incident-detail-page :is(.code-comparison p,.code-comparison td,.branch-key) { color: var(--refine-muted); line-height: 1.7; }
+.incident-detail-page .code-comparison :is(h3,strong,th) { color: var(--refine-ink); }
+.incident-detail-page :is(select,input:not([type="range"]),textarea) { background: var(--refine-subtle); color: var(--refine-ink); border-color: var(--refine-border); }
+.incident-detail-page select option { background: var(--refine-subtle); color: var(--refine-ink); }
+[data-motion="on"] .incident-detail-page select { color-scheme: dark; }
+.incident-detail-page :is(input,textarea)::placeholder { color: var(--refine-muted); opacity: 1; }
+[data-motion="on"] .incident-detail-page .outcome-duration strong { color: var(--refine-ink); }
+@media (max-width: 600px) { .recovery-progress,.incident-detail-page :is(.story-field,.code-comparison) { padding: 16px; } .recovery-progress-stages { gap: 16px 24px; } }
+@media (prefers-reduced-motion: reduce) { .recovery-progress-fill { transition: none; } .recovery-progress-motion { animation: none; opacity: .2; } }
+[data-motion="on"] .incident-detail-page {
+  --refine-ink: var(--polish-extra-12);
+  --refine-muted: var(--polish-extra-13);
+  --refine-border: var(--polish-extra-10);
+  --refine-subtle: var(--polish-extra-9);
+  --refine-focus: var(--polish-extra-11);
+}
+[data-motion="on"] .incident-detail-page .outcome-duration b { color: var(--refine-ink); }

@@ -1,3 +1,4 @@
+import RecoveryProgress from "./RecoveryProgress";
 import MotionHeading from "./MotionHeading";
 import RuntimeIncident from "./RuntimeIncident";
 import { useCallback, useEffect, useState } from "react";
@@ -272,14 +273,7 @@ export default function IncidentWorkspace({
           </span>
         </div>
       )}
-      <ol className="lifecycle" aria-label="Recorded recovery stages">
-        {stages.map((stage, index) => (
-          <li className={stage.failed ? "failed" : stage.recorded ? "recorded" : ""} key={stage.name}>
-            <span>{stage.failed ? <X size={12} /> : stage.recorded ? <Check size={12} /> : index + 1}</span>
-            <strong>{stage.name}</strong>
-          </li>
-        ))}
-      </ol>
+      <RecoveryProgress stages={stages} active={!terminal && i.status !== "awaiting_approval"} />
       <div
         className="workspace-tabs"
         role="tablist"
