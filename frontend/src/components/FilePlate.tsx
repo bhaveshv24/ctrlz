@@ -109,7 +109,7 @@ export function FilePlate({
         model={graph}
         caption={
           evidence.length +
-          " recorded paths / Locked tests · Editable source · Other files" +
+          " recorded paths / Locked tests / Editable source / Other files" +
           (typeof check === "boolean"
             ? " / Verification " + (check ? "passed" : "failed")
             : "")
@@ -126,8 +126,8 @@ export function FilePlate({
       </label>
       {file && (
         <p>
-          {file.path} · {file.state}
-          {file.read ? " · read by agent" : ""}
+          {file.path} / {file.state}
+          {file.read ? " / read by agent" : ""}
         </p>
       )}
     </section>

@@ -50,7 +50,7 @@ export function OverviewPlate({ overview }: { overview: Overview }) {
       title="Recovery field"
       model={model}
       caption={[
-        ...overview.projects.map((p) => p.project.name + " · " + p.state),
+        ...overview.projects.map((p) => p.project.name + " / " + p.state),
         overview.summary.verified_recoveries + " verified layers",
         overview.summary.open_incidents + " open threads",
       ].join(" / ")}

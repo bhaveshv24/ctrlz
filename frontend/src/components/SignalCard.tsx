@@ -18,7 +18,7 @@ export default function SignalCard({
     missing = workflow
       ? latest?.workflows.body.discrepancies?.length || 0
       : null;
-  if (project.project_type === "repository-deployment") return <article className={nested ? "signal-card nested" : "card signal-card"}><h3>{project.name}</h3><p>{project.repository_monitoring?.github_url}</p><Badge state={state}>{coverageLabel(state)}</Badge><p>{project.repository_monitoring?.deployments.length} deployments · read-only diagnosis and review</p><button className="inline-link" onClick={onManage}>Manage</button></article>;
+  if (project.project_type === "repository-deployment") return <article className={nested ? "signal-card nested" : "card signal-card"}><h3>{project.name}</h3><p>{project.repository_monitoring?.github_url}</p><Badge state={state}>{coverageLabel(state)}</Badge><p>{project.repository_monitoring?.deployments.length} deployments / read-only diagnosis and review</p><button className="inline-link" onClick={onManage}>Manage</button></article>;
   return (
     <article className={nested ? "signal-card nested" : "card signal-card"}>
       <div className="signal-top">
@@ -77,7 +77,7 @@ export default function SignalCard({
           {latest
             ? "Last probe " + clock(latest.timestamp)
             : "Waiting for the first probe"}
-          {state === "stale" ? " · stale" : ""}
+          {state === "stale" ? " / stale" : ""}
         </span>
         <button className="inline-link" onClick={onManage}>
           Manage

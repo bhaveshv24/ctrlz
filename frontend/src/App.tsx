@@ -156,10 +156,9 @@ export default function App() {
       <div className="login-page">
         <div className="login-art">
           <span className="art-coordinate">
-            SYSTEM RECOVERY / HUMAN CONTROL
+            Software recovery
           </span>
           <div className="login-statement">
-            <span className="eyebrow">AUTONOMOUS SOFTWARE RECOVERY</span>
             <h1>
               <span className="title-line">
                 <span>Get your time</span>
@@ -190,11 +189,9 @@ export default function App() {
             CtrlZ<span className="wordmark-dot">.</span>
           </button>
           <div className="login-form">
-            <span className="eyebrow">WELCOME TO YOUR CONTROL CENTER</span>
-            <h2>Back to building.</h2>
+            <h2>{register ? "Create your account" : "Sign in to CtrlZ"}</h2>
             <p>
-              Connect to your recovery workspace. Your systems, decisions and
-              evidence are waiting.
+              Manage your projects, review incidents, and inspect recovery results.
             </p>
             {token ? <div className="workspace-connection" aria-busy={data.loading}>
               <div className="workspace-connection-status" role="status" aria-live="polite">
@@ -233,7 +230,7 @@ export default function App() {
             </div>
           </div>
           <footer>
-            COMMITMENT ISSUES<span>AGENTATHON 2026</span>
+            COMMITMENT ISSUES<span>Agentathon 2026</span>
           </footer>
         </main>
       </div>
@@ -266,7 +263,7 @@ export default function App() {
           </div>
           <ChevronDown size={13} />
         </div>
-        <span className="nav-caption">CONTROL CENTER</span>
+        <span className="nav-caption">Workspace</span>
         <nav aria-label="Main navigation">
           {NAV.map(({ id, name, icon: Icon }) => (
             <a
@@ -342,7 +339,6 @@ export default function App() {
           </div>
           <div className="topbar-actions">
             <span className={"connection " + data.connection}>
-              <i />
               {data.connection === "live"
                 ? "Live stream"
                 : data.connection === "polling"
@@ -398,10 +394,7 @@ export default function App() {
                 <>
                   <div className="page-title">
                     <div>
-                      <div className="eyebrow">
-                        <span className="live-dot" /> RECOVERY OPERATIONS
-                      </div>
-                      <MotionHeading text="Back to building." />
+                      <MotionHeading text="Workspace overview" />
                       <p>
                         See what needs attention. Understand every decision.
                         Keep the proof.
@@ -433,7 +426,7 @@ export default function App() {
                           : "Agents investigate. Contracts govern. Independent checks decide success."}
                       </p>
                     </div>
-                    <span className="command-label">NVIDIA NIM × CREWAI</span>
+                    <span className="command-label">NVIDIA NIM × CrewAI</span>
                   </div>
                   <div className="metrics-grid">
                     <Metric
@@ -460,8 +453,7 @@ export default function App() {
                   </div>
                   <div className="section-heading">
                     <div>
-                      <span className="eyebrow">LIVE SIGNALS</span>
-                      <h2>Health is more than a green homepage.</h2>
+                      <h2>Project health</h2>
                     </div>
                     <button
                       className="inline-link"
@@ -498,8 +490,7 @@ export default function App() {
                     <section className="card queue-card">
                       <div className="section-title">
                         <div>
-                          <span className="eyebrow">RECOVERY QUEUE</span>
-                          <h2>What happened. What happens next.</h2>
+                          <h2>Recent incidents</h2>
                         </div>
                         <button
                           className="inline-link"
@@ -530,7 +521,6 @@ export default function App() {
                       <span className="proof-symbol">
                         <GitMark />
                       </span>
-                      <span className="eyebrow">THE CTRLZ DIFFERENCE</span>
                       <h2>
                         A model proposes.
                         <br />
@@ -563,8 +553,8 @@ export default function App() {
                 <>
                   <PageTitle
                     eyebrow="THE COMPLETE RECOVERY RECORD"
-                    heading="Every incident has a story."
-                    copy="Follow the evidence from the first signal to the last independent check."
+                    heading="Incidents"
+                    copy="Review failures, recovery decisions, and their verification records."
                   />
                   <section className="card incidents-panel">
                     <div className="list-toolbar">
@@ -638,7 +628,7 @@ export default function App() {
                 <>
                   <PageTitle
                     eyebrow="INDEPENDENT APPLICATIONS"
-                    heading="Their systems. Your control."
+                    heading="Projects"
                     copy="Each project has its own signals, permissions and recovery contract."
                     action={
                       <button
@@ -789,7 +779,7 @@ export default function App() {
                 <>
                   <PageTitle
                     eyebrow="OUTCOMES YOU CAN INSPECT"
-                    heading="The proof travels with you."
+                    heading="Evidence library"
                     copy="A recovery receipt connects the incident, rejected alternatives, executed actions and acceptance checks."
                   />
                   <div className="metrics-grid three">
@@ -856,8 +846,8 @@ export default function App() {
                 <>
                   <PageTitle
                     eyebrow="WORKSPACE CONFIGURATION"
-                    heading="Know what’s connected."
-                    copy="Runtime configuration and capability boundaries, without exposing credentials."
+                    heading="Workspace settings"
+                    copy="Manage your account and check the services available to this workspace."
                   />
                   <RuntimeStatus token={token} />
                   <AccountSettings token={token} admin={account?.role === "admin"} signedOut={disconnect} />
@@ -868,7 +858,7 @@ export default function App() {
           <footer className="workspace-footer">
             <span>
               <ShieldCheck size={13} />
-              EVIDENCE BEFORE CONFIDENCE.
+              Evidence before action
             </span>
             <span>
               CtrlZ <b>/</b> Recovery for every team <b>/</b> 2026

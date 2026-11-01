@@ -52,11 +52,11 @@ export function DemoPlate({
           z: 0.24,
         }) - 1;
       graph.links.push([node, end]);
-      return s.title + " · " + status;
+      return s.title + " / " + status;
     }
     return (
       s.title +
-      " · " +
+      " / " +
       (s.disabled_reason
         ? "unavailable"
         : observed

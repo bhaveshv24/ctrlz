@@ -124,7 +124,7 @@ export default function ProjectDialog({
             <option value="generic-http-v1">Generic HTTP service</option>
             {!existing && <option value="runtime-v1">Repository + Deployment Monitoring</option>}
             <option value="campuspass-v1">
-              CampusPass — optional demonstration preset
+              CampusPass: optional demonstration preset
             </option>
           </select>
         </label>

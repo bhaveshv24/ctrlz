@@ -11,7 +11,6 @@ export default function RuntimeProjectCard({signal,token,onManage,onIncidents}: 
   const [workflowAudit,setWorkflowAudit]=useState(false);
   return <section className="card project-panel runtime-project-panel">
     <header className="runtime-project-header">
-      <span className="eyebrow">Repository + deployment monitoring</span>
       <div className="runtime-project-identity">
         <span className="project-symbol"><FolderGit2 size={21} aria-hidden="true" /></span>
         <div><h2>{signal.project.name}</h2><p className="runtime-repository">{signal.project.repository_monitoring?.github_url}</p></div>
@@ -20,7 +19,7 @@ export default function RuntimeProjectCard({signal,token,onManage,onIncidents}: 
     </header>
     <div className="runtime-deployments">
       {(signal.runtime_coverage || []).map(c=><section className="runtime-deployment" key={c.deployment.id} aria-label={'Deployment '+c.deployment.id}>
-        <div className="runtime-deployment-heading"><h3><Radio size={15} aria-hidden="true" />{c.deployment.id}</h3><span className="runtime-environment">{c.deployment.platform} · {c.deployment.environment}</span></div>
+        <div className="runtime-deployment-heading"><h3><Radio size={15} aria-hidden="true" />{c.deployment.id}</h3><span className="runtime-environment">{c.deployment.platform} / {c.deployment.environment}</span></div>
         <p className="runtime-service">{c.deployment.application_url || c.deployment.service_id}</p>
         <dl className="runtime-deployment-details">
           <div><dt>Deployment reference</dt><dd>{c.deployment.deployment_ref || 'Not provided'}</dd></div>
@@ -46,11 +45,11 @@ export default function RuntimeProjectCard({signal,token,onManage,onIncidents}: 
     {message && <pre className="runtime-setup-message" role="status">{message}</pre>}
     <div className="runtime-audit-entry">
       <div><h3><Sparkles size={15} aria-hidden="true" />Find silent workflow failures</h3><p>Review source evidence and proposed monitoring rules.</p></div>
-      <button className="button secondary" onClick={()=>setWorkflowAudit(true)}>AI Workflow Audit · optional</button>
+      <button className="button secondary" onClick={()=>setWorkflowAudit(true)}>AI Workflow Audit / optional</button>
     </div>
     {workflowAudit&&<WorkflowAudit project={signal.project} token={token} onClose={()=>setWorkflowAudit(false)}/>}
     <footer className="runtime-project-footer">
-      <p className="runtime-capabilities"><ShieldCheck size={14} aria-hidden="true" />Read-only diagnosis · source correlation · human review. No deployment execution.</p>
+      <p className="runtime-capabilities"><ShieldCheck size={14} aria-hidden="true" />Read-only diagnosis / source correlation / human review. No deployment execution.</p>
       <div className="project-actions"><button className="button secondary" onClick={()=>onManage(signal.project)}><Settings size={14} aria-hidden="true" />Project settings</button><button className="inline-link" onClick={onIncidents}>View runtime incidents<ArrowRight size={14} aria-hidden="true" /></button></div>
     </footer>
   </section>;

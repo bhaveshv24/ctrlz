@@ -24,7 +24,7 @@ export default function AccountSettings({token, admin, signedOut}: {token: strin
     {admin && <>
       <h2>Account administration</h2>
       <p className="muted">Two administrators share the operator workspace. Each user has a private recovery workspace.</p>
-      <ul>{users.map(u => <li key={u.id}>{u.email} · {u.role}</li>)}</ul>
+      <ul>{users.map(u => <li key={u.id}>{u.email} / {u.role}</li>)}</ul>
       <form onSubmit={async e => {
         e.preventDefault(); setBusy(true); setMessage("");
         try {const user = await api<User>("/auth/users",token,{email,password:invitePassword});setUsers(old => [...old,user]);setEmail("");setInvitePassword("");setMessage("User created. Share the credentials privately.");}

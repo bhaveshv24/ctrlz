@@ -27,13 +27,13 @@ export default function RuntimeProjectForm({project, token, busy, onClose, onBac
         {deployments.map((d,n)=><fieldset className="card" key={n}><legend>Deployment {n+1}</legend>
           <label>Deployment ID<input required pattern="[a-zA-Z0-9][a-zA-Z0-9_.-]{0,99}" value={d.id} onChange={e=>update(n,{id:e.target.value})}/></label>
           <label>Platform<select value={d.platform} onChange={e=>update(n,{platform:e.target.value as RuntimeDeployment['platform'],sources:updatePrimarySource(d,'generic-events')})}>
-            <option value="vps">VPS / server · log collector</option><option value="docker">Docker · exported application logs</option><option value="local">Local · log collector</option><option value="vercel">Vercel</option><option value="aws">AWS · generic collector only</option>
+            <option value="vps">VPS / server / log collector</option><option value="docker">Docker / exported application logs</option><option value="local">Local / log collector</option><option value="vercel">Vercel</option><option value="aws">AWS / generic collector only</option>
           </select></label>
           <label>{d.platform==='vercel'?'Vercel project ID':'Service identifier'}<input required value={d.service_id} onChange={e=>update(n,{service_id:e.target.value})}/></label>
           <label>Environment<input required value={d.environment} onChange={e=>update(n,{environment:e.target.value})}/></label>
           <label>Telemetry source<select value={d.sources[0].connector} onChange={e=>update(n,{sources:updatePrimarySource(d,e.target.value as 'generic-events'|'vercel-drain')})}>
             <option value="generic-events">Authenticated structured events / JSON log collector</option>
-            {d.platform==='vercel' && <option value="vercel-drain">Signed Vercel Log Drain · eligible paid plan + public HTTPS receiver</option>}
+            {d.platform==='vercel' && <option value="vercel-drain">Signed Vercel Log Drain / eligible paid plan + public HTTPS receiver</option>}
           </select></label>
           <label>Actual deployment reference (optional)<input value={d.deployment_ref || ''} onChange={e=>update(n,{deployment_ref:e.target.value || null})}/></label>
           <label>Deployed commit SHA (optional)<input pattern="[0-9a-f]{40}" placeholder="Full 40-character SHA; unknown if unavailable" value={d.commit_sha || ''} onChange={e=>update(n,{commit_sha:e.target.value || null})}/></label>
@@ -48,12 +48,12 @@ export default function RuntimeProjectForm({project, token, busy, onClose, onBac
         <p className="subtle">Native CloudWatch and OTLP ingestion are not implemented. Structured-event forwarding works across hosts. Browser exceptions require client-side collection.</p>
       </>}
       {step===2 && <>
-        <p>{repo} · {deployments.length} deployment(s). Capabilities: runtime evidence, exact-revision source analysis, AI diagnosis and reviewable recommendations. Execution is disabled.</p>
+        <p>{repo} / {deployments.length} deployment(s). Capabilities: runtime evidence, exact-revision source analysis, AI diagnosis and reviewable recommendations. Execution is disabled.</p>
         <button type="button" className="button secondary" disabled={testing} onClick={async()=>{setTesting(true);setError('');try{setTest(await api('/runtime-projects/test',token,draft()));}catch(e){setError((e as Error).message);}finally{setTesting(false);}}}>{testing?'Testing…':'Test repository and provider metadata'}</button>
         {test!=null && <pre>{JSON.stringify(test,null,2)}</pre>}
         <p className="dialog-copy">After saving, provision each telemetry source on its project card. Credentials stay on the server. No data means unknown health, even after this connection test.</p>
         <label className="checkbox-label"><input type="checkbox" checked={enabled} onChange={e=>setEnabled(e.target.checked)}/>Enable monitoring and authenticated event ingestion</label>
-        <details><summary>Optional next step: AI Workflow Audit</summary><p>After saving, choose “AI Workflow Audit · optional” on this project card to analyze silent failures, review completion rules, and generate a verified instrumentation patch. Existing runtime monitoring does not require this audit.</p></details>
+        <details><summary>Optional next step: AI Workflow Audit</summary><p>After saving, choose “AI Workflow Audit / optional” on this project card to analyze silent failures, review completion rules, and generate a verified instrumentation patch. Existing runtime monitoring does not require this audit.</p></details>
       </>}
       {(error || submitError) && <p role="alert">{error || submitError}</p>}
       <div className="dialog-actions"><button className="button secondary" type="button" onClick={()=>step?setStep(step-1):onBack()}>Back</button><button className="button primary" disabled={busy || testing}>{step<2?'Next':'Save monitoring project'}</button></div>

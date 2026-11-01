@@ -109,7 +109,7 @@ export default function RepoIntelligence({
           <div>
             <dt>Test profile</dt>
             <dd>
-              {assessment.profile_label} —{" "}
+              {assessment.profile_label}: {" "}
               {assessment.supported ? "supported" : "needs preparation"}
             </dd>
           </div>
@@ -130,7 +130,7 @@ export default function RepoIntelligence({
       {current && (
         <>
           <p role="status">
-            <strong>{current.repository.full_name}</strong> —{" "}
+            <strong>{current.repository.full_name}</strong>: {" "}
             {current.state.replaceAll("_", " ")}
             {current.cached ? " (cached)" : ""}. Observed{" "}
             {new Date(current.observed_at * 1000).toLocaleString()}.
@@ -260,10 +260,10 @@ export default function RepoIntelligence({
             {Object.entries(current.values).map(([name, v]) => (
               <p key={name}>
                 <strong>{name.replaceAll("_", " ")}</strong>: {v.coverage}
-                {v.reason ? " — " + v.reason : ""}
+                {v.reason ? ": " + v.reason : ""}
                 <br />
                 <small>
-                  {v.source} — {new Date(v.observed_at * 1000).toLocaleString()}
+                  {v.source}: {new Date(v.observed_at * 1000).toLocaleString()}
                 </small>
               </p>
             ))}

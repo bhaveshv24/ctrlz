@@ -19,7 +19,6 @@ export function Badge({
 }) {
   return (
     <span className={"badge " + tone(state)}>
-      <i aria-hidden="true" />
       {children || words(state)}
     </span>
   );
@@ -102,7 +101,6 @@ export function Dialog({
       >
         <div className="dialog-heading">
           <div>
-            <span className="eyebrow">CTRLZ WORKSPACE</span>
             <h2 id="dialog-title">{title}</h2>
           </div>
           <button

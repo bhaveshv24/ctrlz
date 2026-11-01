@@ -69,18 +69,18 @@ export function StoryPlate({ receipt }: { receipt: Receipt }) {
         title="Incident timeline"
         model={model}
         caption={
-          `${end + 1} / ${events.length} · ${event.stage.replaceAll("_", " ")}` +
+          `${end + 1} / ${events.length} / ${event.stage.replaceAll("_", " ")}` +
           (event.stage === "verification" &&
           typeof event.payload.passed === "boolean"
             ? event.payload.passed
-              ? " · passed"
-              : " · failed"
+              ? " / passed"
+              : " / failed"
             : "")
         }
       />
       {rejected.length > 0 && (
         <p className="branch-key">
-          Blocked strategies · {[...new Set(rejected)].join(", ")}
+          Blocked strategies / {[...new Set(rejected)].join(", ")}
         </p>
       )}
       <label>

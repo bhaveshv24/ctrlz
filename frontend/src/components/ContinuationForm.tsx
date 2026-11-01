@@ -82,8 +82,7 @@ export default function ContinuationForm({
     }
   };
   if (!mode) return (
-    <section className="card repository-mode-picker">
-      <span className="eyebrow">01 / CHOOSE YOUR GOAL</span>
+    <section className="repository-mode-picker">
       <h2>What would you like to do?</h2>
       <p className="muted">Bring your repository. Choose the kind of help you need.</p>
       <div className="repository-mode-grid">
@@ -210,7 +209,7 @@ export default function ContinuationForm({
                 }}
               />
               <small>
-                25 MiB upload · 64 MiB expanded · 3,000 files maximum. Include
+                25 MiB upload / 64 MiB expanded / 3,000 files maximum. Include
                 existing tests and dependency lockfiles.
               </small>
             </label>
@@ -286,7 +285,7 @@ export default function ContinuationForm({
               </span>
             </div>
             <p>
-              {snapshot.file_count} files · {snapshot.test_file_count}{" "}
+              {snapshot.file_count} files / {snapshot.test_file_count}{" "}
               acceptance {snapshot.test_file_count === 1 ? "file" : "files"} ·{" "}
               {snapshot.source_count} source{" "}
               {snapshot.source_count === 1 ? "file" : "files"}
@@ -294,7 +293,7 @@ export default function ContinuationForm({
             <small>
               Snapshot: {snapshot.repository.split("/").pop()}
               {snapshot.provenance?.upstream_commit
-                ? " · upstream " +
+                ? " / upstream " +
                   snapshot.provenance.upstream_commit.slice(0, 10)
                 : ""}
             </small>
@@ -338,10 +337,10 @@ export default function ContinuationForm({
             <h3>{scanning ? "Running repository tests…" : diagnosis ? (mode === "complete" && diagnosis.status === "healthy" ? "Baseline tests pass. Ready to continue your project." : diagnosis.message) : "Ready to run the existing tests"}</h3>
             {scanning && <p className="muted">Preparing declared dependencies and collecting real failures. This can take a few minutes.</p>}
             {diagnosis && <>
-              <p>{diagnosis.passed} passed · {diagnosis.failed} failed · {diagnosis.skipped} skipped</p>
+              <p>{diagnosis.passed} passed / {diagnosis.failed} failed / {diagnosis.skipped} skipped</p>
               <button type="button" className="button secondary" onClick={() => saveFile("ctrlz-errors-before-repair.txt", [
                 "CtrlZ — Tests before repair", `Result: ${diagnosis.status}`,
-                `${diagnosis.passed} passed · ${diagnosis.failed} failed · ${diagnosis.skipped} skipped`,
+                `${diagnosis.passed} passed / ${diagnosis.failed} failed / ${diagnosis.skipped} skipped`,
                 "", ...diagnosis.baseline.cases.filter(c => c.status === "failed" || c.status === "error").map(c => `${c.id}\n${c.detail || ""}`),
                 "", "Original test output:", diagnosis.baseline.output,
               ].join("\n"), "text/plain;charset=utf-8")}>Download errors before repair</button>

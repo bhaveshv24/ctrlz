@@ -362,7 +362,6 @@ export default function IncidentWorkspace({
               <section className="card">
                 <div className="section-title">
                   <div>
-                    <span className="eyebrow">01 / INVESTIGATE</span>
                     <h2>Investigation snapshot</h2>
                   </div>
                   <span className="source-label">
@@ -394,7 +393,6 @@ export default function IncidentWorkspace({
               <section className="card">
                 <div className="section-title">
                   <div>
-                    <span className="eyebrow">SOURCE EVIDENCE</span>
                     <h2>Observed, not assumed</h2>
                   </div>
                   <span className="count">{tools.length} evidence records</span>
@@ -410,7 +408,6 @@ export default function IncidentWorkspace({
             </div>
             <aside>
               <section className="card selected-strategy">
-                <span className="eyebrow">02 / DECIDE</span>
                 <h2>
                   {i.selected
                     ? "Selected recovery"
@@ -465,7 +462,6 @@ export default function IncidentWorkspace({
                 </section>
               )}
               <section className="card">
-                <span className="eyebrow">03 / PROVE</span>
                 <h2>Independent verification</h2>
                 {i.verification ? (
                   <CheckList checks={i.verification.checks} />
@@ -643,7 +639,6 @@ export default function IncidentWorkspace({
           <section className="card recorder">
             <div className="section-title">
               <div>
-                <span className="eyebrow">PERSISTED AUDIT TRAIL</span>
                 <h2>Every meaningful step.</h2>
               </div>
               <span className="count">{receipt.events.length} events</span>
@@ -716,7 +711,7 @@ export default function IncidentWorkspace({
               </span>
               <p>
                 {receipt.reasoning_provider}
-                {receipt.model ? " · " + receipt.model : ""}
+                {receipt.model ? " / " + receipt.model : ""}
               </p>
               <code>
                 {receipt.integrity?.snapshot_digest || "Checksum not available"}
@@ -753,7 +748,6 @@ export default function IncidentWorkspace({
           <section className="card">
             <div className="section-title">
               <div>
-                <span className="eyebrow">CODE RECOVERY ARTIFACT</span>
                 <h2>A change you can review.</h2>
               </div>
               <button

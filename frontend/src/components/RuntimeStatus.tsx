@@ -52,7 +52,7 @@ export default function RuntimeStatus({ token }: { token: string }) {
             <dt>{component.name}</dt>
             <dd>
               <strong>{component.state}</strong>
-              {component.version && " · " + component.version}
+              {component.version && " / " + component.version}
               {component.detail && <span>{component.detail}</span>}
               {component.verified === false && (
                 <span>

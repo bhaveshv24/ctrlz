@@ -3,7 +3,7 @@ import { chapterTransition } from "./journey-transition";
 export type JourneyState = { active: boolean; progress: number };
 const chapters = [
   {
-    eyebrow: "INTRODUCING CTRLZ",
+    eyebrow: "CtrlZ",
     lines: ["You built it.", "We keep it alive."],
     description:
       "AI made building software easier than ever. CtrlZ brings autonomous recovery to what happens after — detecting failures, investigating problems, and verifying solutions.",
@@ -28,7 +28,7 @@ const chapters = [
       "A service stops responding. CtrlZ examines authorized diagnostics and runbooks, compares permitted mitigations, requests approval for high-impact actions, and verifies the service afterward. Provider outages can require escalation.",
   },
   {
-    eyebrow: "THE RECOVERY LAYER",
+    eyebrow: "Recovery",
     lines: ["Failure happens.", "Recovery is engineered."],
     description:
       "One platform. From interrupted builds to unexpected defects and live incidents.",

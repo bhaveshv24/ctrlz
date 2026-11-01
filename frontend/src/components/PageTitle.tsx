@@ -1,6 +1,5 @@
 import MotionHeading from "./MotionHeading";
 export default function PageTitle({
-  eyebrow,
   heading,
   copy,
   action,
@@ -13,7 +12,6 @@ export default function PageTitle({
   return (
     <div className="page-title">
       <div>
-        <span className="eyebrow">{eyebrow}</span>
         <MotionHeading text={heading} />
         <p>{copy}</p>
       </div>

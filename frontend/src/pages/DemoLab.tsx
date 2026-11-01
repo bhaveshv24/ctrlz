@@ -125,7 +125,7 @@ export default function DemoLab({
     <div className={presentation ? "demo-lab presentation" : "demo-lab"}>
       <PageTitle
         eyebrow="LIVE REHEARSAL / REAL EVIDENCE"
-        heading="Your target. A provable recovery."
+        heading="Demo Lab"
         copy="Scenarios follow the selected repository or service. Every runnable action uses real checks; unsupported controls stay disabled."
         action={
           <button
@@ -160,7 +160,7 @@ export default function DemoLab({
           >
             {targets.map((t) => (
               <option key={t.id} value={t.id}>
-                {t.kind === "repository" ? "Repository" : "Service"} · {t.name}
+                {t.kind === "repository" ? "Repository" : "Service"} / {t.name}
               </option>
             ))}
             {!targets.length && (
@@ -347,10 +347,7 @@ export default function DemoLab({
         <section className="card">
           <div className="section-title">
             <div>
-              <span className="eyebrow">
-                PERSISTED HISTORY / SELECTED TARGET
-              </span>
-              <h2>The rehearsal record.</h2>
+              <h2>Rehearsal history</h2>
             </div>
             {project?.adapter === "campuspass-v1" && (
               <button
@@ -437,7 +434,6 @@ export default function DemoLab({
           )}
         </section>
         <aside className="card rehearsal-notes">
-          <span className="eyebrow">THE MOMENTS THAT MATTER</span>
           <h2>
             Show the decision.
             <br />
