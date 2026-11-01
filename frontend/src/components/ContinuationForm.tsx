@@ -271,7 +271,6 @@ export default function ContinuationForm({
               placeholder="Describe what already works, what is unfinished, and how the finished feature should behave. For example: finish the task filters, connect them to the existing API, and show clear empty and error states." />
             <small>Be specific about the expected result. Existing tests check regressions; review the generated changes against your prompt. This flow needs a supported test setup and preserves tests, dependency manifests and configuration.</small>
           </label>}
-          {mode === "repair" && <RepositoryCheckGuide profile={snapshot.profile} />}
           <p className="form-note">The download contains the imported source{snapshot.provenance?.subdirectory ? `, with ${snapshot.provenance.subdirectory} repaired in its original location` : " at the repository root"}. A separate frontend repository is not added automatically. Dependencies, secrets and build caches are excluded.</p>
           <details className="repository-disclosure" open={!snapshot.supported}>
             <summary>Repository files & detected test setup (optional)</summary>
@@ -351,6 +350,7 @@ export default function ContinuationForm({
               {diagnosis.baseline.cases.filter(c => c.status === "failed" || c.status === "error").map(c =>
                 <details key={c.id}><summary>{c.id}</summary><pre className="patch-view">{c.detail}</pre></details>
               )}
+              {mode === "repair" && diagnosis.status === "failing" && <RepositoryCheckGuide profile={snapshot.profile} failures={diagnosis.baseline.cases.filter(c => c.status === "failed" || c.status === "error")} />}
               <details><summary>Full test output</summary><pre className="patch-view">{diagnosis.baseline.output}</pre></details>
             </>}
           </section>
