@@ -117,7 +117,9 @@ def proposal_sources(root, proposal, protected):
     for change in proposal.changes:
         validate_path(root, change.path)
         if change.path in protected:raise ValueError('Acceptance test files are immutable')
-        if change.path in replacements:raise ValueError('Duplicate full-file replacement')
+        if change.path in replacements:
+            if replacements[change.path] == change.content:continue
+            raise ValueError(f'Conflicting full-file replacements for {change.path}. Return exactly one complete replacement for each path; do not choose between conflicting versions implicitly.')
         replacements[change.path] = change.content
     for edit in proposal.edits:
         target = validate_path(root, edit.path)
@@ -373,6 +375,10 @@ class Continuation:
                         proposal = None
                         feedback = {**(feedback or {}), 'attempt':attempt+1, 'schema_error':str(exc)[:3000], 'instruction':'Return a complete candidate against the original snapshot, retaining the previous test failure feedback. Choose exactly one representation per file: either a full replacement in changes OR exact snippets in edits, never the same path in both. Each exact edit has ONLY path, before, after. Do not add is_edit or other metadata. Include a nonempty changes or edits array.'}
                         self.store.record(incident_id,'code_proposal_rejected',{'attempt':attempt+1, 'format_attempt':format_attempt+1, **feedback})
+                    except ValueError as exc:
+                        proposal = None
+                        feedback = {**(feedback or {}), 'attempt':attempt+1, 'proposal_error':str(exc)[:3000], 'instruction':'Return one complete corrected candidate against the original snapshot. Each path may appear only once in changes. Use changes OR edits for each file, never both. Do not modify protected tests, manifests or configuration. Resolve the rejected conflict explicitly.'}
+                        self.store.record(incident_id,'code_proposal_rejected',{'attempt':attempt+1,'format_attempt':format_attempt+1,**feedback})
                     except Exception as exc:
                         agent_error = type(exc).__name__+': '+str(exc)[:300]
                         self.store.record(incident_id,'code_proposal_rejected',{'attempt':attempt+1,'error':agent_error})

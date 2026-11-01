@@ -50,7 +50,7 @@ class CodeFixture:
         return CodeProposal(diagnosis="Explicit test patch for a reproduced arithmetic defect", changes=[FileChange(path="maths.py", content="def add(a, b):\n    return a + b\n")])
 
 
-@pytest.mark.parametrize("converter_failure", [False, True])
+@pytest.mark.parametrize("converter_failure", [False, True, "duplicate"])
 async def test_completion_extends_a_healthy_project_and_exports_zip(tmp_path, converter_failure):
     import io
     import zipfile
@@ -67,12 +67,14 @@ async def test_completion_extends_a_healthy_project_and_exports_zip(tmp_path, co
         provider = 'Explicit local completion fixture; no external model'
         async def code(self, request, files, baseline):
             calls.append(baseline.get('previous_attempt'))
+            if converter_failure == 'duplicate' and len(calls) == 1:
+                from ctrlz.models import FileChange
+                return CodeProposal(diagnosis='Conflicting model fixture', changes=[FileChange(path='maths.py',content='def multiply(a,b): return a+b\n'),FileChange(path='maths.py',content='def multiply(a,b): return a*b\n')])
             if converter_failure and len(calls) == 1:
                 from crewai.utilities.converter import ConverterError
                 raise ConverterError('Failed to convert text into CodeProposal: Use either changes or edits for each file, never both: maths.py')
             if converter_failure:
-                assert 'schema_error' in baseline['previous_attempt']
-                assert 'never the same path in both' in baseline['previous_attempt']['instruction']
+                assert ('proposal_error' if converter_failure == 'duplicate' else 'schema_error') in baseline['previous_attempt']
             assert request.mode == baseline['mode'] == 'complete'
             assert baseline['exit_code'] == 0
             from ctrlz.models import SourceEdit
@@ -86,7 +88,7 @@ async def test_completion_extends_a_healthy_project_and_exports_zip(tmp_path, co
     assert result['verification']['checks']['baseline_established']
     assert len(calls) == (2 if converter_failure else 1)
     if converter_failure:
-        assert any(e['stage'] == 'code_proposal_rejected' and 'schema_error' in e['payload'] for e in store.events())
+        assert any(e['stage'] == 'code_proposal_rejected' and ('proposal_error' if converter_failure == 'duplicate' else 'schema_error') in e['payload'] for e in store.events())
     with zipfile.ZipFile(io.BytesIO(runner.repaired_archive(result))) as archive:
         assert b'return a * b' in archive.read('repaired-repository/maths.py')
     assert (Path(snapshot['repository'])/'maths.py').read_text() == source
