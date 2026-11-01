@@ -1,4 +1,5 @@
 import MotionHeading from "./MotionHeading";
+import RuntimeIncident from "./RuntimeIncident";
 import { useCallback, useEffect, useState } from "react";
 import { StoryPlate } from "./StoryPlate";
 import { FilePlate } from "./FilePlate";
@@ -35,6 +36,7 @@ import {
   lifecycle,
   measuredDuration,
   stamp,
+  receiptMatchesIncident,
   title,
   words,
 } from "../presentation";
@@ -94,7 +96,7 @@ export default function IncidentWorkspace({
       setBusy(false);
     }
   };
-  if (!receipt)
+  if (!receipt || !receiptMatchesIncident(receipt, incident.id))
     return (
       <>
         <button className="back-button" onClick={onBack}>
@@ -110,6 +112,7 @@ export default function IncidentWorkspace({
         )}
       </>
     );
+  if (receipt.incident.kind === "runtime") return <RuntimeIncident key={receipt.incident.id} receipt={receipt} token={token} onBack={onBack} onChange={onChange} />;
   const i = receipt.incident,
     verified = receipt.success,
     stages = lifecycle(receipt),
@@ -157,7 +160,7 @@ export default function IncidentWorkspace({
           <Badge state={i.status} />
           {i.kind === "code" && ["escalated", "blocked"].includes(i.status) && (
             <button className="button primary" disabled={busy} onClick={() => act(() => api("/incidents/" + i.id + "/retry-repair", token, {}), "Repair restarted with the original source and tests.")}>
-              <RotateCcw size={16} />Retry repair
+              <RotateCcw size={16} />{i.import_request?.mode === "complete" ? "Retry completion" : "Retry repair"}
             </button>
           )}
           {baseline && (
@@ -180,7 +183,7 @@ export default function IncidentWorkspace({
           {verified && i.patch && (
             <button className="button primary" disabled={busy} onClick={downloadRepairedRepository}>
               <ArrowDownToLine size={16} />
-              {busy ? "Preparing download…" : "Download fixed code (.zip)"}
+              {busy ? "Preparing download…" : i.import_request?.mode === "complete" ? "Download updated project (.zip)" : "Download fixed code (.zip)"}
             </button>
           )}
           <button
@@ -230,7 +233,7 @@ export default function IncidentWorkspace({
         <div>
           <strong>
             {verified
-              ? "Recovery verified. Evidence retained."
+              ? (i.import_request?.mode === "complete" ? "Project changes tested. Ready for review." : "Recovery verified. Evidence retained.")
               : i.status === "awaiting_approval"
                 ? "The next decision is yours."
                 : i.status === "escalated" || i.status === "blocked"
@@ -242,7 +245,7 @@ export default function IncidentWorkspace({
               ? i.kind === "code"
                 ? i.selected_code_strategy === "RETRY"
                   ? "The original tests passed on both reruns. Flaky behavior remains; no source patch was produced."
-                  : "The candidate passed the original acceptance tests. The patch is ready for review."
+                  : i.import_request?.mode === "complete" ? "The generated changes passed the existing tests. Review prompt coverage and remaining work before using the project." : "The candidate passed the original acceptance tests. The patch is ready for review."
                 : "Independent checks passed after the permitted action. Remaining risks are recorded below."
               : i.error ||
                 "Agents propose a recovery. Your contract controls what can execute."}

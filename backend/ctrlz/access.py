@@ -118,6 +118,19 @@ def create_account_app(client=None, reasoner=None, runbooks=None, monitor=True):
             if scope['path'] == '/health':
                 await JSONResponse({'status':'healthy','service':'ctrlz'})(scope, receive, send)
                 return
+            if scope['path'].startswith('/telemetry/'):
+                # A collector is authenticated only by its workspace-local source key.
+                # It never receives an account session or access to other API routes.
+                parts = scope['path'].strip('/').split('/')
+                known = {'operator': next((u for u in accounts.users() if u['role']=='admin'), None)}
+                known.update({u['id']:u for u in accounts.users() if u['role']!='admin'})
+                if len(parts) != 5 or parts[1] not in known or known[parts[1]] is None:
+                    await JSONResponse({'detail':'Unknown telemetry target'}, status_code=401)(scope,receive,send)
+                    return
+                target = await workspace(known[parts[1]])
+                forwarded = {**scope, 'path':'/telemetry/'+'/'.join(parts[2:]), 'raw_path':('/telemetry/'+'/'.join(parts[2:])).encode()}
+                await target(forwarded,receive,send)
+                return
             try:
                 supplied = token(request)
                 # Retain explicit local CLI access only when enabled by the deployer.

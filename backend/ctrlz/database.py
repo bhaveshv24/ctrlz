@@ -1,8 +1,8 @@
 """Backend-only database connections; PostgreSQL tables live in private schemas."""
 import re
+from functools import lru_cache
 from sqlalchemy import create_engine, text
 from sqlalchemy.engine import make_url
-from sqlalchemy.pool import NullPool
 
 
 def postgres_url(value):
@@ -15,13 +15,22 @@ def postgres_url(value):
     return None
 
 
+@lru_cache(maxsize=8)
+def postgres_engine(url):
+    # Share a bounded pool across workspace schemas instead of opening a new
+    # TCP connection for every event/read and a separate pool for each user.
+    return create_engine(url, pool_size=5, max_overflow=5, pool_timeout=15,
+        pool_pre_ping=True, pool_recycle=300,
+        connect_args={'connect_timeout':15}, hide_parameters=True)
+
+
 def database_engine(value, schema=None):
     url = postgres_url(value)
     if url is None:
         return create_engine(value, connect_args={'check_same_thread':False, 'timeout':30})
     if schema is not None and not re.fullmatch(r'ctrlz_[a-z0-9_]+', schema):
         raise ValueError('Invalid private database schema')
-    engine = create_engine(url, poolclass=NullPool, connect_args={'connect_timeout':15}, hide_parameters=True)
+    engine = postgres_engine(url)
     if schema:
         with engine.begin() as connection:
             connection.execute(text(f'CREATE SCHEMA IF NOT EXISTS "{schema}"'))

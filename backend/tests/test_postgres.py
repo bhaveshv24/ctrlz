@@ -70,3 +70,21 @@ async def test_postgres_gateway_survives_empty_local_disk(tmp_path, monkeypatch)
     async with httpx.AsyncClient(transport=httpx.ASGITransport(app=restarted), base_url='http://test') as client:
         assert (await client.get('/auth/me', headers=headers)).status_code == 200
         assert (await client.get('/projects', headers=headers)).json()[0]['id'] == 'persisted'
+
+
+def test_runtime_source_credentials_survive_lost_local_files(tmp_path):
+    from ctrlz.runtime_store import RuntimeStorage
+    from ctrlz.runtime_security import SourceSecrets
+    url = os.environ['CTRLZ_TEST_POSTGRES_URL']
+    store = Store(url, namespace='test_'+uuid.uuid4().hex)
+    RuntimeStorage(store)
+    before = SourceSecrets(tmp_path/'before', store)
+    token = before.provision('project','deployment','source').read_text()
+    pseudonym = before.pseudonym('customer@example.com')
+    after = SourceSecrets(tmp_path/'after', store)
+    assert after.get('project','deployment','source') == token
+    assert after.provision('project','deployment','source').read_text() == token
+    assert after.pseudonym('customer@example.com') == pseudonym
+    other = Store(url, namespace='test_'+uuid.uuid4().hex)
+    RuntimeStorage(other)
+    assert SourceSecrets(tmp_path/'other', other).get('project','deployment','source') == ''

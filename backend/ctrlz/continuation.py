@@ -129,7 +129,7 @@ def proposal_sources(root, proposal, protected):
     return replacements
 
 
-def acceptance(baseline, candidate, immutable):
+def acceptance(baseline, candidate, immutable, mode='repair'):
     before, after = baseline['cases'], candidate['cases']
     same_ids = Counter(c['id'] for c in before) == Counter(c['id'] for c in after)
     collection_failure = baseline['exit_code'] == 2 or any(text in baseline['output'] for text in ['SyntaxError', 'ERR_MODULE_NOT_FOUND', 'ImportError while importing'])
@@ -139,6 +139,9 @@ def acceptance(baseline, candidate, immutable):
     passed_cases = sum(c['passed'] for c in after)
     all_required = passed_cases > 0 and all(c['passed'] or c.get('status') == 'skipped' for c in after) and skips_preserved
     checks = {'candidate_tests': candidate['exit_code'] == 0, 'regression_proven': baseline['exit_code'] in {1, 2}, 'same_acceptance_tests': immutable and (same_ids or collection_failure), 'all_required_cases_passed': all_required, 'no_new_skips': skips_preserved}
+    if mode == 'complete':
+        checks.pop('regression_proven')
+        checks['baseline_established'] = baseline['exit_code'] in {0, 1, 2} and bool(before)
     return checks, {'collected_test_identities_preserved': same_ids, 'baseline_collection_failure': collection_failure, 'baseline_cases': len(before), 'candidate_cases': len(after), 'passed_cases': passed_cases}
 
 
@@ -302,8 +305,8 @@ class Continuation:
                 (worktree/'node_modules').mkdir(exist_ok=True)
             baseline = await asyncio.to_thread(sandbox.run)
             self.store.record(incident_id, 'baseline_tests', baseline)
-            if baseline['exit_code'] not in {1, 2} or not baseline['cases']:
-                raise ValueError('The full baseline must reproduce a failing test or collection error; no verified regression is available')
+            if baseline['exit_code'] not in ({0, 1, 2} if request.mode == 'complete' else {1, 2}) or not baseline['cases']:
+                raise ValueError('Project completion requires a collected baseline test suite before source changes.' if request.mode == 'complete' else 'The full baseline must reproduce a failing test or collection error; no verified regression is available')
             if inspection['profile'] == 'javascript-vitest':
                 for case in baseline['cases']:
                     path = case['id'].split('::',1)[0].removeprefix('/workspace/')
@@ -311,10 +314,11 @@ class Continuation:
                 immutable = immutable_digest(worktree, paths, protected)
             def qualify(candidate):
                 unchanged = immutable_digest(worktree, paths, protected) == immutable and embedded_doctests(worktree, paths) == doctests
-                return acceptance(baseline,candidate,unchanged)
+                return acceptance(baseline,candidate,unchanged,request.mode)
             tournament = CodeTournament(self.store,incident_id,repo,worktree,sandbox,baseline,protected,qualify)
-            await tournament.retry()
-            await tournament.compensate(metadata)
+            if request.mode == 'repair':
+                await tournament.retry()
+                await tournament.compensate(metadata)
             initial = {}
             failed_ids = ' '.join(c['id'] for c in baseline['cases'] if not c['passed'])
             relevant_tests = [p for p in inspection['tests'] if Path(p).stem in failed_ids]
@@ -350,7 +354,7 @@ class Continuation:
                     git(['reset', '--', name], worktree)
                 originals = {}; new_files = set()
                 self.store.update(incident_id, status='planning')
-                context = {**baseline, 'profile': inspection['profile'], 'repository_tree': paths[:1000], 'previous_attempt': feedback, '_workspace': str(worktree), '_allowed_files': paths, '_record': lambda payload:self.store.record(incident_id,'tool_result',payload)}
+                context = {**baseline, 'mode':request.mode, 'profile': inspection['profile'], 'repository_tree': paths[:1000], 'previous_attempt': feedback, '_workspace': str(worktree), '_allowed_files': paths, '_record': lambda payload:self.store.record(incident_id,'tool_result',payload)}
                 proposal = None
                 for format_attempt in range(3):
                     proposal = None
@@ -429,7 +433,7 @@ class Continuation:
                             if edit.path not in originals:target.write_bytes(original.encode('utf-8'))
                 diff = git(['diff', '--no-ext-diff', '--no-textconv'], worktree)
                 unchanged = immutable_digest(worktree, paths, protected) == immutable and embedded_doctests(worktree, paths) == doctests
-                checks, details = acceptance(baseline, result, unchanged)
+                checks, details = acceptance(baseline, result, unchanged,request.mode)
                 checks['nonempty_patch'] = bool(diff)
                 passed = all(checks.values())
                 self.store.record(incident_id, 'candidate_tests', {'attempt': attempt+1, 'passed': passed, 'acceptance': details, **result})
@@ -438,7 +442,7 @@ class Continuation:
                 # throwing guard. Probe bounded comparisons from traceback files
                 # against the original snapshot and immutable acceptance suite.
                 feedback = {'attempt': attempt+1, 'candidate': proposal.model_dump(), 'test_result': result, 'acceptance': details}
-                if implicated_sources:
+                if request.mode == 'repair' and implicated_sources:
                     tournament.restore()
                     originals = {}; new_files = set()
                     for guard_proposal in guard_comparison_repairs(worktree, implicated_sources):

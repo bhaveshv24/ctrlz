@@ -9,6 +9,8 @@ from sqlalchemy import insert, select, func, text
 from ctrlz.accounts import Accounts
 from ctrlz.database import postgres_url
 from ctrlz.store import Store, Base
+# Register additive scenario tables before copying their workspace records.
+from ctrlz import runtime_store, workflow_store, workflow_deadlines
 
 
 def migrate(root, operator):
@@ -36,7 +38,7 @@ def migrate(root, operator):
                     for table in Base.metadata.sorted_tables:
                         rows = list(source_db.execute(select(table)).mappings())
                         if rows:target.execute(insert(table), [dict(row) for row in rows])
-                        if table.name in {'events','monitor_probes'}:
+                        if table.name in {'events','monitor_probes','runtime_events'}:
                             schema = 'ctrlz_workspace_'+namespace
                             target.execute(text(f"SELECT setval(pg_get_serial_sequence('{schema}.{table.name}', 'id'), COALESCE(MAX(id), 1), MAX(id) IS NOT NULL) FROM {schema}.{table.name}"))
             for table, rows in account_rows.items():

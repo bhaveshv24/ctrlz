@@ -93,7 +93,7 @@ export default function RepoIntelligence({
       </div>
       {!repository && (
         <p>
-          Choose a GitHub source for remote evidence. ZIP and local repair use
+          Choose a GitHub source for remote evidence. ZIP uploads use
           the imported acceptance suite.
         </p>
       )}

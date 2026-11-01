@@ -70,4 +70,4 @@ jobs:
           python-version: "3.12"
       - uses: astral-sh/setup-uv@v6
       - run: uv sync --project backend --extra test --frozen
-      - run: uv run --project backend python -m pytest backend/tests/test_postgres.py -q
+      - run: uv run --project backend python -m pytest backend/tests/test_postgres.py backend/tests/test_runtime_monitoring.py backend/tests/test_workflow_observability.py backend/tests/test_workflow_deadlines.py -q

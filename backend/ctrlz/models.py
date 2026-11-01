@@ -2,6 +2,7 @@ from typing import Literal
 from urllib.parse import urlparse
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 from .integration_models import HTTPIntegration
+from .runtime_models import RepositoryMonitoring
 
 
 class Strict(BaseModel):
@@ -25,18 +26,27 @@ class Contract(Strict):
 class Project(Strict):
     id: str = Field(pattern=r"^[a-z][a-z0-9_-]{0,40}$")
     name: str = Field(min_length=1, max_length=100)
-    base_url: str
-    adapter: Literal["generic-http-v1", "campuspass-v1"] = "generic-http-v1"
+    project_type: Literal["http", "repository-deployment"] = "http"
+    repository_monitoring: RepositoryMonitoring | None = None
+    base_url: str | None = None
+    adapter: Literal["generic-http-v1", "campuspass-v1", "runtime-v1"] = "generic-http-v1"
     token_env: str = Field(default="SERVICE_RECOVERY_TOKEN", pattern=r"^[A-Z][A-Z0-9_]{1,80}$")
     contract: Contract = Field(default_factory=Contract)
     integration: HTTPIntegration = Field(default_factory=HTTPIntegration)
     timeout_seconds: float = Field(default=2, ge=0.1, le=30)
     latency_ms: int = Field(default=1500, ge=50, le=30000)
     enabled: bool = True
+    automatic_detection: bool = True
     demo_enabled: bool = False
 
     @model_validator(mode="after")
     def registered_operations(self):
+        if self.project_type == "repository-deployment":
+            if not self.repository_monitoring or self.adapter != "runtime-v1" or self.base_url is not None or self.demo_enabled or self.contract.allowed or self.contract.approval_required or self.integration.operations:
+                raise ValueError("Repository monitoring requires runtime-v1, repository/deployments and no HTTP execution contract")
+            return self
+        if self.base_url is None or self.repository_monitoring is not None or self.adapter == "runtime-v1":
+            raise ValueError("HTTP projects require their original HTTP origin and adapter")
         if self.adapter == "generic-http-v1":
             registered = {o.name for o in self.integration.operations}
             if not set(self.contract.allowed).issubset(registered):
@@ -50,6 +60,8 @@ class Project(Strict):
     @field_validator("base_url")
     @classmethod
     def origin(cls, value):
+        if value is None:
+            return None
         parsed = urlparse(value)
         if parsed.scheme not in {"http", "https"} or not parsed.hostname or parsed.username or parsed.password or parsed.query or parsed.fragment or parsed.path not in {"", "/"}:
             raise ValueError("Use an HTTP origin without credentials, path, or query")
@@ -80,10 +92,13 @@ class ImportRequest(Strict):
     @classmethod
     def discard_legacy_model_override(cls, value):
         if isinstance(value, dict):
+            if value.get('mode') == 'complete' and len(str(value.get('requirements', '')).strip()) < 10:
+                raise ValueError('Describe what you want completed in at least 10 characters')
             return {key: item for key, item in value.items() if key != "model"}
         return value
 
     repository: str
+    mode: Literal['repair', 'complete'] = 'repair'
     requirements: str = Field(default="Diagnose and repair failures in the existing acceptance tests. Preserve intended behavior, payment validation, authorization, and all test files. Return a verified source patch.", min_length=10, max_length=20000)
     context: str = Field(default="", max_length=20000)
     acceptance_profile: Literal["auto", "python-pytest", "node-test", "javascript-vitest"] = "auto"

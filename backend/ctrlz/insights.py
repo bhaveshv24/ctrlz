@@ -3,7 +3,7 @@ import statistics
 import time
 
 
-def overview(store):
+def overview(store, runtime_monitor=None):
     incidents = store.incidents()
     durations, rejected, tools = [], 0, 0
     verified = [i for i in incidents if i["status"] == "resolved" and i.get("verification", {}).get("passed") is True]
@@ -17,6 +17,12 @@ def overview(store):
                 durations.append(max(0, min(finishes) - incident["created"]))
     projects = []
     for project in store.projects():
+        if project.get("project_type") == "repository-deployment":
+            coverage = runtime_monitor.coverage(project) if runtime_monitor else []
+            states = [d["state"] for d in coverage]
+            state = "paused" if not project.get("enabled", True) else "error_detected" if "error_detected" in states else "observing" if states and all(s == "observing" for s in states) else "no_recent_events" if states else "incomplete_configuration"
+            projects.append({"project":project,"state":state,"latest":None,"history":[],"runtime_coverage":coverage})
+            continue
         probes = store.probes(project["id"])
         latest = probes[-1] if probes else None
         state = "unknown"

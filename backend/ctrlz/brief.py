@@ -24,6 +24,14 @@ def receipt_markdown(receipt):
         if incident.get('suspect_commit'):
             suspect=incident['suspect_commit']
             lines.append('Suspect source commit: '+str(suspect.get('upstream_commit') or suspect['snapshot_commit']))
+    if incident.get('kind') == 'runtime':
+        import json
+        if incident.get('workflow_evidence'):
+            lines += ['', '## Approved workflow and affected operation', '', '```json', json.dumps(incident['workflow_evidence'],indent=2), '```']
+        lines += ['', '## Runtime evidence and source revision', '', 'Read-only investigation. Recommendations are not executed recovery.', '', '```json', json.dumps({'affected':incident.get('runtime_summary'), 'source':incident.get('source_evidence'), 'events':incident.get('runtime_samples')},indent=2), '```', '', '## Recovery recommendations awaiting human review', '']
+        for recommendation in incident.get('runtime_recommendations', []):
+            lines += [f"- {recommendation['id']} ({recommendation['category']}): {recommendation['summary']}", '  Rationale: '+recommendation['rationale'], '  Evidence: '+', '.join(recommendation['evidence_ids'])]
+        lines += ['', 'Review: '+json.dumps(incident.get('recommendation_review')), 'Execution permitted: false. No production recovery or test reproduction is claimed.']
     lines += ["", "## Independent acceptance checks", ""]
     lines.extend(f"- {'PASS' if value else 'FAIL'}: {key}" for key, value in verification.get("checks", {}).items())
     if not verification:

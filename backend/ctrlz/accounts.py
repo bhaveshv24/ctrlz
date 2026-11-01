@@ -61,10 +61,14 @@ class Accounts:
         else:
             with self.engine.connect() as connection:
                 db = connection.connection.driver_connection
-                db.row_factory = dict_row
-                with db.transaction():
-                    db.execute('SET LOCAL search_path TO ctrlz_accounts')
-                    yield PostgresAccountsConnection(db)
+                original_factory = db.row_factory
+                try:
+                    db.row_factory = dict_row
+                    with db.transaction():
+                        db.execute('SET LOCAL search_path TO ctrlz_accounts')
+                        yield PostgresAccountsConnection(db)
+                finally:
+                    db.row_factory = original_factory
 
     @staticmethod
     def public(row):
