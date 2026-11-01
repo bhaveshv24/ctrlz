@@ -1,3 +1,4 @@
+import RepositoryCheckGuide from "./RepositoryCheckGuide";
 import RecoveryProgress from "./RecoveryProgress";
 import MotionHeading from "./MotionHeading";
 import RuntimeIncident from "./RuntimeIncident";
@@ -457,6 +458,7 @@ export default function IncidentWorkspace({
               )}
               <section className="card">
                 <h2>Independent verification</h2>
+                {i.kind === "code" && i.import_request?.mode !== "complete" && <RepositoryCheckGuide profile={String((i as Incident & {repair_profile?:string}).repair_profile || baseline?.payload.profile || "")} repaired={verified} />}
                 {i.verification ? (
                   <CheckList checks={i.verification.checks} />
                 ) : (

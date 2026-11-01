@@ -5781,3 +5781,7 @@ p { text-wrap: pretty; }
 }
 [data-motion="on"] .incident-detail-page .outcome-duration b { color: var(--refine-ink); }
 [data-motion="on"] .incident-detail-page .outcome-banner > div > strong { color: var(--refine-ink); }
+.repository-check-guide { padding-block: 20px; border-block: 1px solid var(--refine-border); color: var(--refine-ink); }
+.repository-check-guide p { margin-block: 12px; line-height: 1.7; }
+.repository-check-guide small { display: block; color: var(--refine-muted); line-height: 1.7; }
+.repository-check-guide pre { padding: 16px; background: var(--refine-subtle); color: var(--refine-ink); overflow: auto; }
