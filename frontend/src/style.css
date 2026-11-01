@@ -5708,3 +5708,16 @@ p { text-wrap: pretty; }
 }
 [data-motion="on"] .main-content .continuation-form { --refine-surface: var(--polish-extra-7); }
 #root:has(.studio[data-ready]) .continuation-form.card:has(.plate-window) .plate-window svg { visibility: visible; }
+/* Secondary auth actions need light text on the cinematic login surface. */
+[data-motion="on"] .login-form form > .button.secondary {
+  background: var(--polish-extra-9);
+  color: var(--studio-paper);
+  border-color: var(--studio-lime);
+}
+[data-motion="on"] .login-form form > .button.secondary:hover:not(:disabled) {
+  background: var(--studio-lime);
+  color: var(--studio-ink);
+}
+[data-motion="on"] .login-form form > .button.secondary:focus-visible {
+  outline-color: var(--studio-lime);
+}
