@@ -141,7 +141,9 @@ export function plateRenderer(renderer: T.WebGLRenderer) {
   }
   return {
     draw(host: HTMLElement, time: number, wipe: number) {
-      const el = document.querySelector(".plate-window"),
+      const el = Array.from(document.querySelectorAll<HTMLElement>(".plate-window")).find(candidate =>
+          !candidate.closest(".continuation-form") && candidate.getClientRects().length > 0
+        ),
         model = el && plates.get(el),
         r = el?.getBoundingClientRect();
       host.classList.toggle("wiping", wipe > 0);

@@ -55,7 +55,6 @@ export default function ContinuationForm({
   const [mode, setMode] = useState<"repair" | "complete" | null>(null);
   const [kind, setKind] = useState("github"),
     [source, setSource] = useState(""),
-    [subdirectory, setSubdirectory] = useState(""),
     [file, setFile] = useState<File | null>(null),
     [snapshot, setSnapshot] = useState<Assessment | null>(null),
     [requirements, setRequirements] = useState(""),
@@ -126,7 +125,7 @@ export default function ContinuationForm({
               if (!file) throw new Error("Choose a repository ZIP first.");
               if (file.size > 25 * 1024 * 1024)
                 throw new Error("ZIP uploads must be under 25 MiB.");
-              const response = await fetch(API + "/repositories/upload?subdirectory=" + encodeURIComponent(subdirectory.trim()), {
+              const response = await fetch(API + "/repositories/upload", {
                 signal: AbortSignal.timeout(90000),
                 method: "POST",
                 headers: {
@@ -147,7 +146,6 @@ export default function ContinuationForm({
               imported = await api<Assessment>("/repositories/import", token, {
                 kind,
                 source,
-                subdirectory: subdirectory.trim(),
               });
             setSnapshot(imported);
             await scan(imported);
@@ -241,15 +239,6 @@ export default function ContinuationForm({
                   Public HTTPS repositories only. Private credentials are never requested.
                 </small>
               </label>
-              <label>
-                Package subdirectory <span className="optional">optional</span>
-                <input
-                  value={subdirectory}
-                  onChange={(e) => setSubdirectory(e.target.value)}
-                  placeholder="packages/my-service"
-                />
-                <small>Choose the package to test and repair, such as backend. The download preserves the full imported repository, including its frontend. A backend-only repository cannot include a separate frontend repository.</small>
-              </label>
             </>
           )}
           <div className="form-note">
@@ -260,10 +249,6 @@ export default function ContinuationForm({
               excluded. Tests run only in Docker.
             </span>
           </div>
-          {kind === "zip" && <label>Package subdirectory <span className="optional">optional</span>
-            <input value={subdirectory} onChange={e => setSubdirectory(e.target.value)} placeholder="backend" />
-            <small>Upload the full repository ZIP and select the package to repair. The download includes the full imported source, including the frontend.</small>
-          </label>}
           <button className="button primary" disabled={busy}>
             {busy ? (
               <LoaderCircle size={16} className="spin" />
