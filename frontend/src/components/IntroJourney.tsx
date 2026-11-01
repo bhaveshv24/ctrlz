@@ -13,7 +13,7 @@ const chapters = [
     eyebrow: "Scenario A / Development recovery",
     lines: ["A broken build."],
     description:
-      "Your AI-assisted development stops halfway. CtrlZ reconstructs the project state, identifies unfinished work, and helps you continue development without starting over.",
+      "Your AI-assisted development stops halfway, or the code is complete but you don’t trust it yet. CtrlZ inspects it for bugs and potential vulnerabilities, checks its health, and helps you move forward.",
   },
   {
     eyebrow: "Scenario B / Workflow recovery",
